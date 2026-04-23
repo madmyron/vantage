@@ -976,8 +976,7 @@ function openDax(pid){
   // Build context string from project
   const stage=sf(p.stage).label;
   const goal=p.goal||'not defined yet';
-  const convoSummary=Object.entries(p.convo||{}).filter(([k,v])=>v&&v.trim()).map(([k,v])=>`${k}: ${v.replace(/\[x\] /g,'').replace(/
-/g,', ')}`).join(' | ')||'none yet';
+  const convoSummary=Object.entries(p.convo||{}).filter(([k,v])=>v&&v.trim()).map(([k,v])=>`${k}: ${v.replace(/\[x\] /g,'').replace(/\n/g,', ')}`).join(' | ')||'none yet';
   const tickets=p.tickets.filter(t=>t.status==='todo').map(t=>t.title).join(', ')||'none';
 
   const context=`Project: "${p.name}" | Stage: ${stage} | Goal: ${goal} | Notes: ${convoSummary} | Open tickets: ${tickets}`;
@@ -1009,8 +1008,7 @@ function daxAddMsg(role,label,text){
   const msgs=document.getElementById('dax-messages');
   const div=document.createElement('div');
   div.className=`dax-msg ${role}`;
-  div.innerHTML=`<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/
-/g,'<br>')}</div>`;
+  div.innerHTML=`<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g,'<br>')}</div>`;
   msgs.appendChild(div);
   msgs.scrollTop=msgs.scrollHeight;
 }
