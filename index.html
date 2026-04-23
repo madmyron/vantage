@@ -1090,11 +1090,9 @@ async function daxSyncToConvo(){
   if(!p)return;
   const btn=document.querySelector('.dax-sync-btn');
   if(btn){btn.textContent='Saving...';btn.disabled=true;}
-
-  const transcript=daxHistory.filter(m=>m.role!=='system'&&!m.content.startsWith('[Project context')).map(m=>`${m.role==='user'?'Michael':'Dax'}: ${m.content}`).join('
-
-');
-
+  const sep=String.fromCharCode(10)+String.fromCharCode(10);
+  const lines=daxHistory.filter(function(m){return m.role!=='system'&&!m.content.startsWith('[Project context');});
+  const transcript=lines.map(function(m){return (m.role==='user'?'Michael':'Dax')+': '+m.content;}).join(sep);
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -1103,9 +1101,7 @@ async function daxSyncToConvo(){
         model:'claude-sonnet-4-20250514',
         max_tokens:1000,
         system:'You extract structured insights from a conversation between an entrepreneur and an AI advisor. Return ONLY a JSON object with these keys: Goal, Ideas, Financing, Marketing, Team, Timeline, Risks, "Action items". Each value is a short string summary of what was discussed on that topic. If a topic was not discussed, return an empty string for that key. No markdown, no preamble, just raw JSON.',
-        messages:[{role:'user',content:`Extract insights from this conversation:
-
-${transcript}`}]
+        messages:[{role:'user',content:'Extract insights from this conversation:\n\n'+transcript}]
       })
     });
     const data=await res.json();
@@ -1115,16 +1111,16 @@ ${transcript}`}]
       try{insights=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){insights=null;}
       if(insights){
         const newConvo={...p.convo};
-        Object.keys(insights).forEach(k=>{if(insights[k]&&insights[k].trim())newConvo[k]=insights[k];});
+        Object.keys(insights).forEach(function(k){if(insights[k]&&insights[k].trim())newConvo[k]=insights[k];});
         const updated={...p,convo:newConvo};
-        projects=projects.map(x=>x.id===p.id?updated:x);
+        projects=projects.map(function(x){return x.id===p.id?updated:x;});
         saveProject(updated);
-        if(btn){btn.textContent='✓ Saved to project notes';btn.style.background='var(--green-bg)';btn.style.borderColor='var(--green)';}
+        if(btn){btn.textContent='Saved to project notes';btn.style.background='var(--green-bg)';btn.style.borderColor='var(--green)';}
         return;
       }
     }
   }catch(err){console.error('Sync error:',err);}
-  if(btn){btn.textContent='Save failed — try again';btn.disabled=false;}
+  if(btn){btn.textContent='Save failed - try again';btn.disabled=false;}
 }
 
 function daxKeydown(e){
