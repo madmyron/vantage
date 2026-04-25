@@ -1,1445 +1,1902 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Vantage — Entrepreneurial OS</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vantage v11</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root {
-  --bg: #f5f4f0;
-  --bg2: #ffffff;
-  --bg3: #f0eeea;
-  --bg4: #e8e6e1;
-  --border: rgba(0,0,0,0.08);
-  --border2: rgba(0,0,0,0.14);
-  --text: #1a1a1a;
-  --text2: #555550;
-  --text3: #999990;
-  --accent: #5b4de0;
-  --accent2: #7c6af7;
-  --green: #1a8a52;
-  --green-bg: rgba(26,138,82,0.08);
-  --amber: #b06a10;
-  --amber-bg: rgba(176,106,16,0.08);
-  --red: #c03030;
-  --red-bg: rgba(192,48,48,0.08);
-  --blue: #1a6abf;
-  --blue-bg: rgba(26,106,191,0.08);
-  --radius: 10px;
-  --radius-sm: 6px;
-  --font: 'DM Sans', sans-serif;
-  --mono: 'DM Mono', monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
-body{min-height:100vh;padding:0}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* TOPBAR */
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-mark{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;letter-spacing:-.5px}
-.logo-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-.3px}
-.logo-sub{font-size:11px;color:var(--text3);margin-left:2px}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.ts{font-size:11px;color:var(--text3);font-family:var(--mono)}
-.btn{font-size:12px;padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s}
-.btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
-.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500}
-.btn-accent:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222536;
+    --border: #2e3150;
+    --text: #e2e8f0;
+    --muted: #7c85a8;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --info: #38bdf8;
+    --col-idea: #6366f1;
+    --col-plan: #a855f7;
+    --col-build: #3b82f6;
+    --col-launch: #06b6d4;
+    --col-active: #22c55e;
+    --col-paused: #f59e0b;
+    --dax-w: 360px;
+  }
 
-/* MAIN */
-.main{padding:20px 24px}
-.drag-hint{font-size:11px;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:6px}
-.drag-hint::before{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.6}
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-/* PIPELINE */
-.pipe-wrap{overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
-.pipeline{display:flex;align-items:flex-start;min-width:max-content;gap:0}
-.stage-col{width:148px;flex-shrink:0}
-.stage-head{padding:8px 6px 10px;text-align:center}
-.stage-pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;border-radius:6px;display:inline-block;white-space:nowrap;border:1.5px solid transparent;width:100%;text-align:center}
-.stage-ct{font-size:11px;font-weight:500;color:var(--text3);margin-top:4px;font-family:var(--mono)}
-.stage-body{padding:4px 6px;min-height:60px}
-.stage-body.drag-over{outline:1.5px dashed var(--green);border-radius:var(--radius);background:var(--green-bg)}
-.sdiv{width:1px;background:var(--border);margin-top:36px;flex-shrink:0}
+  /* ── TOP NAV ── */
+  header {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+    gap: 0;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -.5px;
+    color: var(--accent2);
+    margin-right: 24px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .logo span { color: var(--text); }
+  nav { display: flex; gap: 2px; flex: 1; }
+  nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  nav button:hover { background: var(--surface2); color: var(--text); }
+  nav button.active { background: var(--accent); color: #fff; }
 
-/* PROJECT CARD */
-.pcard{border-radius:var(--radius);padding:7px 9px;margin-bottom:5px;border:1px solid transparent;cursor:grab;user-select:none;transition:border-color .15s,opacity .15s;position:relative;overflow:hidden}
+  .header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .header-action-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .header-action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #sync-indicator {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  #sync-indicator .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+  }
+  #sync-indicator.syncing .dot { background: var(--warn); animation: pulse .8s infinite alternate; }
+  #sync-indicator.error .dot   { background: var(--danger); }
+  @keyframes pulse { to { opacity: .3; } }
 
-.pcard-expanded .card-actions-row{display:flex}
-.card-actions-row{display:none;flex-wrap:wrap;gap:3px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}
-.pcard-expanded .pcard-meta-row{display:flex}
-.pcard-meta-row{display:none;font-size:9px;opacity:.55;margin-top:4px;font-family:var(--mono)}
-.pcard-expanded .pcard-people{display:flex}
-.pcard-people{display:none;gap:2px;margin-top:3px}
+  .dax-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .dax-toggle-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .dax-toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:.8}
-.pcard.dragging{opacity:.25;cursor:grabbing}
-.pcard:hover{border-color:var(--border2)}
-.pcard-name{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:1px}
-.pcard-goal{font-size:10px;opacity:.6;line-height:1.3;margin-bottom:0}
-.pbar-wrap{height:2px;border-radius:2px;background:rgba(255,255,255,.07);margin-bottom:7px;overflow:hidden}
-.pbar{height:100%;border-radius:2px;transition:width .3s}
-.pcard-people{display:flex;gap:2px;margin-bottom:4px}
-.av{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600}
-.card-meta{font-size:9px;opacity:.55;margin-bottom:6px;font-family:var(--mono)}
-.card-btns{display:flex;gap:3px;flex-wrap:wrap}
-.cbtn{font-size:9px;padding:3px 7px;border-radius:4px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;color:inherit;font-family:var(--font);transition:background .1s;font-weight:500}
-.cbtn:hover{background:rgba(255,255,255,.12)}
-.cbtn-board{font-size:9px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--font);font-weight:600;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1)}
-.cbtn-board:hover{background:rgba(255,255,255,.18)}
-.move-wrap{position:relative;display:inline-block}
-.move-dd{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px;z-index:50;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.move-dd.open{display:block}
-.move-opt{display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;color:var(--text2)}
-.move-opt:hover{background:var(--bg3);color:var(--text)}
-.mdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  /* ── WORKSPACE ── */
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
 
-/* PANEL */
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:6px 0 4px}
-.ptabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap}
-.ptab{font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;color:var(--text3);border:none;background:transparent;font-family:var(--font);transition:all .1s}
-.ptab:hover{color:var(--text2)}
-.ptab.on{background:var(--bg3);color:var(--text);font-weight:500}
-.fl{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.fl-lbl{font-size:11px;color:var(--text3);width:68px;flex-shrink:0}
-input.fi,select.fi,textarea.fi{flex:1;font-size:12px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg3);color:var(--text);font-family:var(--font);outline:none;transition:border-color .15s}
-input.fi:focus,select.fi:focus,textarea.fi:focus{border-color:var(--accent)}
-textarea.fi{resize:vertical;min-height:44px}
-select.fi option{background:var(--bg3)}
-.sec-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px}
+  /* ── MAIN PANEL ── */
+  .main-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: margin-right .25s cubic-bezier(.4,0,.2,1);
+  }
 
-/* TICKETS */
-.tk-stats{display:flex;gap:8px;margin-bottom:10px}
-.tk-stat{flex:1;background:var(--bg3);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;border:1px solid var(--border)}
-.tk-stat-n{font-size:18px;font-weight:600;color:var(--text)}
-.tk-stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
-.tickets-board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.tk-col{background:var(--bg3);border-radius:var(--radius-sm);padding:8px;border:1px solid var(--border)}
-.tk-col-head{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
-.ticket{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;margin-bottom:6px;transition:border-color .1s}
-.ticket:hover{border-color:var(--border2)}
-.tk-id{font-size:9px;color:var(--text3);margin-bottom:3px;font-family:var(--mono)}
-.tk-title{font-size:11px;font-weight:500;margin-bottom:5px;line-height:1.4;color:var(--text)}
-.tk-meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
-.tk-pri{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500;font-family:var(--mono)}
-.pri-high{background:var(--red-bg);color:var(--red)}
-.pri-med{background:var(--amber-bg);color:var(--amber)}
-.pri-low{background:var(--green-bg);color:var(--green)}
-.tk-move-btns{display:flex;gap:3px;flex-wrap:wrap}
-.tk-mbtn{font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font);transition:all .1s}
-.tk-mbtn:hover{background:var(--bg4);color:var(--text)}
-.add-tk{display:flex;flex-direction:column;gap:5px;margin-top:6px}
-.add-tk-row{display:flex;gap:4px}
-.add-tk-row input{flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
-.add-tk-row input:focus{border-color:var(--accent)}
-.add-tk-row select{font-size:10px;padding:4px 6px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text2);font-family:var(--font)}
-.add-tk button{font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .1s}
-.add-tk button:hover{background:var(--bg3);color:var(--text)}
+  /* ── VIEWS ── */
+  .view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .view.active { display: flex; }
 
-/* CONTACTS */
-.contact-card{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border)}
-.contact-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
-.contact-info{flex:1;min-width:0}
-.contact-name{font-size:12px;font-weight:600;margin-bottom:1px}
-.contact-role{font-size:10px;color:var(--text3);margin-bottom:4px}
-.contact-tag{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:500;display:inline-block}
-.tag-team{background:var(--amber-bg);color:var(--amber)}
-.tag-investor{background:var(--blue-bg);color:var(--blue)}
-.tag-partner{background:rgba(124,106,247,.15);color:var(--accent2)}
-.tag-client{background:var(--green-bg);color:var(--green)}
-.tag-vendor{background:var(--bg4);color:var(--text2)}
-.tag-press{background:var(--red-bg);color:var(--red)}
-.add-contact{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
-.add-contact input,.add-contact select{font-size:11px;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font-family:var(--font);outline:none}
-.add-contact input:focus{border-color:var(--accent)}
-.add-contact-full{grid-column:1/-1}
+  /* ── PIPELINE VIEW ── */
+  .stages-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px 8px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .stages-bar::-webkit-scrollbar { height: 4px; }
+  .stages-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* FINANCES */
-.fin-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.fin-card{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;border:1px solid var(--border)}
-.fin-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:4px}
-.fin-val{font-size:18px;font-weight:600;font-family:var(--mono)}
-.fin-val.green{color:var(--green)}.fin-val.red{color:var(--red)}
-.fin-table{width:100%;border-collapse:collapse;margin-bottom:10px}
-.fin-table th{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
-.fin-table td{font-size:11px;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text2)}
-.fin-table tr:last-child td{border-bottom:none}
-.fin-type{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:500}
-.type-revenue{background:var(--green-bg);color:var(--green)}
-.type-expense{background:var(--red-bg);color:var(--red)}
-.type-investment{background:var(--blue-bg);color:var(--blue)}
-.type-grant{background:rgba(124,106,247,.15);color:var(--accent2)}
-.add-fin{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:6px;align-items:center}
-.add-fin input,.add-fin select{font-size:11px;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font-family:var(--font);outline:none}
-.add-fin button{font-size:11px;padding:5px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .1s}
-.add-fin button:hover{background:var(--bg3);color:var(--text)}
+  .stage-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid transparent;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all .15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .stage-filter .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stage-filter:hover, .stage-filter.active { color: var(--text); border-color: currentColor; }
+  .stage-filter[data-stage="Idea"]   .dot { background: var(--col-idea); }
+  .stage-filter[data-stage="Plan"]   .dot { background: var(--col-plan); }
+  .stage-filter[data-stage="Build"]  .dot { background: var(--col-build); }
+  .stage-filter[data-stage="Launch"] .dot { background: var(--col-launch); }
+  .stage-filter[data-stage="Active"] .dot { background: var(--col-active); }
+  .stage-filter[data-stage="Paused"] .dot { background: var(--col-paused); }
+  .stage-filter[data-stage="Idea"]:hover,   .stage-filter[data-stage="Idea"].active   { color: var(--col-idea); }
+  .stage-filter[data-stage="Plan"]:hover,   .stage-filter[data-stage="Plan"].active   { color: var(--col-plan); }
+  .stage-filter[data-stage="Build"]:hover,  .stage-filter[data-stage="Build"].active  { color: var(--col-build); }
+  .stage-filter[data-stage="Launch"]:hover, .stage-filter[data-stage="Launch"].active { color: var(--col-launch); }
+  .stage-filter[data-stage="Active"]:hover, .stage-filter[data-stage="Active"].active { color: var(--col-active); }
+  .stage-filter[data-stage="Paused"]:hover, .stage-filter[data-stage="Paused"].active { color: var(--col-paused); }
 
-/* CONVO */
-.goal-box{background:var(--bg3);border-left:3px solid var(--green);padding:10px 14px;margin-bottom:12px;border-radius:0 var(--radius-sm) var(--radius-sm) 0}
-.convo-sect{margin-bottom:12px}
-.convo-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px}
-.item-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px}
-.item-cb{width:14px;height:14px;margin-top:1px;cursor:pointer;flex-shrink:0;accent-color:var(--green)}
-.item-txt{font-size:11px;flex:1;line-height:1.5;color:var(--text2)}
-.item-txt.done{text-decoration:line-through;color:var(--text3)}
-.item-rm{font-size:13px;color:var(--text3);cursor:pointer;border:none;background:transparent;line-height:1;transition:color .1s}
-.item-rm:hover{color:var(--red)}
-.add-item{display:flex;gap:5px;margin-top:5px}
-.add-item input{flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font-family:var(--font);outline:none}
-.add-item input:focus{border-color:var(--accent)}
-.add-item button{font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .1s}
-.add-item button:hover{background:var(--bg3);color:var(--text)}
+  .pipeline-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 18px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+    align-content: start;
+  }
+  .pipeline-grid::-webkit-scrollbar { width: 5px; }
+  .pipeline-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* TEAM */
-.person-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border)}
-.person-row:last-of-type{border-bottom:none}
-.pname{font-size:11px;flex:1;color:var(--text2)}
-.ptag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
-.te{background:var(--blue-bg);color:var(--blue)}.tv{background:var(--bg4);color:var(--text3)}
-.th{background:var(--amber-bg);color:var(--amber)}.tvis{background:var(--green-bg);color:var(--green)}
-.tog{width:28px;height:16px;border-radius:8px;border:none;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
-.tog-on{background:var(--green)}.tog-off{background:var(--bg4)}
-.tog::after{content:'';position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;top:3px;transition:left .15s}
-.tog-on::after{left:15px}.tog-off::after{left:3px}
-.psel{font-size:10px;padding:3px 5px;border:1px solid var(--border2);border-radius:4px;background:var(--bg3);color:var(--text2);font-family:var(--font)}
-.rm{font-size:14px;color:var(--text3);cursor:pointer;border:none;background:transparent;line-height:1;transition:color .1s}
-.rm:hover{color:var(--red)}
-.add-pr{display:flex;gap:5px;margin-top:8px}
-.add-pr input,.add-pr select{font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text);font-family:var(--font);outline:none}
-.add-pr input{flex:1}
-.add-pr input:focus{border-color:var(--accent)}
-.add-pr button{font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .1s}
-.add-pr button:hover{background:var(--bg3);color:var(--text)}
+  .project-tile {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .tile-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity .12s;
+    pointer-events: none;
+  }
+  .project-tile:hover .tile-actions { opacity: 1; pointer-events: auto; }
+  .tile-action-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: rgba(26,29,39,.95);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  .tile-action-btn:hover { color: #fff; border-color: var(--accent); background: var(--accent); }
+  .project-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,.35);
+    border-color: var(--accent);
+  }
+  .tile-header { height: 5px; }
+  .tile-body   { padding: 14px; }
+  .tile-stage  { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 5px; }
+  .tile-name   { font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+  .tile-goal   { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tile-stats  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .tile-pip-count { font-size: 11px; color: var(--muted); }
+  .tile-pip-count strong { color: var(--text); font-size: 13px; }
+  .tile-pct    { font-size: 13px; font-weight: 700; }
+  .tile-progress { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .tile-progress-fill { height: 100%; border-radius: 3px; }
 
-/* COLOR SWATCHES */
-.color-grid{display:flex;gap:6px;flex-wrap:wrap}
-.cswatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s}
-.cswatch:hover{transform:scale(1.15)}
-.cswatch.sel{border-color:rgba(255,255,255,.7)}
+  /* ── ALL PIPs VIEW ── */
+  .pip-table-wrap { flex: 1; overflow: auto; padding: 14px 18px 18px; }
+  .pip-table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+  .pip-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .pip-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pip-table th {
+    text-align: left; padding: 7px 10px; color: var(--muted); font-weight: 600; font-size: 11px;
+    letter-spacing: .5px; text-transform: uppercase; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 1; white-space: nowrap;
+  }
+  .pip-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+  .pip-table tbody tr { cursor: pointer; transition: background .12s; }
+  .pip-table tbody tr:hover { background: var(--surface); }
 
-/* SUB-BOARD */
-.subboard-wrap{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin:6px 0 4px;border:1px solid var(--border)}
-.subboard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
-.subboard-title{font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
-.subboard-header-btns{display:flex;gap:6px;align-items:center}
-.sub-pipeline{display:flex;overflow-x:auto;gap:0;padding-bottom:4px}
-.sub-stage-col{min-width:130px;flex-shrink:0}
-.sub-stage-head{padding:4px 6px 7px;text-align:center}
-.sub-stage-pill{font-size:9px;font-weight:500;padding:2px 9px;border-radius:20px;display:inline-block;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;border:1px solid transparent}
-.sub-stage-body{padding:3px 5px;min-height:40px}
-.sub-stage-body.drag-over{outline:1.5px dashed var(--green);border-radius:8px;background:var(--green-bg)}
-.sub-sdiv{width:1px;background:var(--border);margin-top:28px;flex-shrink:0}
-.sub-card{border-radius:var(--radius-sm);padding:8px 9px;margin-bottom:6px;border:1px solid transparent;cursor:grab;user-select:none;transition:border-color .1s}
-.sub-card:hover{border-color:var(--border2)}
-.sub-card.dragging{opacity:.25;cursor:grabbing}
-.sub-card-name{font-size:11px;font-weight:600;margin-bottom:2px;line-height:1.3}
-.sub-card-desc{font-size:10px;opacity:.55;margin-bottom:5px;line-height:1.3}
-.sub-card-btns{display:flex;gap:3px;flex-wrap:wrap}
-.scbtn{font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);cursor:pointer;color:inherit;font-family:var(--font);transition:background .1s}
-.scbtn:hover{background:rgba(255,255,255,.12)}
-.sub-move-wrap{position:relative;display:inline-block}
-.sub-move-dd{display:none;position:absolute;top:calc(100% + 3px);left:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:4px;z-index:60;min-width:100px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.sub-move-dd.open{display:block}
-.sub-note-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin:5px 0 3px}
-.sub-notes-area{width:100%;font-size:11px;padding:6px 9px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-family:var(--font);resize:vertical;min-height:60px;margin-bottom:7px;outline:none}
-.sub-notes-area:focus{border-color:var(--accent)}
-.sub-tk-col{background:var(--bg3);border-radius:5px;padding:7px;border:1px solid var(--border)}
-.sub-tk-col-head{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between}
-.sub-ticket{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:6px 7px;margin-bottom:4px}
-.sub-tk-title{font-size:10px;font-weight:500;margin-bottom:4px;line-height:1.3;color:var(--text2)}
-.sub-tk-btns{display:flex;gap:2px}
-.sub-tk-btn{font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font);transition:all .1s}
-.sub-tk-btn:hover{background:var(--bg3);color:var(--text)}
-.add-sub-tk{display:flex;gap:4px;margin-top:5px}
-.add-sub-tk input{flex:1;font-size:10px;padding:3px 7px;border:1px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
-.add-sub-tk input:focus{border-color:var(--accent)}
-.add-sub-tk button{font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .1s}
-.add-sub-tk button:hover{background:var(--bg3);color:var(--text)}
+  /* ── TEAM VIEW ── */
+  .team-grid { flex: 1; overflow-y: auto; padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; align-content: start; }
+  .team-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; cursor: pointer; transition: border-color .15s, transform .15s; }
+  .team-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .team-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .team-card:hover .team-actions { opacity: 1; }
+  .team-action-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .team-action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .member-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; margin-bottom: 10px; color: #fff; }
+  .member-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+  .member-role { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .member-stats { display: flex; gap: 14px; }
+  .member-stat { text-align: center; }
+  .member-stat-num { font-size: 19px; font-weight: 700; }
+  .member-stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .member-pip-list { margin-top: 10px; }
+  .member-pip-item { font-size: 11px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .member-pip-item:last-child { border-bottom: none; }
 
-/* MODAL */
+  /* ── FINANCES VIEW ── */
+  .finances-wrap { flex: 1; overflow-y: auto; padding: 20px 18px; }
+  .finances-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .fin-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .fin-card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
+  .fin-card-value { font-size: 24px; font-weight: 700; }
+  .fin-card-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .fin-table-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+  .fin-table-shell { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  .fin-table-shell::-webkit-scrollbar { height: 5px; }
+  .fin-table-shell::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .fin-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1120px; }
+  .fin-table th { text-align: left; padding: 7px 10px; color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .fin-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .fin-input {
+    width: 100%;
+    min-width: 82px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+  }
+  .fin-input:focus { border-color: var(--accent); }
+  .fin-reset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .fin-reset-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* DAX CHAT */
-.dax-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;padding:20px}
-.dax-overlay.open{display:flex}
-.dax-panel{background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border2);width:600px;height:70vh;min-width:400px;min-height:400px;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.35);resize:both;overflow:hidden;position:relative}
-.dax-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:move;user-select:none}
-.dax-avatar{width:32px;height:32px;border-radius:50%;background:#5b4de0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
-.dax-header-info{flex:1}
-.dax-name{font-size:13px;font-weight:600;color:var(--text)}
-.dax-status{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px}
-.dax-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
-.dax-close{font-size:18px;color:var(--text3);cursor:pointer;border:none;background:transparent;line-height:1;padding:2px 6px}
-.dax-close:hover{color:var(--text)}
-.dax-project-badge{padding:6px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:10px;color:var(--text3);flex-shrink:0}
-.dax-project-badge span{color:var(--text2);font-weight:500}
-.dax-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:0}
-.dax-msg{max-width:88%;line-height:1.5}
-.dax-msg.dax{align-self:flex-start}
-.dax-msg.user{align-self:flex-end}
-.dax-bubble{padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.5}
-.dax-msg.dax .dax-bubble{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px 12px 12px 12px}
-.dax-msg.user .dax-bubble{background:#5b4de0;color:#fff;border-radius:12px 12px 4px 12px}
-.dax-msg-label{font-size:9px;color:var(--text3);margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
-.dax-typing{display:flex;gap:4px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:4px 12px 12px 12px;width:fit-content}
-.dax-typing span{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:daxtype 1.2s infinite}
-.dax-typing span:nth-child(2){animation-delay:.2s}
-.dax-typing span:nth-child(3){animation-delay:.4s}
-@keyframes daxtype{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-.dax-footer{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
-.dax-input{flex:1;font-size:13px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font-family:var(--font);resize:none;outline:none;max-height:100px;line-height:1.5}
-.dax-input:focus{border-color:#5b4de0}
-.dax-send{width:32px;height:32px;border-radius:8px;background:#5b4de0;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
-.dax-send:hover{background:#4a3cc8}
-.dax-send svg{width:14px;height:14px;fill:#fff}
-.dax-sync-btn{width:100%;font-size:11px;padding:8px;border-radius:6px;border:1px solid var(--green);background:var(--green-bg);color:var(--green);cursor:pointer;font-family:var(--font);font-weight:500;margin-top:4px;transition:background .15s}
-.dax-sync-btn:hover{background:rgba(26,138,82,.15)}
-.cbtn-dax{font-size:9px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--font);font-weight:700;border:1.5px solid rgba(91,77,224,.5);background:rgba(91,77,224,.12);letter-spacing:.02em}
-.cbtn-dax:hover{background:rgba(91,77,224,.22)}
+  /* ── BADGES ── */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; }
+  .badge-status-open        { background: rgba(99,102,241,.2); color: #818cf8; }
+  .badge-status-in-progress { background: rgba(59,130,246,.2);  color: #60a5fa; }
+  .badge-status-review      { background: rgba(245,158,11,.2);  color: #fbbf24; }
+  .badge-status-complete    { background: rgba(34,197,94,.2);   color: #4ade80; }
+  .badge-status-blocked     { background: rgba(239,68,68,.2);   color: #f87171; }
+  .badge-prio-critical { background: rgba(239,68,68,.2);   color: #f87171; }
+  .badge-prio-high     { background: rgba(245,158,11,.2);  color: #fbbf24; }
+  .badge-prio-medium   { background: rgba(99,102,241,.2);  color: #818cf8; }
+  .badge-prio-low      { background: rgba(100,116,139,.2); color: #94a3b8; }
+  .badge-cat { background: var(--surface2); color: var(--muted); }
+  .stage-chip { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; }
 
+  /* ── PIP DRAWER ── */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; backdrop-filter: blur(2px); }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: -520px; width: 500px; height: 100vh;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 101; transition: right .25s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .drawer.open { right: 0; }
+  .drawer-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 22px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .drawer-header-left { flex: 1; min-width: 0; }
+  .drawer-pip-id { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .5px; margin-bottom: 5px; }
+  .drawer-title { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; margin-left: 10px; flex-shrink: 0; line-height: 1; transition: color .15s, background .15s; }
+  .drawer-close:hover { color: var(--text); background: var(--surface2); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+  .drawer-body::-webkit-scrollbar { width: 4px; }
+  .drawer-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .drawer-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; }
+  .drawer-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .drawer-field { display: flex; flex-direction: column; gap: 3px; }
+  .drawer-field-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .drawer-field-value { font-size: 13px; font-weight: 500; }
+  .drawer-section-title { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
+  .drawer-description { font-size: 13px; color: var(--text); line-height: 1.7; background: var(--surface2); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .drawer-project-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: var(--surface2); }
+  .drawer-description.input {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    outline: none;
+  }
+  .drawer-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .drawer-btn {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .drawer-btn:hover { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .drawer-btn.danger:hover { border-color: var(--danger); background: var(--danger); color: #fff; }
+  .drawer-edit {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+  }
+  .drawer-edit:focus { border-color: var(--accent); }
+  .drawer-edit.select { appearance: none; }
 
-.proj-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;align-items:center;justify-content:center;padding:20px}
-.proj-modal-overlay.open{display:flex}
-.proj-modal{background:var(--bg2);border-radius:14px;border:1px solid var(--border2);width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.3);overflow:hidden}
-.proj-modal-header{padding:16px 20px 0;flex-shrink:0}
-.proj-modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-.proj-modal-title{font-size:20px;font-weight:700;color:var(--text);line-height:1.2}
-.proj-modal-desc{font-size:12px;color:var(--text3);margin-top:3px}
-.proj-modal-close{font-size:22px;color:var(--text3);cursor:pointer;border:none;background:transparent;line-height:1;padding:2px 6px;flex-shrink:0;margin-top:-2px}
-.proj-modal-close:hover{color:var(--text)}
-.proj-modal-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);padding-bottom:0}
-.proj-modal-tab{font-size:12px;padding:8px 14px;cursor:pointer;color:var(--text3);border:none;background:transparent;font-family:var(--font);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-weight:500}
-.proj-modal-tab:hover{color:var(--text2)}
-.proj-modal-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-.proj-modal-body{flex:1;overflow-y:auto;padding:18px 20px;min-height:0}
-.proj-modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg3)}
-.stage-badge{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
-.pm-section{margin-bottom:18px}
-.pm-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px}
-.pm-goal-box{background:var(--bg3);border-left:3px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:16px}
-.pm-field{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.pm-field-label{font-size:11px;color:var(--text3);width:72px;flex-shrink:0}
-.tk-board-modal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.proj-modal-sticker{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)}
-.proj-modal-sticker-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+  /* ── DAX PANEL ── */
+  .dax-panel {
+    width: 0;
+    min-width: 0;
+    border-left: 1px solid transparent;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width .25s cubic-bezier(.4,0,.2,1), border-color .25s, min-width .25s;
+    flex-shrink: 0;
+  }
+  .dax-panel.open {
+    width: var(--dax-w);
+    min-width: var(--dax-w);
+    border-color: var(--border);
+  }
 
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex}
-.modal{background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border2);padding:20px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
-.modal-title{font-size:15px;font-weight:600;margin-bottom:14px;color:var(--text)}
-.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+  .dax-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .dax-header-left { display: flex; align-items: center; gap: 8px; }
+  .dax-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .dax-name { font-weight: 700; font-size: 14px; }
+  .dax-subtitle { font-size: 10px; color: var(--muted); }
+  .dax-clear-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 3px 7px; border-radius: 5px; transition: background .12s, color .12s; }
+  .dax-clear-btn:hover { background: var(--surface2); color: var(--text); }
 
-/* SCROLLBAR */
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+  .dax-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dax-messages::-webkit-scrollbar { width: 4px; }
+  .dax-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .dax-msg {
+    max-width: 88%;
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .dax-msg.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 3px;
+  }
+  .dax-msg.assistant {
+    align-self: flex-start;
+    background: var(--surface2);
+    color: var(--text);
+    border-bottom-left-radius: 3px;
+  }
+  .dax-msg.assistant strong { color: var(--accent2); }
+  .dax-msg ul { padding-left: 16px; margin: 4px 0; }
+  .dax-msg li { margin-bottom: 2px; }
+
+  .dax-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    gap: 8px;
+    color: var(--muted);
+  }
+  .dax-empty .dax-empty-icon {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: #fff;
+    margin-bottom: 4px;
+  }
+  .dax-empty h3 { font-size: 14px; color: var(--text); }
+  .dax-empty p  { font-size: 12px; line-height: 1.5; }
+
+  .dax-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    flex-shrink: 0;
+  }
+  .dax-suggestion {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+    text-align: left;
+  }
+  .dax-suggestion:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .dax-input-area {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .dax-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 12.5px;
+    padding: 8px 11px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.4;
+    max-height: 100px;
+    overflow-y: auto;
+    transition: border-color .15s;
+  }
+  .dax-input:focus { border-color: var(--accent); }
+  .dax-input::placeholder { color: var(--muted); }
+  .dax-send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    width: 34px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: background .15s;
+    align-self: flex-end;
+    height: 34px;
+  }
+  .dax-send-btn:hover { background: var(--accent2); }
+  .dax-send-btn:disabled { background: var(--surface2); cursor: default; }
+
+  .dax-thinking {
+    align-self: flex-start;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border-radius: 12px;
+    border-bottom-left-radius: 3px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .dax-thinking span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: bounce .8s infinite alternate; }
+  .dax-thinking span:nth-child(2) { animation-delay: .15s; }
+  .dax-thinking span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { to { transform: translateY(-4px); opacity: .4; } }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── UTILITIES ── */
+  .no-results { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 14px; }
+
+  @media (max-width: 640px) {
+    .drawer { width: 100%; right: -100%; }
+    .pipeline-grid { grid-template-columns: 1fr; }
+    .drawer-fields { grid-template-columns: 1fr; }
+    :root { --dax-w: 100vw; }
+  }
 </style>
 </head>
 <body>
 
-<div id="loading-screen" style="position:fixed;inset:0;background:#f5f4f0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;font-family:var(--font,DM Sans,sans-serif)">
-  <div style="width:36px;height:36px;background:#5b4de0;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:16px">V</div>
-  <div style="font-size:14px;color:#999990" id="loading-msg">Loading your projects...</div>
-</div>
-
-<div class="topbar">
-  <div class="logo">
-    <div class="logo-mark">V</div>
-    <div>
-      <span class="logo-name">Vantage</span>
-      <span class="logo-sub">— entrepreneurial OS</span>
-    </div>
+<!-- TOP NAV -->
+<header>
+  <div class="logo">Vant<span>age</span></div>
+  <nav>
+    <button class="active" data-view="pipeline">Pipeline</button>
+    <button data-view="all-pips">All PIPs</button>
+    <button data-view="team">Team</button>
+    <button data-view="finances">Finances</button>
+  </nav>
+  <div class="header-right">
+    <button class="header-action-btn" id="new-project-btn">+ Project</button>
+    <button class="header-action-btn" id="new-pip-btn">+ PIP</button>
+    <button class="header-action-btn" id="new-team-btn">+ Member</button>
+    <div id="sync-indicator"><span class="dot"></span><span id="sync-text">Synced</span></div>
+    <button class="dax-toggle-btn" id="dax-toggle-btn">✦ Ask Dax</button>
   </div>
-  <div class="topbar-right">
-    <span class="ts" id="ts"></span>
-    <button class="btn btn-accent" onclick="openAdd()">+ New project</button>
-  </div>
-</div>
+</header>
 
-<div class="main">
-  <div class="drag-hint">Drag cards between stages &nbsp;·&nbsp; click Board for sub-whiteboard &nbsp;·&nbsp; use Move ▾ to jump stages</div>
-  <div class="pipe-wrap"><div class="pipeline" id="pipeline"></div></div>
-  <div id="detail-area"></div>
-</div>
+<div class="workspace">
 
-<div class="proj-modal-overlay" id="proj-modal-overlay">
-  <div class="proj-modal" id="proj-modal">
-    <div class="proj-modal-header" id="proj-modal-header"></div>
-    <div class="proj-modal-body" id="proj-modal-body"></div>
-    <div class="proj-modal-footer" id="proj-modal-footer"></div>
-  </div>
-</div>
+  <!-- MAIN PANEL -->
+  <div class="main-panel" id="main-panel">
 
-<div class="dax-overlay" id="dax-overlay">
+    <!-- ══ PIPELINE VIEW ══ -->
+    <section class="view active" id="view-pipeline">
+      <div class="stages-bar" id="stages-bar"></div>
+      <div class="pipeline-grid" id="pipeline-grid"></div>
+    </section>
+
+    <!-- ══ ALL PIPs VIEW ══ -->
+    <section class="view" id="view-all-pips">
+      <div class="pip-table-wrap">
+        <table class="pip-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Project</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Assigned To</th>
+              <th>Due Date</th>
+            </tr>
+          </thead>
+          <tbody id="all-pips-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ══ TEAM VIEW ══ -->
+    <section class="view" id="view-team">
+      <div class="team-grid" id="team-grid"></div>
+    </section>
+
+    <!-- ══ FINANCES VIEW ══ -->
+    <section class="view" id="view-finances">
+      <div class="finances-wrap">
+        <div class="finances-summary" id="fin-summary"></div>
+        <div class="fin-table-title">Budget and finance fields by project</div>
+        <div class="fin-table-shell">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <th>Project</th><th>Stage</th><th>Budget</th><th>Spent</th>
+                <th>MRR</th><th>One-Time</th><th>Proj MRR</th>
+                <th>Dev Cost</th><th>Marketing</th><th>Tools</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-panel -->
+
+  <!-- DAX PANEL -->
   <div class="dax-panel" id="dax-panel">
     <div class="dax-header">
-      <div class="dax-avatar">D</div>
-      <div class="dax-header-info">
-        <div class="dax-name">Dax</div>
-        <div class="dax-status">ready</div>
+      <div class="dax-header-left">
+        <div class="dax-avatar">D</div>
+        <div>
+          <div class="dax-name">Dax</div>
+          <div class="dax-subtitle">AI Advisor</div>
+        </div>
       </div>
-      <button class="dax-close" onclick="closeDax()">×</button>
+      <button class="dax-clear-btn" id="dax-clear-btn">Clear</button>
     </div>
-    <div class="dax-project-badge" id="dax-project-badge">Project: <span id="dax-project-name">—</span></div>
-    <div class="dax-messages" id="dax-messages"></div>
-    <div class="dax-footer">
-      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
-      <button class="dax-send" onclick="daxSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+    <div class="dax-messages" id="dax-messages">
+      <div class="dax-empty" id="dax-empty">
+        <div class="dax-empty-icon">D</div>
+        <h3>Hi, I'm Dax</h3>
+        <p>Your AI advisor for Vantage.<br/>Ask me anything about your projects, PIPs, team, or finances.</p>
+      </div>
     </div>
+    <div class="dax-suggestions" id="dax-suggestions">
+      <button class="dax-suggestion" data-q="What are my highest priority open PIPs right now?">What are my highest priority open PIPs?</button>
+      <button class="dax-suggestion" data-q="Which projects are at risk of going over budget?">Which projects are over budget risk?</button>
+      <button class="dax-suggestion" data-q="Who on the team has the most open items?">Who has the most open items?</button>
+    </div>
+    <div class="dax-input-area">
+      <textarea class="dax-input" id="dax-input" placeholder="Ask Dax anything…" rows="1"></textarea>
+      <button class="dax-send-btn" id="dax-send-btn" title="Send">&#9658;</button>
+    </div>
+  </div>
+
+</div><!-- /workspace -->
+
+<!-- PIP DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="pip-drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-left">
+      <div class="drawer-pip-id" id="d-id"></div>
+      <div class="drawer-title" id="d-title"></div>
+    </div>
+    <button class="drawer-close" id="drawer-close">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-badges" id="d-badges"></div>
+    <div class="drawer-fields" id="d-fields"></div>
+    <div class="drawer-section-title">Description</div>
+    <textarea class="drawer-description input" id="d-desc" rows="6"></textarea>
+    <div class="drawer-section-title">Project</div>
+    <div id="d-project"></div>
+    <div class="drawer-actions" id="d-actions"></div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-overlay" onclick="e=>e.target===this&&closeModal()">
-  <div class="modal" id="modal-inner"></div>
-</div>
+<div id="toast"></div>
 
 <script>
-const STAGES=[
-  {id:'idea',       label:'Idea',        pct:0,   sf:'#777770',sc:'rgba(120,120,110,.12)'},
-  {id:'convo',      label:'Conversation',pct:14,  sf:'#5b4de0',sc:'rgba(91,77,224,.12)'},
-  {id:'plan',       label:'Plan',        pct:28,  sf:'#1a6abf',sc:'rgba(26,106,191,.12)'},
-  {id:'evaluate',   label:'Evaluate',    pct:43,  sf:'#b06a10',sc:'rgba(176,106,16,.12)'},
-  {id:'initiate',   label:'Initiate',    pct:57,  sf:'#c04420',sc:'rgba(192,68,32,.12)'},
-  {id:'inprogress', label:'In progress', pct:71,  sf:'#a01860',sc:'rgba(160,24,96,.12)'},
-  {id:'complete',   label:'Complete',    pct:86,  sf:'#1a7a30',sc:'rgba(26,122,48,.12)'},
-  {id:'goal',       label:'Goal ★',      pct:100, sf:'#0a6040',sc:'rgba(10,96,64,.12)'},
-];
-const PC=[
-  {bg:'#c8c0f8',  bd:'#8070e0',  tx:'#1e1060', bar:'#4830c0'},
-  {bg:'#f8b8b0',  bd:'#e06050',  tx:'#6a1008', bar:'#c03020'},
-  {bg:'#a8d4f8',  bd:'#3a80d0',  tx:'#08306a', bar:'#1a60b8'},
-  {bg:'#f8b0d8',  bd:'#d040a0',  tx:'#6a0838', bar:'#b02080'},
-  {bg:'#f8d898',  bd:'#d08020',  tx:'#6a3800', bar:'#b06010'},
-  {bg:'#98e8b8',  bd:'#20a850',  tx:'#004820', bar:'#108040'},
-  {bg:'#88e8d0',  bd:'#10a880',  tx:'#003828', bar:'#088060'},
-  {bg:'#e8e068',  bd:'#a8a010',  tx:'#484800', bar:'#888000'},
-];
-const SUB_COLORS=[
-  {bg:'#c8c0f8',bd:'#8070e0',tx:'#1e1060'},
-  {bg:'#a8d4f8',bd:'#3a80d0',tx:'#08306a'},
-  {bg:'#f8d898',bd:'#d08020',tx:'#6a3800'},
-  {bg:'#88e8d0',bd:'#10a880',tx:'#003828'},
-  {bg:'#f8b8b0',bd:'#e06050',tx:'#6a1008'},
-  {bg:'#f8b0d8',bd:'#d040a0',tx:'#6a0838'},
-  {bg:'#98e8b8',bd:'#20a850',tx:'#004820'},
-  {bg:'#e8e068',bd:'#a8a010',tx:'#484800'},
-];
-const CTOPICS=['Goal','Ideas','Financing','Marketing','Team','Timeline','Risks','Action items'];
-const CONTACT_TYPES=['team','investor','partner','client','vendor','press'];
-const FIN_TYPES=['revenue','expense','investment','grant'];
-const AC=[
-  {bg:'#c8c0f8',tc:'#1e1060'},{bg:'#a8d4f8',tc:'#08306a'},
-  {bg:'#88e8d0',tc:'#003828'},{bg:'#f8d898',tc:'#6a3800'},
-  {bg:'#f8b0d8',tc:'#6a0838'},{bg:'#f8b8b0',tc:'#6a1008'},
-];
-let amap={},aidx=0;
-function ac(n){if(!amap[n]){amap[n]=AC[aidx%AC.length];aidx++;}return amap[n];}
-function ini(n){return String(n||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
-function sf(id){return STAGES.find(s=>s.id===id)||STAGES[0];}
-function pc(c){return PC[c%PC.length];}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmt$(n){return '$'+Number(n||0).toLocaleString();}
-function stamp(){const el=document.getElementById('ts');if(el)el.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
-let tkSeq=100,spSeq=1,nextId=8,colorIdx=7,pendingColor=0,dragId=null,subDragId=null;
-function mkTk(title,status,pri){return{id:'TK-'+(tkSeq++),title,status:status||'todo',priority:pri||'med',assignee:''};}
-function mkSubP(name,desc,stageId){return{id:'SP-'+(spSeq++),name,desc:desc||'',stage:stageId,notes:'',tickets:[],_openNote:false,_openTickets:false};}
+// ═══════════════════════════════════════════════════════
+//  SUPABASE CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPA_URL  = 'https://qkjzanjtneiilsgctvxe.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFranphbmp0bmVpaWxzZ2N0dnhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTE3NzcsImV4cCI6MjA5MjUyNzc3N30.Qr2TJrRpbtuSE0gBxzIPe5zbgej9ySDd6TDK8jhGOSw';
+const EDGE_URL  = `${SUPA_URL}/functions/v1/dax-chat`;
 
-let projects=[
-  {id:1,name:'Comedy 4 All',color:0,stage:'inprogress',desc:'comedy4all.com · v10 · Supabase + Stripe',goal:'500 paying subscribers at $12/month.',
-   subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Writing'},{id:'ss3',label:'In development'},{id:'ss4',label:'Testing'},{id:'ss5',label:'Live'}],
-   subProjects:[mkSubP('Feature film concept','Early conversations about a stand-up documentary','ss1'),mkSubP('New hour — joke editing','Refining existing material for next hour','ss3'),mkSubP('Sitcom pilot','Fleshing out characters and premise','ss2'),mkSubP('Brooks AI v2','Next version of the AI writing assistant','ss3')],
-   openSubBoard:false,convo:{Goal:'Monetize via Stripe subscriptions.',Ideas:'Dark mode, Brooks AI, Show History done.',Financing:'$12/mo Stripe plan.',Marketing:'',Team:'',Timeline:'',Risks:'',['Action items']:''},
-   tickets:[mkTk('Set up Stripe subscriptions','todo','high'),mkTk('Add joke export PDF','todo','med'),mkTk('Fix dark mode emoji','inprogress','high'),mkTk('Deploy v10','done','med')],
-   contacts:[{name:'Ryan Glomboske',role:'Co-founder',email:'',phone:'',type:'team',notes:''}],
-   finances:[{id:'f1',desc:'Stripe subscription revenue',type:'revenue',amount:0,status:'projected'},{id:'f2',desc:'Anthropic API costs',type:'expense',amount:50,status:'monthly'}],
-   people:[{name:'Ryan Glomboske',perm:'editor',visible:true}],openTab:null},
-  {id:2,name:'SipSavvy.ai',color:1,stage:'inprogress',desc:'AI sommelier SaaS for restaurants',goal:'Sign first 10 paying restaurant clients.',
-   subStages:[{id:'ss1',label:'Prospect'},{id:'ss2',label:'Outreach'},{id:'ss3',label:'Demo'},{id:'ss4',label:'Negotiating'},{id:'ss5',label:'Closed'}],
-   subProjects:[mkSubP('DFW upscale restaurant list','Target 50 restaurants in Dallas/Fort Worth','ss1'),mkSubP('Toast integration build','POS integration with Toast','ss2')],
-   openSubBoard:false,convo:{Goal:'Land first paying restaurant clients.',Ideas:'Toast + Oracle MICROS integrations.',Financing:'SaaS pricing TBD.',Marketing:'Sales pitch done.',Team:'',Timeline:'',Risks:'',['Action items']:''},
-   tickets:[mkTk('Build Toast POS integration','todo','high'),mkTk('Launch outreach to 20 restaurants','todo','high'),mkTk('Finalize pricing tiers','inprogress','med'),mkTk('Complete sales pitch deck','done','low')],
-   contacts:[{name:'Ryan Glomboske',role:'Technical Partner',email:'',phone:'',type:'partner',notes:'NDA signed.'}],
-   finances:[{id:'f3',desc:'Monthly SaaS per restaurant',type:'revenue',amount:299,status:'projected'},{id:'f4',desc:'Dev & hosting',type:'expense',amount:120,status:'monthly'}],
-   people:[{name:'Ryan Glomboske',perm:'editor',visible:true}],openTab:null},
-  {id:3,name:'Aria',color:2,stage:'plan',desc:'React PWA personal assistant · Vercel',goal:'Central hub for all projects.',
-   subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Building'},{id:'ss3',label:'Done'}],
-   subProjects:[mkSubP('Voice input module','Push-to-talk or wake word','ss1'),mkSubP('Google Calendar sync','Two-way calendar integration','ss1')],
-   openSubBoard:false,convo:{Goal:'Integrate with all projects + voice.',Ideas:'Live weather + sports done.',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'Scope creep.',['Action items']:''},
-   tickets:[mkTk('Add voice input','todo','med'),mkTk('Google Calendar sync','todo','med'),mkTk('Live weather widget','done','low')],
-   contacts:[],finances:[],people:[],openTab:null},
-  {id:4,name:'Plan-It Travel',color:3,stage:'initiate',desc:'Next.js constraint-based trip solver',goal:'Public beta with real flight data.',
-   subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Building'},{id:'ss3',label:'Testing'},{id:'ss4',label:'Live'}],
-   subProjects:[mkSubP('Flight API research','Find Amadeus replacement','ss1')],
-   openSubBoard:false,convo:{Goal:'Constraint-based trip planning.',Ideas:'Mock flight data working.',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'Amadeus API dropped.',['Action items']:''},
-   tickets:[mkTk('Find replacement flight API','todo','high'),mkTk('Build auth layer','todo','med'),mkTk('Onboarding flow','done','med')],
-   contacts:[],finances:[],people:[],openTab:null},
-  {id:5,name:'FanHole (FLY)',color:4,stage:'evaluate',desc:'Sports venue discovery platform',goal:'Close $2.5M seed round.',
-   subStages:[{id:'ss1',label:'Concept'},{id:'ss2',label:'Building'},{id:'ss3',label:'Investor ready'},{id:'ss4',label:'Funded'}],
-   subProjects:[mkSubP('Seed pitch deck','Investor presentation','ss2'),mkSubP('Equity agreement final','Legal docs for all founders','ss1')],
-   openSubBoard:false,convo:{Goal:'$100M exit via sports venue discovery.',Ideas:'Dashboard prototype built.',Financing:'$2.5M seed at 15-20%. $5K from David.',Marketing:'',Team:'Sean, Ryan, David.',Timeline:'',Risks:'Competitive market.',['Action items']:''},
-   tickets:[mkTk('Build investor pitch deck','todo','high'),mkTk('Finalize equity agreements','todo','high'),mkTk('Venue owner dashboard','done','med'),mkTk('React prototype','done','low')],
-   contacts:[{name:'Sean Sawyer',role:'Head Engineer',email:'',phone:'',type:'team',notes:'30% equity.'},{name:'Ryan Glomboske',role:'Technical',email:'',phone:'',type:'team',notes:'20% equity.'},{name:'David Sinkkinin',role:'Investor',email:'',phone:'',type:'investor',notes:'$5K · 10% equity.'}],
-   finances:[{id:'f5',desc:'David Sinkkinin investment',type:'investment',amount:5000,status:'received'},{id:'f6',desc:'Seed round target',type:'investment',amount:2500000,status:'projected'}],
-   people:[{name:'Sean Sawyer',perm:'editor',visible:true},{name:'Ryan Glomboske',perm:'editor',visible:true},{name:'David Sinkkinin',perm:'viewer',visible:false}],openTab:null},
-  {id:6,name:'Find My Peeps',color:5,stage:'idea',desc:'DFW underrepresented biz discovery',goal:'Go-to directory for DFW.',
-   subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Validate'},{id:'ss3',label:'Build'},{id:'ss4',label:'Launch'}],
-   subProjects:[mkSubP('Concept validation interviews','Talk to 10 DFW business owners','ss1')],
-   openSubBoard:false,convo:{Goal:'Discoverable directory for underrepresented DFW businesses.',Ideas:'HTML prototype only.',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'',['Action items']:''},
-   tickets:[mkTk('Validate concept with 10 interviews','todo','med')],
-   contacts:[],finances:[],people:[],openTab:null},
-  {id:7,name:'Vantage',color:6,stage:'plan',desc:'Entrepreneurial OS — see everything at once',goal:'Launch as a SaaS product for entrepreneurs.',
-   subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Design'},{id:'ss3',label:'Build'},{id:'ss4',label:'Beta'},{id:'ss5',label:'Launch'}],
-   subProjects:[mkSubP('MVP feature spec','Define exactly what ships in v1','ss2'),mkSubP('Competitor research','Notion, Linear, Basecamp analysis','ss2'),mkSubP('Brand identity','Logo, colors, type system','ss1'),mkSubP('Beta tester outreach','Find 5 entrepreneur early users','ss1')],
-   openSubBoard:false,convo:{Goal:'Build the go-to OS for entrepreneurs.',Ideas:'Pipeline · tickets · contacts · finances · conversation · sub-whiteboards.',Financing:'SaaS subscription TBD.',Marketing:'Target: serial entrepreneurs.',Team:'Michael D\'Asaro (founder).',Timeline:'Plan → Evaluate → Initiate.',Risks:'Scope creep. Crowded market.',['Action items']:'Define MVP\nEvaluate tech stack\nFind 5 beta testers\nResearch competitors'},
-   tickets:[mkTk('Define Vantage MVP feature set','todo','high'),mkTk('Research competitors','todo','high'),mkTk('Evaluate standalone tech stack','todo','high'),mkTk('Find 5 entrepreneur beta testers','todo','med'),mkTk('Design brand identity','todo','med'),mkTk('Sub-whiteboard feature','done','high'),mkTk('Pipeline drag-and-drop','done','high'),mkTk('Per-project ticket system','done','high'),mkTk('Contacts & finances layer','done','med'),mkTk('Name the product','done','low')],
-   contacts:[{name:'Michael D\'Asaro',role:'Founder',email:'',phone:'',type:'team',notes:'1996 Olympian. Serial entrepreneur.'}],
-   finances:[],people:[],openTab:null},
+const { createClient } = supabase;
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+// ═══════════════════════════════════════════════════════
+//  SEED DATA (used only on first load when DB is empty)
+// ═══════════════════════════════════════════════════════
+const SEED_PROJECTS = [
+  { id:'P01', name:'Orbital CRM',         stage:'Active', goal:'Unified customer relationship platform with AI-assisted lead scoring and pipeline analytics.',                 budget:280000, spent:194000 },
+  { id:'P02', name:'Nexus Data Lake',      stage:'Build',  goal:'Central data ingestion and warehouse infrastructure supporting all BI reporting.',                           budget:420000, spent:211000 },
+  { id:'P03', name:'Beacon Mobile',        stage:'Launch', goal:'Consumer-facing iOS/Android app for real-time field service tracking.',                                      budget:175000, spent:162000 },
+  { id:'P04', name:'Helix API Gateway',    stage:'Active', goal:'Secure, rate-limited gateway layer unifying internal microservices under one interface.',                    budget:130000, spent:88000  },
+  { id:'P05', name:'Pulse Analytics',      stage:'Build',  goal:'Real-time business intelligence dashboards with anomaly detection alerts.',                                  budget:210000, spent:97000  },
+  { id:'P06', name:'Vantage AI Assist',    stage:'Plan',   goal:'Embedded LLM assistant for workflow automation and document summarisation.',                                 budget:340000, spent:42000  },
+  { id:'P07', name:'CloudShift Migration', stage:'Paused', goal:'Lift-and-shift legacy on-prem workloads to AWS with zero-downtime cutovers.',                                budget:510000, spent:198000 },
+  { id:'P08', name:'Ember Design System',  stage:'Active', goal:'Unified component library and brand-token system across all product surfaces.',                              budget:90000,  spent:74000  },
+  { id:'P09', name:'Sentinel Security',    stage:'Idea',   goal:'Zero-trust network access and continuous compliance monitoring initiative.',                                  budget:470000, spent:18000  },
 ];
 
-document.addEventListener('click',e=>{
-  if(!e.target.closest('.move-wrap')&&!e.target.closest('.sub-move-wrap'))
-    document.querySelectorAll('.move-dd.open,.sub-move-dd.open').forEach(m=>m.classList.remove('open'));
-});
-document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+const SEED_TEAM = [
+  { id:'M01', name:'Alex Rivera',   role:'Engineering Lead',  color:'#6366f1' },
+  { id:'M02', name:'Jordan Kim',    role:'Product Manager',   color:'#a855f7' },
+  { id:'M03', name:'Sam Okafor',    role:'Senior Engineer',   color:'#3b82f6' },
+  { id:'M04', name:'Taylor Nguyen', role:'UX Designer',       color:'#06b6d4' },
+  { id:'M05', name:'Morgan Chen',   role:'Data Engineer',     color:'#22c55e' },
+  { id:'M06', name:'Casey Patel',   role:'QA Engineer',       color:'#f59e0b' },
+  { id:'M07', name:'Riley Torres',  role:'DevOps Engineer',   color:'#ef4444' },
+  { id:'M08', name:'Drew Nakamura', role:'Backend Engineer',  color:'#ec4899' },
+];
 
-function render(){
-  const pipe=document.getElementById('pipeline');
-  pipe.innerHTML='';
-  STAGES.forEach((st,si)=>{
-    const cards=projects.filter(p=>p.stage===st.id);
-    const col=document.createElement('div');col.className='stage-col';
-    col.innerHTML=`<div class="stage-head"><span class="stage-pill" style="background:${st.sc};color:${st.sf};border-color:${st.sf}44">${st.label}</span><div class="stage-ct">${cards.length}</div></div><div class="stage-body" id="sb-${st.id}" data-stage="${st.id}"></div>`;
-    pipe.appendChild(col);
-    if(si<STAGES.length-1){const d=document.createElement('div');d.className='sdiv';pipe.appendChild(d);}
-  });
-  projects.forEach(p=>{
-    const body=document.getElementById('sb-'+p.stage);if(!body)return;
-    const c=pc(p.color),st=sf(p.stage);
-    const wrap=document.createElement('div');
-    const avatars=p.people.map(per=>`<div class="av" style="background:${ac(per.name).bg};color:${ac(per.name).tc};opacity:${per.visible?1:.35}" title="${esc(per.name)}">${ini(per.name)}</div>`).join('');
-    const otherStages=STAGES.filter(s=>s.id!==p.stage);
-    const moveOpts=otherStages.map(s=>`<div class="move-opt" onclick="moveProj(${p.id},'${s.id}')"><span class="mdot" style="background:${s.sf}"></span>${s.label}</div>`).join('');
-    const tkTodo=p.tickets.filter(t=>t.status==='todo').length;
-    const tkIP=p.tickets.filter(t=>t.status==='inprogress').length;
-    const tkDone=p.tickets.filter(t=>t.status==='done').length;
-    wrap.innerHTML=`<div class="pcard" id="pc-${p.id}" style="background:${c.bg};border-color:${c.bd}" draggable="true" data-pid="${p.id}">
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${c.bar};border-radius:8px 8px 0 0"></div>
-      <div style="margin-top:4px;cursor:pointer" onclick="openProjModal(${p.id})">
-        <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
-        ${p.desc?`<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40?p.desc.slice(0,40)+'…':p.desc)}</div>`:''}
-        <div class="pbar-wrap" style="margin-top:5px"><div class="pbar" style="width:${st.pct}%;background:${c.bar}"></div></div>
-      </div>
-    </div>
-    <div id="sub-${p.id}"></div>`;
-    body.appendChild(wrap);
-    if(p.openSubBoard)renderSubBoard(p);
+const SEED_PIPS = [
+  { id:'PIP-001', proj:'P01', title:'AI Lead Scoring Model',         cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-05-15', by:'Jordan Kim',    assigned:'Sam Okafor',     descr:'Implement gradient-boosted model ingesting CRM signals to produce a 0–100 lead score. Score surfaced in card header and filterable in list view.' },
+  { id:'PIP-002', proj:'P01', title:'Pipeline Analytics Dashboard',  cat:'Feature',       status:'Complete',    pri:'High',     due:'2026-04-01', by:'Jordan Kim',    assigned:'Morgan Chen',    descr:'Aggregate deal-stage metrics into a live chart panel including funnel conversion rates and projected close-date variance.' },
+  { id:'PIP-003', proj:'P01', title:'Email Sequence Automation',     cat:'Feature',       status:'Open',        pri:'Medium',   due:'2026-06-10', by:'Alex Rivera',   assigned:'Drew Nakamura',  descr:'Build trigger-based email sequence engine with A/B variants, send-time optimisation, and unsubscribe handling.' },
+  { id:'PIP-004', proj:'P01', title:'GDPR Data Deletion Workflow',   cat:'Compliance',    status:'Open',        pri:'Critical', due:'2026-05-01', by:'Casey Patel',   assigned:'Drew Nakamura',  descr:'Right-to-erasure endpoint and admin console UI. Must purge PII from primary DB, search index, and cold-storage archives within 30 days of request.' },
+  { id:'PIP-005', proj:'P01', title:'Mobile CRM App',                cat:'Feature',       status:'Open',        pri:'Low',      due:'2026-09-30', by:'Taylor Nguyen', assigned:'Taylor Nguyen',  descr:'Companion iOS/Android app for field reps. Phase 1 scope: contact lookup, call logging, and note capture with offline sync.' },
+  { id:'PIP-006', proj:'P02', title:'Kafka Ingest Connectors',       cat:'Infrastructure',status:'In Progress', pri:'High',     due:'2026-05-20', by:'Alex Rivera',   assigned:'Morgan Chen',    descr:'Kafka Connect source connectors for Postgres CDC, Salesforce, and the legacy ERP system with 99.9% delivery guarantee.' },
+  { id:'PIP-007', proj:'P02', title:'Data Quality Framework',        cat:'Feature',       status:'Open',        pri:'High',     due:'2026-06-15', by:'Morgan Chen',   assigned:'Casey Patel',    descr:'Great Expectations suite with automated anomaly checks on every pipeline run. Failures gate Bronze → Silver lake tier promotion.' },
+  { id:'PIP-008', proj:'P02', title:'Iceberg Table Migration',       cat:'Infrastructure',status:'Review',      pri:'Medium',   due:'2026-05-30', by:'Alex Rivera',   assigned:'Sam Okafor',     descr:'Migrate 14 core Hive tables to Apache Iceberg format for time-travel query support and partition evolution without downtime.' },
+  { id:'PIP-009', proj:'P02', title:'Metadata Catalog (DataHub)',    cat:'Feature',       status:'Open',        pri:'Medium',   due:'2026-07-01', by:'Jordan Kim',    assigned:'Morgan Chen',    descr:'Deploy DataHub, configure automated lineage ingestion from Spark and dbt, and publish a data dictionary for the top 50 datasets.' },
+  { id:'PIP-010', proj:'P03', title:'Push Notification Service',     cat:'Feature',       status:'Complete',    pri:'High',     due:'2026-03-15', by:'Jordan Kim',    assigned:'Drew Nakamura',  descr:'Firebase Cloud Messaging integration for iOS and Android with job-assigned, status-change, and delay-alert notification types.' },
+  { id:'PIP-011', proj:'P03', title:'Offline Mode & Sync',           cat:'Feature',       status:'In Progress', pri:'Critical', due:'2026-04-30', by:'Alex Rivera',   assigned:'Sam Okafor',     descr:'Local SQLite cache with conflict-resolution strategy for field technicians in low-connectivity zones. Sync on reconnect using CRDTs.' },
+  { id:'PIP-012', proj:'P03', title:'App Store Submission',          cat:'Milestone',     status:'Open',        pri:'High',     due:'2026-05-05', by:'Riley Torres',  assigned:'Casey Patel',    descr:'Prepare TestFlight and Play Store internal test releases with privacy manifest, screenshots, and App Privacy report.' },
+  { id:'PIP-013', proj:'P03', title:'GPS Route Optimisation',        cat:'Feature',       status:'Blocked',     pri:'Medium',   due:'2026-06-20', by:'Jordan Kim',    assigned:'Sam Okafor',     descr:'Google Maps Routes API integration for optimal multi-stop sequences. Blocked pending Maps API key provisioning approval.' },
+  { id:'PIP-014', proj:'P04', title:'OAuth 2.0 / PKCE Auth',         cat:'Security',      status:'Complete',    pri:'Critical', due:'2026-03-01', by:'Alex Rivera',   assigned:'Drew Nakamura',  descr:'Replace API key auth with OAuth 2.0 PKCE flow. All services migrate to JWT bearer tokens. Legacy keys sunset 90 days post-GA.' },
+  { id:'PIP-015', proj:'P04', title:'Rate Limiting Engine',          cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-05-10', by:'Riley Torres',  assigned:'Riley Torres',   descr:'Sliding-window rate limiter backed by Redis with configurable per-client and per-endpoint quotas and a self-service quota dashboard.' },
+  { id:'PIP-016', proj:'P04', title:'GraphQL Federation Layer',      cat:'Feature',       status:'Open',        pri:'Medium',   due:'2026-07-15', by:'Alex Rivera',   assigned:'Drew Nakamura',  descr:'Apollo Federation supergraph aggregating Product, Order, and User subgraphs for single-query cross-domain fetches.' },
+  { id:'PIP-017', proj:'P05', title:'Anomaly Detection Alerts',      cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-05-25', by:'Morgan Chen',   assigned:'Morgan Chen',    descr:'ML-based time-series anomaly detection using Facebook Prophet with PagerDuty alert routing and configurable sensitivity thresholds.' },
+  { id:'PIP-018', proj:'P05', title:'Embedded Dashboard SDK',        cat:'Feature',       status:'Open',        pri:'High',     due:'2026-06-30', by:'Jordan Kim',    assigned:'Taylor Nguyen',  descr:'iFrame-embeddable chart SDK with row-level security token passthrough, light/dark themes, and responsive container resizing.' },
+  { id:'PIP-019', proj:'P05', title:'Historical Data Backfill',      cat:'Infrastructure',status:'Complete',    pri:'Medium',   due:'2026-04-15', by:'Morgan Chen',   assigned:'Sam Okafor',     descr:'Backfill 3 years of transactional data into the analytics warehouse using Spark batch jobs with monthly validation checkpoints.' },
+  { id:'PIP-020', proj:'P05', title:'Custom Report Builder',         cat:'Feature',       status:'Open',        pri:'Low',      due:'2026-08-01', by:'Jordan Kim',    assigned:'Taylor Nguyen',  descr:'Drag-and-drop report builder for combining metrics, applying filters, and scheduling PDF exports.' },
+  { id:'PIP-021', proj:'P06', title:'LLM Integration Spike',         cat:'Research',      status:'Complete',    pri:'High',     due:'2026-04-10', by:'Alex Rivera',   assigned:'Sam Okafor',     descr:'Evaluate Claude Sonnet 4.6 vs GPT-4o for internal workflow tasks. Benchmark latency, cost-per-token, and tool-use reliability.' },
+  { id:'PIP-022', proj:'P06', title:'Document Summarisation API',    cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-06-01', by:'Jordan Kim',    assigned:'Drew Nakamura',  descr:'REST endpoint accepting PDF/DOCX uploads, returning structured summary with key points, action items, and entities.' },
+  { id:'PIP-023', proj:'P06', title:'Prompt Engineering Guidelines', cat:'Docs',          status:'Open',        pri:'Medium',   due:'2026-05-20', by:'Morgan Chen',   assigned:'Casey Patel',    descr:'Internal playbook covering system prompt design, few-shot examples, chain-of-thought triggers, and guardrail patterns.' },
+  { id:'PIP-024', proj:'P07', title:'AWS Landing Zone Setup',        cat:'Infrastructure',status:'Complete',    pri:'Critical', due:'2026-02-28', by:'Riley Torres',  assigned:'Riley Torres',   descr:'Multi-account AWS org structure using Control Tower with SCPs, centralized logging, and baseline IAM permission boundaries.' },
+  { id:'PIP-025', proj:'P07', title:'Wave 1 Workload Migration',     cat:'Milestone',     status:'Blocked',     pri:'High',     due:'2026-05-31', by:'Alex Rivera',   assigned:'Riley Torres',   descr:'Migrate 8 low-risk internal services to AWS. Blocked pending InfoSec approval for cross-DC VPN tunnels.' },
+  { id:'PIP-026', proj:'P07', title:'DR Runbook & Failover Test',    cat:'Compliance',    status:'Open',        pri:'High',     due:'2026-07-01', by:'Casey Patel',   assigned:'Casey Patel',    descr:'Full DR runbook for migrated workloads with a planned failover drill validating RTO ≤ 4h and RPO ≤ 1h SLAs.' },
+  { id:'PIP-027', proj:'P08', title:'Design Token Architecture',     cat:'Feature',       status:'Complete',    pri:'High',     due:'2026-03-20', by:'Taylor Nguyen', assigned:'Taylor Nguyen',  descr:'Semantic token taxonomy in Figma Variables exported to CSS custom properties, iOS Swift, and Android XML via Style Dictionary.' },
+  { id:'PIP-028', proj:'P08', title:'Component Library v2.0',        cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-06-15', by:'Taylor Nguyen', assigned:'Taylor Nguyen',  descr:'Rebuild 32 core components in React with WCAG 2.1 AA, Storybook docs, and visual regression tests via Chromatic.' },
+  { id:'PIP-029', proj:'P08', title:'Adoption & Migration Guide',    cat:'Docs',          status:'Open',        pri:'Medium',   due:'2026-07-01', by:'Jordan Kim',    assigned:'Casey Patel',    descr:'Step-by-step migration guide for teams moving from v1 components with codemods for automated prop renames.' },
+  { id:'PIP-030', proj:'P09', title:'Zero-Trust Architecture Design',cat:'Research',      status:'Open',        pri:'Critical', due:'2026-06-01', by:'Alex Rivera',   assigned:'Alex Rivera',    descr:'ADR for zero-trust implementation evaluating BeyondCorp model, micro-segmentation, and identity-aware proxy options.' },
+  { id:'PIP-031', proj:'P09', title:'Compliance Gap Assessment',     cat:'Compliance',    status:'Open',        pri:'High',     due:'2026-05-15', by:'Casey Patel',   assigned:'Casey Patel',    descr:'SOC 2 Type II gap analysis against current controls with prioritised remediation backlog mapped to trust service criteria.' },
+  { id:'PIP-032', proj:'P09', title:'SIEM Integration (Splunk)',     cat:'Infrastructure',status:'Open',        pri:'High',     due:'2026-07-30', by:'Riley Torres',  assigned:'Riley Torres',   descr:'Configure Splunk forwarders on all production hosts. Build detection rules for top-10 MITRE ATT&CK techniques relevant to our threat model.' },
+];
 
-  });
-  wireDrag();stamp();
+// ═══════════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════════
+let PROJECTS = [];
+let PIPS     = [];
+let TEAM     = [];
+let FINANCES = [];
+let daxMessages = [];   // { role, content }
+let activeStageFilter = null;
+let activePipId = null;
+let renderTimer = null;
+let saveTimers = { pip: null, finance: null };
+
+// ═══════════════════════════════════════════════════════
+//  SYNC INDICATOR
+// ═══════════════════════════════════════════════════════
+function setSyncing(label) {
+  const el = document.getElementById('sync-indicator');
+  const tx = document.getElementById('sync-text');
+  el.className = 'syncing';
+  tx.textContent = label || 'Syncing…';
 }
-
-
-function toggleExpand(e,id){
-  e.stopPropagation();
-  projects=projects.map(p=>p.id===id?{...p,expanded:!p.expanded}:p);
-  render();
+function setSynced() {
+  const el = document.getElementById('sync-indicator');
+  const tx = document.getElementById('sync-text');
+  el.className = '';
+  tx.textContent = 'Synced';
 }
-
-function wireDrag(){
-  document.querySelectorAll('.pcard[draggable]').forEach(card=>{
-    card.addEventListener('dragstart',e=>{dragId=parseInt(card.dataset.pid);setTimeout(()=>card.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
-    card.addEventListener('dragend',()=>{card.classList.remove('dragging');document.querySelectorAll('.stage-body').forEach(b=>b.classList.remove('drag-over'));dragId=null;});
-  });
-  document.querySelectorAll('.stage-body').forEach(body=>{
-    body.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.stage-body').forEach(b=>b.classList.remove('drag-over'));body.classList.add('drag-over');});
-    body.addEventListener('dragleave',()=>body.classList.remove('drag-over'));
-    body.addEventListener('drop',e=>{e.preventDefault();body.classList.remove('drag-over');const ns=body.dataset.stage;if(dragId&&ns){projects=projects.map(p=>p.id===dragId?{...p,stage:ns}:p);dragId=null;render();}});
-  });
-}
-
-function renderSubBoard(p){
-  const el=document.getElementById('sub-'+p.id);if(!el)return;
-  const c=pc(p.color);
-  const stagesHTML=p.subStages.map((st,si)=>{
-    const subs=p.subProjects.filter(sp=>sp.stage===st.id);
-    const sc=SUB_COLORS[si%SUB_COLORS.length];
-    const cards=subs.map(sp=>{
-      const otherSS=p.subStages.filter(s=>s.id!==st.id);
-      const moveOpts=otherSS.map(s=>`<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProj(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`).join('');
-      const taskCt=sp.tickets.filter(t=>t.status==='todo').length;
-      const doneCt=sp.tickets.filter(t=>t.status==='done').length;
-      return `<div class="sub-card" style="background:${sc.bg};border-color:${sc.bd}">
-        <div class="sub-card-name" style="color:${sc.tx}">${esc(sp.name)}</div>
-        ${sp.desc?`<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc.length>42?sp.desc.slice(0,42)+'…':sp.desc)}</div>`:''}
-        ${sp.tickets.length>0?`<div style="font-size:9px;color:${sc.tx};opacity:.55;margin-bottom:4px;font-family:var(--mono)">${taskCt}T · ${doneCt}D</div>`:''}
-        <div class="sub-card-btns">
-          <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubNote(${p.id},'${sp.id}')">Notes</button>
-          <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubTickets(${p.id},'${sp.id}')">Tasks</button>
-          <div class="sub-move-wrap"><button class="scbtn" style="color:${sc.tx}" onclick="toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button><div class="sub-move-dd" id="smv-${p.id}-${sp.id}">${moveOpts}</div></div>
-          <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="removeSubProj(${p.id},'${sp.id}')">×</button>
-        </div>
-        <div id="snp-${p.id}-${sp.id}"></div>
-      </div>`;
-    }).join('')||`<div style="font-size:10px;color:var(--text3);padding:4px 2px">Empty</div>`;
-    return `<div class="sub-stage-col">
-      <div class="sub-stage-head"><span class="sub-stage-pill" style="background:${sc.bg};color:${sc.tx};border-color:${sc.bd}">${esc(st.label)}</span><div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${subs.length}</div></div>
-      <div class="sub-stage-body" id="ssb-${p.id}-${st.id}" data-pid="${p.id}" data-stage="${st.id}">${cards}</div>
-    </div>${si<p.subStages.length-1?'<div class="sub-sdiv"></div>':''}`;
-  }).join('');
-  el.innerHTML=`<div class="subboard-wrap" style="border-color:${c.bd}">
-    <div class="subboard-header">
-      <div class="subboard-title"><span style="width:10px;height:10px;border-radius:3px;background:${c.bar};display:inline-block;flex-shrink:0"></span>${esc(p.name)} — board</div>
-      <div class="subboard-header-btns">
-        <button class="btn" style="font-size:10px;padding:4px 10px" onclick="openAddSubStage(${p.id})">+ Stage</button>
-        <button class="btn btn-accent" style="font-size:10px;padding:4px 10px" onclick="openAddSubProj(${p.id})">+ Sub-project</button>
-        <button class="btn" onclick="toggleSubBoard(${p.id})">✕ Close</button>
-      </div>
-    </div>
-    <div class="sub-pipeline">${stagesHTML}</div>
-  </div>`;
-  wireSubDrag(p.id);
-  p.subProjects.forEach(sp=>{
-    if(sp._openNote)renderSubNote(p,sp);
-    if(sp._openTickets)renderSubTickets(p,sp);
-  });
+function setSyncError(msg) {
+  const el = document.getElementById('sync-indicator');
+  const tx = document.getElementById('sync-text');
+  el.className = 'error';
+  tx.textContent = msg || 'Sync error';
 }
 
-function wireSubDrag(pid){
-  document.querySelectorAll(`.sub-stage-body[data-pid="${pid}"]`).forEach(body=>{
-    body.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll(`.sub-stage-body[data-pid="${pid}"]`).forEach(b=>b.classList.remove('drag-over'));body.classList.add('drag-over');});
-    body.addEventListener('dragleave',()=>body.classList.remove('drag-over'));
-    body.addEventListener('drop',e=>{e.preventDefault();body.classList.remove('drag-over');const ns=body.dataset.stage;if(subDragId&&ns)moveSubProj(pid,subDragId,ns);});
-  });
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, ms = 2400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
 }
 
-function renderSubNote(p,sp){
-  const el=document.getElementById('snp-'+p.id+'-'+sp.id);if(!el)return;
-  if(sp._openNote){
-    el.innerHTML=`<div class="sub-note-panel"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Notes</span><button class="rm" onclick="toggleSubNote(${p.id},'${sp.id}')">✕</button></div><textarea class="sub-notes-area" placeholder="Notes, ideas, links..." onchange="updateSubNote(${p.id},'${sp.id}',this.value)">${esc(sp.notes||'')}</textarea></div>`;
-  } else {el.innerHTML='';}
-}
-function renderSubTickets(p,sp){
-  const el=document.getElementById('snp-'+p.id+'-'+sp.id);if(!el)return;
-  if(sp._openTickets){
-    const cols=['todo','done'];const cL={todo:'To do',done:'Done'};
-    const board=cols.map(status=>{
-      const tks=sp.tickets.filter(t=>t.status===status);
-      const rows=tks.map((t,i)=>{const ri=sp.tickets.indexOf(t);return `<div class="sub-ticket"><div class="sub-tk-title">${esc(t.title)}</div><div class="sub-tk-btns">${status==='todo'?`<button class="sub-tk-btn" onclick="moveSubTk(${p.id},'${sp.id}',${ri},'done')">→ Done</button>`:`<button class="sub-tk-btn" onclick="moveSubTk(${p.id},'${sp.id}',${ri},'todo')">← To do</button>`}<button class="sub-tk-btn" style="color:var(--red)" onclick="rmSubTk(${p.id},'${sp.id}',${ri})">×</button></div></div>`;}).join('')||`<div style="font-size:9px;color:var(--text3);padding:2px 0">Empty</div>`;
-      return `<div class="sub-tk-col"><div class="sub-tk-col-head">${cL[status]}<span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-family:var(--mono)">${tks.length}</span></div>${rows}${status==='todo'?`<div class="add-sub-tk"><input id="sti-${p.id}-${sp.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addSubTk(${p.id},'${sp.id}')"/><button onclick="addSubTk(${p.id},'${sp.id}')">+</button></div>`:''}</div>`;
-    }).join('');
-    el.innerHTML=`<div class="sub-note-panel"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Tasks</span><button class="rm" onclick="toggleSubTickets(${p.id},'${sp.id}')">✕</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${board}</div></div>`;
-  } else {el.innerHTML='';}
-}
+// ═══════════════════════════════════════════════════════
+//  SUPABASE LOAD
+// ═══════════════════════════════════════════════════════
+async function loadFromSupabase() {
+  setSyncing('Loading…');
+  try {
+    const [pRes, pipRes, tRes, fRes] = await Promise.all([
+      sb.from('projects').select('*').order('id'),
+      sb.from('pips').select('*').order('id'),
+      sb.from('team').select('*').order('id'),
+      sb.from('finances').select('*').order('proj_id'),
+    ]);
+    if (pRes.error)   throw pRes.error;
+    if (pipRes.error) throw pipRes.error;
+    if (tRes.error)   throw tRes.error;
+    if (fRes.error)   throw fRes.error;
 
-function toggleSubBoard(pid){projects=projects.map(p=>p.id===pid?{...p,openSubBoard:!p.openSubBoard,openTab:null}:p);render();}
-function toggleSubNote(pid,spid){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,_openNote:!sp._openNote,_openTickets:false}:sp)};});
-  const p=projects.find(x=>x.id===pid);const sp=p.subProjects.find(x=>x.id===spid);renderSubNote(p,sp);
-}
-function toggleSubTickets(pid,spid){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,_openTickets:!sp._openTickets,_openNote:false}:sp)};});
-  const p=projects.find(x=>x.id===pid);const sp=p.subProjects.find(x=>x.id===spid);renderSubTickets(p,sp);
-}
-function updateSubNote(pid,spid,val){projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,notes:val}:sp)};});}
-function moveSubProj(pid,spid,newStage){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,stage:newStage}:sp)};});
-  document.querySelectorAll('.sub-move-dd.open').forEach(m=>m.classList.remove('open'));
-  renderSubBoard(projects.find(x=>x.id===pid));
-}
-function removeSubProj(pid,spid){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.filter(sp=>sp.id!==spid)};});
-  renderSubBoard(projects.find(x=>x.id===pid));
-}
-function toggleSubMove(e,pid,spid){
-  e.stopPropagation();const dd=document.getElementById('smv-'+pid+'-'+spid);
-  document.querySelectorAll('.sub-move-dd.open').forEach(m=>{if(m!==dd)m.classList.remove('open');});dd.classList.toggle('open');
-}
-function addSubTk(pid,spid){
-  const inp=document.getElementById('sti-'+pid+'-'+spid);if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,tickets:[...sp.tickets,{id:'ST-'+(tkSeq++),title:inp.value.trim(),status:'todo'}]}:sp)};});
-  const p=projects.find(x=>x.id===pid);renderSubTickets(p,p.subProjects.find(x=>x.id===spid));
-}
-function moveSubTk(pid,spid,idx,status){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>{if(sp.id!==spid)return sp;const tks=[...sp.tickets];tks[idx]={...tks[idx],status};return{...sp,tickets:tks};})};});
-  const p=projects.find(x=>x.id===pid);renderSubTickets(p,p.subProjects.find(x=>x.id===spid));
-}
-function rmSubTk(pid,spid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:p.subProjects.map(sp=>sp.id===spid?{...sp,tickets:sp.tickets.filter((_,i)=>i!==idx)}:sp)};});
-  const p=projects.find(x=>x.id===pid);renderSubTickets(p,p.subProjects.find(x=>x.id===spid));
-}
+    PROJECTS = pRes.data;
+    PIPS     = pipRes.data;
+    TEAM     = tRes.data;
+    FINANCES = fRes.data;
 
-function renderDetail(p){
-  const el=document.getElementById('det-'+p.id);if(!el)return;
-  const TABS=['tickets','contacts','finances','convo','info'];
-  const tabBar=TABS.map(t=>`<button class="ptab${p.openTab===t?' on':''}" onclick="setTab(${p.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
-
-  if(p.openTab==='tickets'){
-    const cols=['todo','inprogress','done'];const cL={todo:'To do',inprogress:'In progress',done:'Done'};
-    const stats=cols.map(s=>p.tickets.filter(t=>t.status===s).length);
-    const board=cols.map(status=>{
-      const tks=p.tickets.filter(t=>t.status===status);
-      const tkHTML=tks.map(t=>{const ri=p.tickets.indexOf(t);const canL=status!=='todo',canR=status!=='done';const lS=status==='inprogress'?'todo':'inprogress',rS=status==='todo'?'inprogress':'done';
-        return `<div class="ticket"><div class="tk-id">${esc(t.id)}</div><div class="tk-title">${esc(t.title)}</div><div class="tk-meta"><span class="tk-pri pri-${t.priority}">${t.priority}</span></div><div class="tk-move-btns">${canL?`<button class="tk-mbtn" onclick="moveTk(${p.id},${ri},'${lS}')">← ${cL[lS]}</button>`:''}${canR?`<button class="tk-mbtn" onclick="moveTk(${p.id},${ri},'${rS}')">→ ${cL[rS]}</button>`:''}<button class="tk-mbtn" style="color:var(--red)" onclick="rmTk(${p.id},${ri})">×</button></div></div>`;
-      }).join('')||`<div style="font-size:10px;color:var(--text3);padding:6px 0">Empty</div>`;
-      return `<div class="tk-col"><div class="tk-col-head">${cL[status]}<span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-family:var(--mono)">${tks.length}</span></div>${tkHTML}${status==='todo'?`<div class="add-tk"><div class="add-tk-row"><input id="tki-${p.id}" placeholder="New ticket..." onkeydown="if(event.key==='Enter')addTk(${p.id})"/><select id="tkp-${p.id}"><option value="high">High</option><option value="med" selected>Med</option><option value="low">Low</option></select></div><button onclick="addTk(${p.id})">+ Add ticket</button></div>`:''}</div>`;
-    }).join('');
-    el.innerHTML=`<div class="panel"><div class="ptabs">${tabBar}</div><div class="tk-stats">${cols.map((s,i)=>`<div class="tk-stat"><div class="tk-stat-n">${stats[i]}</div><div class="tk-stat-l">${cL[s]}</div></div>`).join('')}</div><div class="tickets-board">${board}</div><div style="display:flex;justify-content:flex-end"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
-
-  }else if(p.openTab==='contacts'){
-    const cards=p.contacts.map((ct,i)=>{const a=ac(ct.name);return `<div class="contact-card"><div class="contact-av" style="background:${a.bg};color:${a.tc}">${ini(ct.name)}</div><div class="contact-info"><div class="contact-name">${esc(ct.name)}</div><div class="contact-role">${esc(ct.role)}</div>${ct.notes?`<div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic">${esc(ct.notes)}</div>`:''}<span class="contact-tag tag-${ct.type}">${ct.type}</span></div><button class="rm" onclick="rmContact(${p.id},${i})">×</button></div>`;}).join('')||`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">No contacts yet.</div>`;
-    el.innerHTML=`<div class="panel"><div class="ptabs">${tabBar}</div>${cards}<div class="add-contact"><input id="cn-${p.id}" class="add-contact-full" placeholder="Name..." onkeydown="if(event.key==='Enter')addContact(${p.id})"/><input id="cr-${p.id}" placeholder="Role / title..."/><input id="ce-${p.id}" placeholder="Email..."/><select id="ct-${p.id}">${CONTACT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="cno-${p.id}" placeholder="Notes..."/><button class="add-contact-full btn" onclick="addContact(${p.id})" style="padding:6px">+ Add contact</button></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
-
-  }else if(p.openTab==='finances'){
-    const revenue=p.finances.filter(f=>f.type==='revenue'||f.type==='investment').reduce((s,f)=>s+Number(f.amount||0),0);
-    const expenses=p.finances.filter(f=>f.type==='expense').reduce((s,f)=>s+Number(f.amount||0),0);
-    const net=revenue-expenses;
-    const rows=p.finances.map((f,i)=>`<tr><td style="color:var(--text)">${esc(f.desc)}</td><td><span class="fin-type type-${f.type}">${f.type}</span></td><td style="text-align:right;font-family:var(--mono);color:var(--text)">${fmt$(f.amount)}</td><td>${esc(f.status)}</td><td><button class="rm" onclick="rmFin(${p.id},${i})">×</button></td></tr>`).join('')||`<tr><td colspan="5" style="color:var(--text3);padding:10px 0">No entries yet.</td></tr>`;
-    el.innerHTML=`<div class="panel"><div class="ptabs">${tabBar}</div><div class="fin-summary"><div class="fin-card"><div class="fin-lbl">Revenue / funding</div><div class="fin-val green">${fmt$(revenue)}</div></div><div class="fin-card"><div class="fin-lbl">Expenses</div><div class="fin-val red">${fmt$(expenses)}</div></div><div class="fin-card"><div class="fin-lbl">Net</div><div class="fin-val ${net>=0?'green':'red'}">${fmt$(net)}</div></div></div><table class="fin-table"><thead><tr><th>Description</th><th>Type</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="add-fin"><input id="fd-${p.id}" placeholder="Description..."/><select id="ft-${p.id}">${FIN_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="fa-${p.id}" type="number" placeholder="Amount" min="0"/><button onclick="addFin(${p.id})">+ Add</button></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
-
-  }else if(p.openTab==='convo'){
-    const goalBox=`<div class="goal-box"><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Project goal</div><input class="fi" style="font-size:12px" value="${esc(p.goal||'')}" placeholder="Define success clearly..." onchange="updateField(${p.id},'goal',this.value)"/></div>`;
-    const sections=CTOPICS.map(topic=>{const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());const rows=items.map((item,ii)=>{const done=item.startsWith('[x]');const txt=done?item.slice(3).trim():item;return `<div class="item-row"><input type="checkbox" class="item-cb" ${done?'checked':''} onchange="toggleItem(${p.id},'${topic}',${ii},this.checked)"/><span class="item-txt${done?' done':''}">${esc(txt)}</span><button class="item-rm" onclick="removeItem(${p.id},'${topic}',${ii})">×</button></div>`;}).join('');return `<div class="convo-sect"><div class="convo-lbl">${topic}</div>${rows||`<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nothing yet.</div>`}<div class="add-item"><input id="ci-${p.id}-${topic.replace(/\s/g,'_')}" placeholder="Add item..." onkeydown="if(event.key==='Enter')addItem(${p.id},'${topic}')"/><button onclick="addItem(${p.id},'${topic}')">+ Add</button></div></div>`;}).join('');
-    el.innerHTML=`<div class="panel"><div class="ptabs">${tabBar}</div>${goalBox}${sections}<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
-
-  }else if(p.openTab==='info'){
-    const stOpts=STAGES.map(s=>`<option value="${s.id}"${s.id===p.stage?' selected':''}>${s.label}</option>`).join('');
-    const swatches=PC.map((col,i)=>`<div class="cswatch${p.color===i?' sel':''}" style="background:${col.bg};outline:1.5px solid ${col.bd};border-color:${p.color===i?'rgba(255,255,255,.6)':'transparent'}" onclick="updateField(${p.id},'color',${i})"></div>`).join('');
-    const prows=p.people.map((per,i)=>`<div class="person-row"><div class="av" style="background:${ac(per.name).bg};color:${ac(per.name).tc};width:22px;height:22px;font-size:9px">${ini(per.name)}</div><span class="pname">${esc(per.name)}</span><select class="psel" onchange="setPerm(${p.id},${i},this.value)"><option value="viewer"${per.perm==='viewer'?' selected':''}>Viewer</option><option value="editor"${per.perm==='editor'?' selected':''}>Editor</option></select><span class="ptag ${per.perm==='editor'?'te':'tv'}">${per.perm}</span><button class="tog ${per.visible?'tog-on':'tog-off'}" onclick="toggleVis(${p.id},${i})"></button><span class="ptag ${per.visible?'tvis':'th'}">${per.visible?'vis':'hidden'}</span><button class="rm" onclick="rmPerson(${p.id},${i})">×</button></div>`).join('');
-    el.innerHTML=`<div class="panel"><div class="ptabs">${tabBar}</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" value="${esc(p.name)}" onchange="updateField(${p.id},'name',this.value)"/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" onchange="updateField(${p.id},'stage',this.value)">${stOpts}</select></div><div class="fl"><span class="fl-lbl">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateField(${p.id},'desc',this.value)"/></div><div class="fl"><span class="fl-lbl">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateField(${p.id},'goal',this.value)"/></div><div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div><div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px"><div class="sec-title">Team access</div>${prows||'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">No team members.</div>'}<div class="add-pr"><input id="ni-${p.id}" placeholder="Name or email..." onkeydown="if(event.key==='Enter')addPerson(${p.id})"/><select id="np-${p.id}"><option value="viewer">Viewer</option><option value="editor">Editor</option></select><button onclick="addPerson(${p.id})">+ Invite</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" style="color:var(--red);border-color:rgba(240,96,96,.3)" onclick="deleteProject(${p.id})">Delete</button><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
-  }
-}
-
-function moveProj(id,stage){projects=projects.map(p=>p.id===id?{...p,stage}:p);document.querySelectorAll('.move-dd.open').forEach(m=>m.classList.remove('open'));render();}
-function toggleMove(e,id){e.stopPropagation();const dd=document.getElementById('mv-'+id);document.querySelectorAll('.move-dd.open').forEach(m=>{if(m!==dd)m.classList.remove('open');});dd.classList.toggle('open');}
-function toggleDetail(id,tab){projects=projects.map(p=>p.id===id?{...p,openTab:p.openTab===tab?null:tab,openSubBoard:false}:p);render();}
-function closeDetail(id){projects=projects.map(p=>p.id===id?{...p,openTab:null}:p);render();}
-function setTab(id,tab){projects=projects.map(p=>p.id===id?{...p,openTab:tab}:p);render();}
-function updateField(id,field,val){const v=field==='color'?parseInt(val):val;projects=projects.map(p=>p.id===id?{...p,[field]:v}:p);render();}
-function deleteProject(id){projects=projects.filter(p=>p.id!==id);render();}
-function moveTk(pid,idx,status){projects=projects.map(p=>{if(p.id!==pid)return p;const tks=[...p.tickets];tks[idx]={...tks[idx],status};return{...p,tickets:tks};});render();}
-function rmTk(pid,idx){projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,tickets:p.tickets.filter((_,i)=>i!==idx)};});render();}
-function addTk(pid){const inp=document.getElementById('tki-'+pid);const pri=document.getElementById('tkp-'+pid);if(!inp||!inp.value.trim())return;projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,tickets:[...p.tickets,mkTk(inp.value.trim(),'todo',pri.value)]};});render();}
-function addContact(pid){const n=document.getElementById('cn-'+pid).value.trim();if(!n)return;const r=document.getElementById('cr-'+pid).value.trim();const e=document.getElementById('ce-'+pid).value.trim();const t=document.getElementById('ct-'+pid).value;const no=document.getElementById('cno-'+pid).value.trim();projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,contacts:[...p.contacts,{name:n,role:r,email:e,phone:'',type:t,notes:no}]};});render();}
-function rmContact(pid,idx){projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,contacts:p.contacts.filter((_,i)=>i!==idx)};});render();}
-function addFin(pid){const d=document.getElementById('fd-'+pid).value.trim();if(!d)return;const t=document.getElementById('ft-'+pid).value;const a=parseFloat(document.getElementById('fa-'+pid).value)||0;projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,finances:[...p.finances,{id:'f'+Date.now(),desc:d,type:t,amount:a,status:'entered'}]};});render();}
-function rmFin(pid,idx){projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,finances:p.finances.filter((_,i)=>i!==idx)};});render();}
-function addItem(id,topic){const key='ci-'+id+'-'+topic.replace(/\s/g,'_');const inp=document.getElementById(key);if(!inp||!inp.value.trim())return;projects=projects.map(p=>{if(p.id!==id)return p;const ex=p.convo[topic]||'';return{...p,convo:{...p.convo,[topic]:ex?ex+'\n'+inp.value.trim():inp.value.trim()}};});render();}
-function removeItem(id,topic,idx){projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());items.splice(idx,1);return{...p,convo:{...p.convo,[topic]:items.join('\n')}};});render();}
-function toggleItem(id,topic,idx,checked){projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());const raw=items[idx].startsWith('[x]')?items[idx].slice(3).trim():items[idx];items[idx]=checked?'[x] '+raw:raw;return{...p,convo:{...p.convo,[topic]:items.join('\n')}};});render();}
-function setPerm(id,i,val){projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],perm:val};return{...p,people:pp};});render();}
-function toggleVis(id,i){projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],visible:!pp[i].visible};return{...p,people:pp};});render();}
-function rmPerson(id,i){projects=projects.map(p=>{if(p.id!==id)return p;return{...p,people:p.people.filter((_,j)=>j!==i)};});render();}
-function addPerson(id){const inp=document.getElementById('ni-'+id);const sel=document.getElementById('np-'+id);if(!inp||!inp.value.trim())return;projects=projects.map(p=>{if(p.id!==id)return p;return{...p,people:[...p.people,{name:inp.value.trim(),perm:sel.value,visible:true}]};});render();}
-
-function openAddSubProj(pid){
-  const p=projects.find(x=>x.id===pid);
-  const stageOpts=p.subStages.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
-  document.getElementById('modal-inner').innerHTML=`<div class="modal-title">New sub-project — ${esc(p.name)}</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" id="sp-name" placeholder="Sub-project name..."/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="sp-stage">${stageOpts}</select></div><div class="fl"><span class="fl-lbl">Description</span><input class="fi" id="sp-desc" placeholder="One-liner..."/></div><div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveSubProj(${pid})">Add</button></div>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('sp-name').focus(),50);
-}
-function saveSubProj(pid){
-  const name=document.getElementById('sp-name').value.trim();if(!name)return;
-  const stage=document.getElementById('sp-stage').value;
-  const desc=document.getElementById('sp-desc').value.trim();
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subProjects:[...p.subProjects,mkSubP(name,desc,stage)]};});
-  closeModal();renderSubBoard(projects.find(x=>x.id===pid));
-}
-function openAddSubStage(pid){
-  document.getElementById('modal-inner').innerHTML=`<div class="modal-title">Add stage to sub-board</div><div class="fl"><span class="fl-lbl">Label</span><input class="fi" id="ss-label" placeholder="e.g. In review, Blocked, Testing..."/></div><div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveSubStage(${pid})">Add stage</button></div>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('ss-label').focus(),50);
-}
-function saveSubStage(pid){
-  const label=document.getElementById('ss-label').value.trim();if(!label)return;
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,subStages:[...p.subStages,{id:'ss'+Date.now(),label}]};});
-  closeModal();renderSubBoard(projects.find(x=>x.id===pid));
-}
-function openAdd(){
-  const swatches=PC.map((col,i)=>`<div class="cswatch" id="ncs-${i}" style="background:${col.bg};outline:1.5px solid ${col.bd}" onclick="selectNC(${i})"></div>`).join('');
-  document.getElementById('modal-inner').innerHTML=`<div class="modal-title">New project</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" id="m-name" placeholder="Project name..."/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="m-stage">${STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}</select></div><div class="fl"><span class="fl-lbl">Summary</span><input class="fi" id="m-desc" placeholder="One-line description..."/></div><div class="fl"><span class="fl-lbl">Goal</span><input class="fi" id="m-goal" placeholder="What does success look like?"/></div><div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:5px">Color</span><div class="color-grid" id="nc-grid">${swatches}</div></div><div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveNew()">Add project</button></div>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  selectNC(colorIdx%PC.length);
-  setTimeout(()=>document.getElementById('m-name').focus(),50);
-}
-function selectNC(i){pendingColor=i;document.querySelectorAll('#nc-grid .cswatch').forEach((sw,idx)=>{sw.style.borderColor=idx===i?'rgba(255,255,255,.7)':'transparent';});}
-function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
-function saveNew(){
-  const name=document.getElementById('m-name').value.trim();if(!name)return;
-  projects.push({id:nextId++,name,color:pendingColor,stage:document.getElementById('m-stage').value,desc:document.getElementById('m-desc').value.trim()||'No description',goal:document.getElementById('m-goal').value.trim(),
-    subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
-    subProjects:[],openSubBoard:false,
-    convo:{Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'',['Action items']:''},
-    tickets:[],contacts:[],finances:[],people:[],openTab:null});
-  colorIdx++;closeModal();render();
-}
-const SUPABASE_URL = 'https://qkjzanjtneiilsgctvxe.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFranphbmp0bmVpaWxzZ2N0dnhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTE3NzcsImV4cCI6MjA5MjUyNzc3N30.Qr2TJrRpbtuSE0gBxzIPe5zbgej9ySDd6TDK8jhGOSw';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-function setLoading(msg){const el=document.getElementById('loading-screen');const ml=document.getElementById('loading-msg');if(el)el.style.display='flex';if(ml&&msg)ml.textContent=msg;}
-function hideLoading(){const el=document.getElementById('loading-screen');if(el)el.style.display='none';}
-
-function projectToRow(p){
-  return {
-    id: p.dbId || undefined,
-    name: p.name,
-    color: p.color,
-    stage: p.stage,
-    description: p.desc||'',
-    goal: p.goal||'',
-    convo: p.convo||{},
-    tickets: p.tickets||[],
-    contacts: p.contacts||[],
-    finances: p.finances||[],
-    people: p.people||[],
-    sub_stages: p.subStages||[],
-    sub_projects: p.subProjects||[],
-    sort_order: p.id||0
-  };
-}
-
-function rowToProject(row){
-  return {
-    id: row.sort_order||nextId++,
-    dbId: row.id,
-    name: row.name,
-    color: row.color||0,
-    stage: row.stage||'idea',
-    desc: row.description||'',
-    goal: row.goal||'',
-    convo: row.convo||{Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
-    tickets: (row.tickets||[]).map(t=>({...t})),
-    contacts: row.contacts||[],
-    finances: row.finances||[],
-    people: row.people||[],
-    subStages: row.sub_stages||[{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
-    subProjects: (row.sub_projects||[]).map(sp=>({...sp,_openNote:false,_openTickets:false})),
-    openSubBoard: false,
-    openTab: null
-  };
-}
-
-async function loadProjects(){
-  setLoading('Loading your projects...');
-  const {data,error}=await sb.from('projects').select('*').order('sort_order',{ascending:true});
-  if(error){console.error('Load error:',error);hideLoading();render();return;}
-  if(data&&data.length>0){
-    projects=data.map(rowToProject);
-    nextId=Math.max(...projects.map(p=>p.id))+1;
-  }
-  hideLoading();
-  render();
-}
-
-async function saveProject(p){
-  const row=projectToRow(p);
-  if(p.dbId){
-    const {error}=await sb.from('projects').update(row).eq('id',p.dbId);
-    if(error)console.error('Save error:',error);
-  } else {
-    const {data,error}=await sb.from('projects').insert(row).select().single();
-    if(error){console.error('Insert error:',error);return;}
-    if(data){
-      projects=projects.map(x=>x.id===p.id?{...x,dbId:data.id}:x);
+    if (!PROJECTS.length || !PIPS.length || !TEAM.length || !FINANCES.length) {
+      await seedMissingTables({
+        projects: !PROJECTS.length,
+        pips: !PIPS.length,
+        team: !TEAM.length,
+        finances: !FINANCES.length,
+      });
+      await reloadAllTables();
     }
+
+    setSynced();
+    renderAll();
+    await loadDaxHistory();
+  } catch (err) {
+    setSyncError('Load failed');
+    console.error('Supabase load error:', err);
+    // Fall back to seed data in memory so the UI still works
+    PROJECTS = SEED_PROJECTS.map(p => ({ ...p, pct: calcPct(p.id, SEED_PIPS) }));
+    PIPS     = SEED_PIPS;
+    TEAM     = SEED_TEAM;
+    FINANCES = SEED_PROJECTS.map(p => ({
+      proj_id: p.id, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+    }));
+    renderAll();
+    toast('⚠ Running in offline mode');
   }
 }
 
-async function deleteProjectDB(dbId){
-  if(!dbId)return;
-  const {error}=await sb.from('projects').delete().eq('id',dbId);
-  if(error)console.error('Delete error:',error);
+async function seedMissingTables(flags) {
+  setSyncing('Seeding…');
+  const pcts = SEED_PROJECTS.map(p => ({ ...p, pct: calcPct(p.id, SEED_PIPS) }));
+  const projectRows = flags.projects ? pcts : PROJECTS;
+  const financeSeed = projectRows.map(p => ({
+    proj_id: p.id, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+  }));
+  const tasks = [];
+  if (flags.projects) tasks.push(sb.from('projects').upsert(pcts, { onConflict: 'id' }));
+  if (flags.pips && flags.projects) tasks.push(sb.from('pips').upsert(SEED_PIPS, { onConflict: 'id' }));
+  if (flags.team)     tasks.push(sb.from('team').upsert(SEED_TEAM, { onConflict: 'id' }));
+  if (flags.finances) tasks.push(sb.from('finances').upsert(financeSeed, { onConflict: 'proj_id' }));
+  const results = await Promise.all(tasks);
+  const err = results.find(r => r?.error)?.error;
+  if (err) console.warn('Seed partial error:', err);
 }
 
-const _origUpdateField=updateField;
-function updateField(id,field,val){
-  const v=field==='color'?parseInt(val):val;
-  projects=projects.map(p=>{
-    if(p.id!==id)return p;
-    const updated={...p,[field]:v};
-    saveProject(updated);
-    return updated;
+async function reloadAllTables() {
+  const [pRes, pipRes, tRes, fRes] = await Promise.all([
+    sb.from('projects').select('*').order('id'),
+    sb.from('pips').select('*').order('id'),
+    sb.from('team').select('*').order('id'),
+    sb.from('finances').select('*').order('proj_id'),
+  ]);
+  PROJECTS = pRes.data || [];
+  PIPS     = pipRes.data || [];
+  TEAM     = tRes.data || [];
+  FINANCES = fRes.data || [];
+}
+
+async function loadDaxHistory() {
+  const { data, error } = await sb
+    .from('dax_history')
+    .select('role, content, created_at')
+    .order('created_at')
+    .limit(200);
+  if (!error) {
+    daxMessages = data || [];
+    renderDaxMessages();
+  }
+}
+
+async function saveDaxMsg(role, content) {
+  const { error } = await sb.from('dax_history').insert({ role, content });
+  if (error) console.warn('Failed to save Dax history item:', error);
+}
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+const STAGE_COLORS = { Idea:'#6366f1', Plan:'#a855f7', Build:'#3b82f6', Launch:'#06b6d4', Active:'#22c55e', Paused:'#f59e0b' };
+const STAGES = ['Idea','Plan','Build','Launch','Active','Paused'];
+
+function stageColor(s) { return STAGE_COLORS[s] || '#7c85a8'; }
+
+function calcPct(pid, pips) {
+  const all = (pips || PIPS).filter(p => p.proj === pid);
+  if (!all.length) return 0;
+  return Math.round(all.filter(p => p.status === 'Complete').length / all.length * 100);
+}
+function projectById(id)  { return PROJECTS.find(p => p.id === id); }
+function pipsForProject(pid) { return PIPS.filter(p => p.proj === pid); }
+function openPips(pid)    { return pipsForProject(pid).filter(p => p.status !== 'Complete'); }
+
+function statusBadge(s) {
+  const map = { 'Open':'badge-status-open','In Progress':'badge-status-in-progress','Review':'badge-status-review','Complete':'badge-status-complete','Blocked':'badge-status-blocked' };
+  return `<span class="badge ${map[s]||'badge-status-open'}">${s}</span>`;
+}
+function prioBadge(p) {
+  const map = { Critical:'badge-prio-critical', High:'badge-prio-high', Medium:'badge-prio-medium', Low:'badge-prio-low' };
+  return `<span class="badge ${map[p]||'badge-prio-low'}">${p}</span>`;
+}
+function catBadge(c) { return `<span class="badge badge-cat">${c}</span>`; }
+function stageChip(s) { return `<span class="stage-chip" style="background:${stageColor(s)}22;color:${stageColor(s)}">${s}</span>`; }
+function initials(n)  { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function fmt(n)       { return '$' + Number(n||0).toLocaleString(); }
+function escHtml(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s)   { return escHtml(s).replace(/"/g,'&quot;'); }
+
+function scheduleRenderAll() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    renderAll();
+    if (activePipId) syncPipDrawer(activePipId);
+  }, 80);
+}
+
+function financeByProject(pid) {
+  return FINANCES.find(f => f.proj_id === pid) || {
+    proj_id: pid, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+  };
+}
+
+function nextId(prefix, rows, key, width) {
+  const nums = (rows || [])
+    .map(row => String(row[key] || ''))
+    .map(val => val.match(/\d+/)?.[0])
+    .filter(Boolean)
+    .map(Number);
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `${prefix}${String(next).padStart(width, '0')}`;
+}
+
+function nextProjectId() { return nextId('P', PROJECTS, 'id', 2); }
+function nextPipId() { return nextId('PIP-', PIPS, 'id', 3); }
+function nextTeamId() { return nextId('M', TEAM, 'id', 2); }
+
+function projectPayload(project) {
+  return {
+    id: project.id,
+    name: project.name,
+    stage: project.stage,
+    goal: project.goal || '',
+    pct: calcPct(project.id),
+    budget: Number(project.budget || 0),
+    spent: Number(project.spent || 0),
+  };
+}
+
+function pipPayload(pip) {
+  return {
+    id: pip.id,
+    proj: pip.proj,
+    num: pip.num ?? null,
+    title: pip.title,
+    cat: pip.cat || '',
+    status: pip.status || 'Open',
+    pri: pip.pri || 'Medium',
+    by: pip.by || '',
+    assigned: pip.assigned || '',
+    descr: pip.descr || '',
+    due: pip.due || null,
+  };
+}
+
+function teamPayload(member) {
+  return {
+    id: member.id,
+    name: member.name,
+    role: member.role || '',
+    color: member.color || '#6366f1',
+  };
+}
+
+function financePayload(row) {
+  return {
+    proj_id: row.proj_id,
+    mrr: Number(row.mrr || 0),
+    one_time: Number(row.one_time || 0),
+    proj_mrr: Number(row.proj_mrr || 0),
+    dev_cost: Number(row.dev_cost || 0),
+    marketing_cost: Number(row.marketing_cost || 0),
+    tools_cost: Number(row.tools_cost || 0),
+  };
+}
+
+async function saveProjectRecord(project) {
+  const payload = projectPayload(project);
+  PROJECTS = PROJECTS.some(p => p.id === project.id)
+    ? PROJECTS.map(p => p.id === project.id ? { ...p, ...payload } : p)
+    : [...PROJECTS, payload];
+  const { error } = await sb.from('projects').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('Project save failed:', error);
+  scheduleRenderAll();
+}
+
+async function savePipRecord(pip, previousProjId) {
+  const payload = pipPayload(pip);
+  const prev = previousProjId || payload.proj;
+  PIPS = PIPS.some(p => p.id === pip.id)
+    ? PIPS.map(p => p.id === pip.id ? { ...p, ...payload } : p)
+    : [...PIPS, payload];
+  const { error } = await sb.from('pips').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('PIP save failed:', error);
+  await refreshProjectPct(prev);
+  if (payload.proj !== prev) await refreshProjectPct(payload.proj);
+  scheduleRenderAll();
+}
+
+async function saveTeamRecord(member) {
+  const payload = teamPayload(member);
+  TEAM = TEAM.some(m => m.id === member.id)
+    ? TEAM.map(m => m.id === member.id ? { ...m, ...payload } : m)
+    : [...TEAM, payload];
+  const { error } = await sb.from('team').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('Team save failed:', error);
+  scheduleRenderAll();
+}
+
+async function saveFinanceRecord(row) {
+  const payload = financePayload(row);
+  FINANCES = FINANCES.some(f => f.proj_id === row.proj_id)
+    ? FINANCES.map(f => f.proj_id === row.proj_id ? { ...f, ...payload } : f)
+    : [...FINANCES, payload];
+  const { error } = await sb.from('finances').upsert(payload, { onConflict: 'proj_id' });
+  if (error) console.warn('Finance save failed:', error);
+  scheduleRenderAll();
+}
+
+async function deleteProjectRecord(projectId) {
+  const { error } = await sb.from('projects').delete().eq('id', projectId);
+  if (error) console.warn('Project delete failed:', error);
+  PROJECTS = PROJECTS.filter(p => p.id !== projectId);
+  PIPS = PIPS.filter(p => p.proj !== projectId);
+  FINANCES = FINANCES.filter(f => f.proj_id !== projectId);
+  if (activePipId && !PIPS.some(p => p.id === activePipId)) closePipDrawer();
+  scheduleRenderAll();
+}
+
+async function deletePipRecord(pipId) {
+  const pip = PIPS.find(p => p.id === pipId);
+  if (!pip) return;
+  const { error } = await sb.from('pips').delete().eq('id', pipId);
+  if (error) console.warn('PIP delete failed:', error);
+  PIPS = PIPS.filter(p => p.id !== pipId);
+  await refreshProjectPct(pip.proj);
+  if (activePipId === pipId) closePipDrawer();
+  scheduleRenderAll();
+}
+
+async function deleteTeamRecord(memberId) {
+  const { error } = await sb.from('team').delete().eq('id', memberId);
+  if (error) console.warn('Team delete failed:', error);
+  TEAM = TEAM.filter(m => m.id !== memberId);
+  scheduleRenderAll();
+}
+
+async function resetFinanceRecord(projectId) {
+  await saveFinanceRecord({
+    proj_id: projectId, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
   });
-  render();
 }
 
-const _origDeleteProject=deleteProject;
-function deleteProject(id){
-  const p=projects.find(x=>x.id===id);
-  if(p&&p.dbId)deleteProjectDB(p.dbId);
-  projects=projects.filter(x=>x.id!==id);
-  render();
+async function refreshProjectPct(projectId) {
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+  const updated = { ...project, pct: calcPct(projectId) };
+  PROJECTS = PROJECTS.map(p => p.id === projectId ? updated : p);
+  const { error } = await sb.from('projects').upsert(projectPayload(updated), { onConflict: 'id' });
+  if (error) console.warn('Project pct sync failed:', error);
 }
 
-const _origMoveProj=moveProj;
-function moveProj(id,stage){
-  projects=projects.map(p=>{
-    if(p.id!==id)return p;
-    const updated={...p,stage};
-    saveProject(updated);
-    return updated;
+function promptProjectEditor(project) {
+  const name = prompt('Project name', project.name || '');
+  if (name === null) return;
+  const stage = prompt('Stage: Idea, Plan, Build, Launch, Active, Paused', project.stage || 'Idea');
+  if (stage === null) return;
+  const goal = prompt('Goal', project.goal || '');
+  if (goal === null) return;
+  const budget = prompt('Budget', String(project.budget || 0));
+  if (budget === null) return;
+  const spent = prompt('Spent', String(project.spent || 0));
+  if (spent === null) return;
+  saveProjectRecord({
+    ...project,
+    name: name.trim() || project.name,
+    stage: stage.trim() || project.stage,
+    goal: goal.trim(),
+    budget: Number(budget) || 0,
+    spent: Number(spent) || 0,
   });
-  document.querySelectorAll('.move-dd.open').forEach(m=>m.classList.remove('open'));
-  render();
 }
 
-const _origSaveNew=saveNew;
-function saveNew(){
-  const name=document.getElementById('m-name').value.trim();if(!name)return;
-  const newP={id:nextId++,name,color:pendingColor,stage:document.getElementById('m-stage').value,
-    desc:document.getElementById('m-desc').value.trim()||'No description',
-    goal:document.getElementById('m-goal').value.trim(),
-    subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
-    subProjects:[],openSubBoard:false,
-    convo:{Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
-    tickets:[],contacts:[],finances:[],people:[],openTab:null};
-  projects.push(newP);
-  colorIdx++;
-  closeModal();
-  render();
-  saveProject(newP);
+function promptTeamEditor(member) {
+  const name = prompt('Member name', member.name || '');
+  if (name === null) return;
+  const role = prompt('Role', member.role || '');
+  if (role === null) return;
+  const color = prompt('Color hex', member.color || '#6366f1');
+  if (color === null) return;
+  saveTeamRecord({
+    ...member,
+    name: name.trim() || member.name,
+    role: role.trim(),
+    color: color.trim() || '#6366f1',
+  });
 }
 
-function autoSave(id){
-  const p=projects.find(x=>x.id===id);
-  if(p)saveProject(p);
+function createProject() {
+  const project = {
+    id: nextProjectId(),
+    name: 'New Project',
+    stage: 'Idea',
+    goal: '',
+    budget: 0,
+    spent: 0,
+  };
+  saveProjectRecord(project);
 }
 
-const _origMoveTk=moveTk;
-function moveTk(pid,idx,status){
-  projects=projects.map(p=>{if(p.id!==pid)return p;const tks=[...p.tickets];tks[idx]={...tks[idx],status};const updated={...p,tickets:tks};saveProject(updated);return updated;});render();
-}
-const _origRmTk=rmTk;
-function rmTk(pid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,tickets:p.tickets.filter((_,i)=>i!==idx)};saveProject(updated);return updated;});render();
-}
-const _origAddTk=addTk;
-function addTk(pid){
-  const inp=document.getElementById('tki-'+pid);const pri=document.getElementById('tkp-'+pid);if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,tickets:[...p.tickets,mkTk(inp.value.trim(),'todo',pri.value)]};saveProject(updated);return updated;});render();
-}
-const _origAddContact=addContact;
-function addContact(pid){
-  const n=document.getElementById('cn-'+pid).value.trim();if(!n)return;
-  const r=document.getElementById('cr-'+pid).value.trim();const e=document.getElementById('ce-'+pid).value.trim();const t=document.getElementById('ct-'+pid).value;const no=document.getElementById('cno-'+pid).value.trim();
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,contacts:[...p.contacts,{name:n,role:r,email:e,phone:'',type:t,notes:no}]};saveProject(updated);return updated;});render();
-}
-const _origRmContact=rmContact;
-function rmContact(pid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,contacts:p.contacts.filter((_,i)=>i!==idx)};saveProject(updated);return updated;});render();
-}
-const _origAddFin=addFin;
-function addFin(pid){
-  const d=document.getElementById('fd-'+pid).value.trim();if(!d)return;
-  const t=document.getElementById('ft-'+pid).value;const a=parseFloat(document.getElementById('fa-'+pid).value)||0;
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,finances:[...p.finances,{id:'f'+Date.now(),desc:d,type:t,amount:a,status:'entered'}]};saveProject(updated);return updated;});render();
-}
-const _origRmFin=rmFin;
-function rmFin(pid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;const updated={...p,finances:p.finances.filter((_,i)=>i!==idx)};saveProject(updated);return updated;});render();
-}
-const _origAddItem=addItem;
-function addItem(id,topic){
-  const key='ci-'+id+'-'+topic.replace(/\s/g,'_');const inp=document.getElementById(key);if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==id)return p;const ex=p.convo[topic]||'';const updated={...p,convo:{...p.convo,[topic]:ex?ex+'\n'+inp.value.trim():inp.value.trim()}};saveProject(updated);return updated;});render();
-}
-const _origRemoveItem=removeItem;
-function removeItem(id,topic,idx){
-  projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());items.splice(idx,1);const updated={...p,convo:{...p.convo,[topic]:items.join('\n')}};saveProject(updated);return updated;});render();
-}
-const _origToggleItem=toggleItem;
-function toggleItem(id,topic,idx,checked){
-  projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());const raw=items[idx].startsWith('[x]')?items[idx].slice(3).trim():items[idx];items[idx]=checked?'[x] '+raw:raw;const updated={...p,convo:{...p.convo,[topic]:items.join('\n')}};saveProject(updated);return updated;});render();
-}
-const _origSetPerm=setPerm;
-function setPerm(id,i,val){
-  projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],perm:val};const updated={...p,people:pp};saveProject(updated);return updated;});render();
-}
-const _origToggleVis=toggleVis;
-function toggleVis(id,i){
-  projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],visible:!pp[i].visible};const updated={...p,people:pp};saveProject(updated);return updated;});render();
-}
-const _origRmPerson=rmPerson;
-function rmPerson(id,i){
-  projects=projects.map(p=>{if(p.id!==id)return p;const updated={...p,people:p.people.filter((_,j)=>j!==i)};saveProject(updated);return updated;});render();
-}
-const _origAddPerson=addPerson;
-function addPerson(id){
-  const inp=document.getElementById('ni-'+id);const sel=document.getElementById('np-'+id);if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==id)return p;const updated={...p,people:[...p.people,{name:inp.value.trim(),perm:sel.value,visible:true}]};saveProject(updated);return updated;});render();
+function createPip() {
+  const project = PROJECTS[0];
+  if (!project) return toast('Create a project first');
+  const pip = {
+    id: nextPipId(),
+    proj: project.id,
+    title: 'New PIP',
+    cat: 'Feature',
+    status: 'Open',
+    pri: 'Medium',
+    due: '',
+    by: '',
+    assigned: '',
+    descr: '',
+  };
+  savePipRecord(pip);
+  openPipDrawer(pip.id);
 }
 
-loadProjects();
-
-
-
-// ── PROJECT MODAL ─────────────────────────────────────────────
-let modalProjectId=null;
-let modalTab='tickets';
-
-function openProjModal(pid){
-  modalProjectId=pid;
-  modalTab='tickets';
-  document.getElementById('proj-modal-overlay').classList.add('open');
-  renderProjModal();
+function createTeamMember() {
+  const member = {
+    id: nextTeamId(),
+    name: 'New Member',
+    role: '',
+    color: '#6366f1',
+  };
+  saveTeamRecord(member);
 }
 
-function closeProjModal(){
-  document.getElementById('proj-modal-overlay').classList.remove('open');
-  modalProjectId=null;
+function syncPipDrawer(pipId) {
+  const pip = PIPS.find(p => p.id === pipId);
+  if (!pip) return;
+  const proj = projectById(pip.proj);
+  document.getElementById('d-id').textContent = pip.id;
+  document.getElementById('d-title').textContent = pip.title;
+  document.getElementById('d-badges').innerHTML =
+    statusBadge(pip.status) + ' ' + prioBadge(pip.pri) + ' ' + catBadge(pip.cat || '');
+  document.getElementById('d-project').innerHTML = proj
+    ? `<div class="drawer-project-chip">
+        <span style="width:9px;height:9px;border-radius:50%;background:${stageColor(proj.stage)};display:inline-block"></span>
+        ${escHtml(proj.name)} — ${proj.stage}
+       </div>` : '';
 }
 
-document.getElementById('proj-modal-overlay').addEventListener('click',function(e){
-  if(e.target===this)closeProjModal();
-});
+function queuePipSave() {
+  clearTimeout(saveTimers.pip);
+  saveTimers.pip = setTimeout(async () => {
+    if (!activePipId) return;
+    const pip = PIPS.find(p => p.id === activePipId);
+    if (!pip) return;
+    const prevProj = pip.proj;
+    const next = {
+      ...pip,
+      proj: document.getElementById('pip-proj').value,
+      title: document.getElementById('pip-title').value.trim(),
+      cat: document.getElementById('pip-cat').value.trim(),
+      status: document.getElementById('pip-status').value,
+      pri: document.getElementById('pip-pri').value,
+      due: document.getElementById('pip-due').value || '',
+      by: document.getElementById('pip-by').value.trim(),
+      assigned: document.getElementById('pip-assigned').value.trim(),
+      descr: document.getElementById('d-desc').value.trim(),
+    };
+    document.getElementById('d-title').textContent = next.title || next.id;
+    await savePipRecord(next, prevProj);
+    syncPipDrawer(activePipId);
+  }, 180);
+}
 
-function renderProjModal(){
-  const p=projects.find(x=>x.id===modalProjectId);
-  if(!p)return;
-  const c=pc(p.color);
-  const st=sf(p.stage);
+async function savePipNow() {
+  clearTimeout(saveTimers.pip);
+  if (!activePipId) return;
+  const pip = PIPS.find(p => p.id === activePipId);
+  if (!pip) return;
+  const prevProj = pip.proj;
+  const next = {
+    ...pip,
+    proj: document.getElementById('pip-proj').value,
+    title: document.getElementById('pip-title').value.trim(),
+    cat: document.getElementById('pip-cat').value.trim(),
+    status: document.getElementById('pip-status').value,
+    pri: document.getElementById('pip-pri').value,
+    due: document.getElementById('pip-due').value || '',
+    by: document.getElementById('pip-by').value.trim(),
+    assigned: document.getElementById('pip-assigned').value.trim(),
+    descr: document.getElementById('d-desc').value.trim(),
+  };
+  document.getElementById('d-title').textContent = next.title || next.id;
+  await savePipRecord(next, prevProj);
+  syncPipDrawer(activePipId);
+}
 
-  // Header
-  const header=document.getElementById('proj-modal-header');
-  const TABS=['tickets','convo','contacts','finances','info'];
-  const tabHTML=TABS.map(t=>`<button class="proj-modal-tab${modalTab===t?' on':''}" onclick="switchModalTab('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
-  header.innerHTML=`
-    <div class="proj-modal-top">
-      <div>
-        <div class="proj-modal-title" style="color:${c.tx}">${esc(p.name)}</div>
-        <div class="proj-modal-desc">${esc(p.desc||'')}</div>
+function updateProjectField(projectId, field, value) {
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+  saveProjectRecord({
+    ...project,
+    [field]: field === 'budget' || field === 'spent' ? Number(value) || 0 : value,
+  });
+}
+
+function updateFinanceField(projectId, field, value) {
+  const row = financeByProject(projectId);
+  saveFinanceRecord({
+    ...row,
+    [field]: Number(value) || 0,
+  });
+}
+
+function wirePipDrawer() {
+  ['pip-proj', 'pip-title', 'pip-cat', 'pip-status', 'pip-pri', 'pip-due', 'pip-by', 'pip-assigned', 'd-desc']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(id === 'd-desc' || id === 'pip-title' || id === 'pip-by' || id === 'pip-assigned' || id === 'pip-cat'
+        ? 'input'
+        : 'change', queuePipSave);
+    });
+  const saveBtn = document.getElementById('pip-save-btn');
+  if (saveBtn) saveBtn.onclick = savePipNow;
+  const deleteBtn = document.getElementById('pip-delete-btn');
+  if (deleteBtn) deleteBtn.onclick = () => activePipId && confirm('Delete this PIP?') && deletePipRecord(activePipId);
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER ALL
+// ═══════════════════════════════════════════════════════
+function renderAll() {
+  renderStagesBar();
+  renderPipelineGrid();
+  renderAllPips();
+  renderTeam();
+  renderFinances();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PIPELINE VIEW
+// ═══════════════════════════════════════════════════════
+function renderStagesBar() {
+  const bar = document.getElementById('stages-bar');
+  const allActive = activeStageFilter === null;
+  bar.innerHTML = `
+    <div class="stage-filter ${allActive?'active':''}" data-stage="" style="${allActive?'border-color:#6366f1;color:#818cf8':''}">
+      <span class="dot" style="background:#7c85a8"></span>All
+    </div>` +
+    STAGES.map(s => {
+      const active = activeStageFilter === s;
+      return `<div class="stage-filter ${active?'active':''}" data-stage="${s}"><span class="dot"></span>${s}</div>`;
+    }).join('');
+
+  bar.querySelectorAll('.stage-filter').forEach(el => {
+    el.addEventListener('click', () => {
+      activeStageFilter = el.dataset.stage || null;
+      renderStagesBar();
+      renderPipelineGrid();
+    });
+  });
+}
+
+function renderPipelineGrid() {
+  const grid = document.getElementById('pipeline-grid');
+  const projects = activeStageFilter ? PROJECTS.filter(p => p.stage === activeStageFilter) : PROJECTS;
+
+  if (!projects.length) {
+    grid.innerHTML = '<div class="no-results">No projects in this stage.</div>';
+    return;
+  }
+  grid.innerHTML = projects.map(proj => {
+    const color  = stageColor(proj.stage);
+    const pct    = calcPct(proj.id);
+    const open   = openPips(proj.id).length;
+    const total  = pipsForProject(proj.id).length;
+    return `<div class="project-tile" data-pid="${proj.id}">
+      <div class="tile-actions">
+        <button class="tile-action-btn tile-edit-btn" data-project-id="${proj.id}" title="Edit project">✎</button>
+        <button class="tile-action-btn tile-delete-btn" data-project-id="${proj.id}" title="Delete project">🗑</button>
       </div>
-      <button class="proj-modal-close" onclick="closeProjModal()">×</button>
-    </div>
-    <div class="proj-modal-tabs">${tabHTML}</div>`;
-
-  // Footer
-  const footer=document.getElementById('proj-modal-footer');
-  footer.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px">
-      <span class="stage-badge" style="background:${st.sc};color:${st.sf};border:1px solid ${st.sf}44">${st.label}</span>
-      <div class="move-wrap">
-        <button class="btn" style="font-size:11px;padding:4px 10px" onclick="toggleMove(event,${p.id})">Move ▾</button>
-        <div class="move-dd" id="mv-${p.id}">${STAGES.filter(s=>s.id!==p.stage).map(s=>`<div class="move-opt" onclick="moveProjFromModal(${p.id},'${s.id}')"><span class="mdot" style="background:${s.sf}"></span>${s.label}</div>`).join('')}</div>
+      <div class="tile-header" style="background:${color}"></div>
+      <div class="tile-body">
+        <div class="tile-stage" style="color:${color}">${proj.stage}</div>
+        <div class="tile-name">${escHtml(proj.name)}</div>
+        <div class="tile-goal">${escHtml(proj.goal||'')}</div>
+        <div class="tile-stats">
+          <div class="tile-pip-count"><strong>${open}</strong> open / ${total} PIPs</div>
+          <div class="tile-pct" style="color:${color}">${pct}%</div>
+        </div>
+        <div class="tile-progress">
+          <div class="tile-progress-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
       </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.project-tile').forEach(el => {
+    el.addEventListener('click', () => openProjectDrawer(el.dataset.pid));
+  });
+  grid.querySelectorAll('.tile-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      promptProjectEditor(PROJECTS.find(p => p.id === btn.dataset.projectId));
+    });
+  });
+  grid.querySelectorAll('.tile-delete-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const project = PROJECTS.find(p => p.id === btn.dataset.projectId);
+      if (project && confirm(`Delete ${project.name}? This also removes its PIPs and finance row.`)) {
+        deleteProjectRecord(project.id);
+      }
+    });
+  });
+}
+
+function openProjectDrawer(pid) {
+  const pips  = pipsForProject(pid);
+  const target = pips.find(p => p.status !== 'Complete') || pips[0];
+  if (target) openPipDrawer(target.id);
+}
+
+// ═══════════════════════════════════════════════════════
+//  ALL PIPs VIEW
+// ═══════════════════════════════════════════════════════
+function renderAllPips() {
+  const tbody = document.getElementById('all-pips-tbody');
+  tbody.innerHTML = PIPS.map(pip => {
+    const proj  = projectById(pip.proj);
+    const color = stageColor(proj?.stage || 'Idea');
+    return `<tr data-pip-id="${pip.id}">
+      <td style="color:${color};font-weight:700;font-size:11px">${pip.id}</td>
+      <td style="max-width:210px;white-space:normal;font-weight:500">${escHtml(pip.title)}</td>
+      <td>${stageChip(proj?.stage||'')}&nbsp;<span style="font-size:11px">${escHtml(proj?.name||'')}</span></td>
+      <td>${catBadge(pip.cat||'')}</td>
+      <td>${statusBadge(pip.status)}</td>
+      <td>${prioBadge(pip.pri)}</td>
+      <td style="font-size:12px">${escHtml(pip.assigned||'')}</td>
+      <td style="font-size:12px;color:var(--muted)">${pip.due||''}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.addEventListener('click', () => openPipDrawer(row.dataset.pipId));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  TEAM VIEW
+// ═══════════════════════════════════════════════════════
+function renderTeam() {
+  const grid = document.getElementById('team-grid');
+  grid.innerHTML = TEAM.map(m => {
+    const assigned  = PIPS.filter(p => p.assigned === m.name);
+    const openCount = assigned.filter(p => p.status !== 'Complete').length;
+    const topPips   = assigned.filter(p => p.status !== 'Complete').slice(0,4);
+    return `<div class="team-card" data-member-id="${m.id}">
+      <div class="team-actions">
+        <button class="team-action-btn team-edit-btn" data-member-id="${m.id}" title="Edit member">✎</button>
+        <button class="team-action-btn team-delete-btn" data-member-id="${m.id}" title="Delete member">🗑</button>
+      </div>
+      <div class="member-avatar" style="background:${m.color||'#6366f1'}">${initials(m.name)}</div>
+      <div class="member-name">${escHtml(m.name)}</div>
+      <div class="member-role">${escHtml(m.role||'')}</div>
+      <div class="member-stats">
+        <div class="member-stat">
+          <div class="member-stat-num" style="color:${m.color||'#6366f1'}">${openCount}</div>
+          <div class="member-stat-lbl">Open</div>
+        </div>
+        <div class="member-stat">
+          <div class="member-stat-num">${assigned.length}</div>
+          <div class="member-stat-lbl">Total</div>
+        </div>
+      </div>
+      ${topPips.length ? `<div class="member-pip-list">${topPips.map(pip=>`
+        <div class="member-pip-item" data-pip-id="${pip.id}">
+          <span style="font-size:10px;color:${m.color||'#6366f1'};font-weight:700">${pip.id}</span>
+          <span>${escHtml(pip.title)}</span>
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.member-pip-item').forEach(el => {
+    el.addEventListener('click', () => openPipDrawer(el.dataset.pipId));
+  });
+  grid.querySelectorAll('.team-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('button') || e.target.closest('.member-pip-item')) return;
+      const member = TEAM.find(m => m.id === card.dataset.memberId);
+      if (member) promptTeamEditor(member);
+    });
+  });
+  grid.querySelectorAll('.team-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      promptTeamEditor(TEAM.find(m => m.id === btn.dataset.memberId));
+    });
+  });
+  grid.querySelectorAll('.team-delete-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const member = TEAM.find(m => m.id === btn.dataset.memberId);
+      if (member && confirm(`Delete ${member.name}?`)) deleteTeamRecord(member.id);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  FINANCES VIEW
+// ═══════════════════════════════════════════════════════
+function renderFinances() {
+  const totalBudget = PROJECTS.reduce((s,p) => s + (p.budget||0), 0);
+  const totalSpent   = PROJECTS.reduce((s,p) => s + (p.spent||0), 0);
+  const totalMRR     = FINANCES.reduce((s,f) => s + Number(f.mrr||0), 0);
+  const totalProjMRR = FINANCES.reduce((s,f) => s + Number(f.proj_mrr||0), 0);
+  const totalCost    = FINANCES.reduce((s,f) => s + Number(f.dev_cost||0) + Number(f.marketing_cost||0) + Number(f.tools_cost||0), 0);
+  const remaining    = totalBudget - totalSpent;
+  const burnPct      = totalBudget ? Math.round(totalSpent / totalBudget * 100) : 0;
+
+  document.getElementById('fin-summary').innerHTML = `
+    <div class="fin-card">
+      <div class="fin-card-label">Total Budget</div>
+      <div class="fin-card-value">${fmt(totalBudget)}</div>
+      <div class="fin-card-sub">Across ${PROJECTS.length} projects</div>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="closeProjModal();openDax(${p.id})">✦ Dax</button>
-      <button class="btn" onclick="closeProjModal();toggleSubBoard(${p.id})">⊞ Board</button>
-      <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
+    <div class="fin-card">
+      <div class="fin-card-label">Total Spent</div>
+      <div class="fin-card-value" style="color:#ef4444">${fmt(totalSpent)}</div>
+      <div class="fin-card-sub">${burnPct}% of total budget</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Remaining</div>
+      <div class="fin-card-value" style="color:#22c55e">${fmt(remaining)}</div>
+      <div class="fin-card-sub">${100-burnPct}% unallocated</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Monthly MRR</div>
+      <div class="fin-card-value" style="color:#38bdf8">${fmt(totalMRR)}</div>
+      <div class="fin-card-sub">Across all finance rows</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Projected MRR</div>
+      <div class="fin-card-value" style="color:#a855f7">${fmt(totalProjMRR)}</div>
+      <div class="fin-card-sub">Revenue forecast</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Operating Cost</div>
+      <div class="fin-card-value" style="color:#f59e0b">${fmt(totalCost)}</div>
+      <div class="fin-card-sub">Dev + marketing + tools</div>
     </div>`;
 
-  // Body
-  renderModalBody(p);
-}
-
-function moveProjFromModal(id,stage){
-  moveProj(id,stage);
-  setTimeout(()=>{
-    const p=projects.find(x=>x.id===id);
-    if(p) renderProjModal();
-  },50);
-}
-
-function switchModalTab(tab){
-  modalTab=tab;
-  renderProjModal();
-}
-
-function renderModalBody(p){
-  const body=document.getElementById('proj-modal-body');
-  const c=pc(p.color);
-
-  if(modalTab==='tickets'){
-    const cols=['todo','inprogress','done'];
-    const cL={todo:'To do',inprogress:'In progress',done:'Done'};
-    const stats=cols.map(s=>p.tickets.filter(t=>t.status===s).length);
-    const board=cols.map(status=>{
-      const tks=p.tickets.filter(t=>t.status===status);
-      const tkHTML=tks.map(t=>{
-        const ri=p.tickets.indexOf(t);
-        const canL=status!=='todo',canR=status!=='done';
-        const lS=status==='inprogress'?'todo':'inprogress',rS=status==='todo'?'inprogress':'done';
-        return `<div class="ticket"><div class="tk-id">${esc(t.id)}</div><div class="tk-title">${esc(t.title)}</div>
-          <div class="tk-meta"><span class="tk-pri pri-${t.priority}">${t.priority}</span></div>
-          <div class="tk-move-btns">
-            ${canL?`<button class="tk-mbtn" onclick="moveTkModal(${p.id},${ri},'${lS}')">← ${cL[lS]}</button>`:''}
-            ${canR?`<button class="tk-mbtn" onclick="moveTkModal(${p.id},${ri},'${rS}')">→ ${cL[rS]}</button>`:''}
-            <button class="tk-mbtn" style="color:var(--red)" onclick="rmTkModal(${p.id},${ri})">×</button>
-          </div></div>`;
-      }).join('')||`<div style="font-size:11px;color:var(--text3);padding:6px 0">Empty</div>`;
-      return `<div class="tk-col"><div class="tk-col-head">${cL[status]}<span style="font-weight:400;color:var(--text3);font-family:var(--mono);text-transform:none;letter-spacing:0">${tks.length}</span></div>${tkHTML}
-        ${status==='todo'?`<div class="add-tk"><div class="add-tk-row"><input id="mtki-${p.id}" placeholder="New ticket..." onkeydown="if(event.key==='Enter')addTkModal(${p.id})"/><select id="mtkp-${p.id}"><option value="high">High</option><option value="med" selected>Med</option><option value="low">Low</option></select></div><button onclick="addTkModal(${p.id})">+ Add</button></div>`:''}
-      </div>`;
-    }).join('');
-    body.innerHTML=`<div class="tk-stats">${cols.map((s,i)=>`<div class="tk-stat"><div class="tk-stat-n">${stats[i]}</div><div class="tk-stat-l">${cL[s]}</div></div>`).join('')}</div><div class="tk-board-modal">${board}</div>`;
-
-  } else if(modalTab==='convo'){
-    const goalBox=`<div class="pm-goal-box"><div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Project goal</div><input class="fi" style="font-size:13px;font-weight:500" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateFieldModal(${p.id},'goal',this.value)"/></div>`;
-    const sections=Object.keys(p.convo||{}).map(topic=>{
-      const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());
-      const rows=items.map((item,ii)=>{
-        const done=item.startsWith('[x]');
-        const txt=done?item.slice(3).trim():item;
-        return `<div class="item-row"><input type="checkbox" class="item-cb" ${done?'checked':''} onchange="toggleItemModal(${p.id},'${topic}',${ii},this.checked)"/><span class="item-txt${done?' done':''}">${esc(txt)}</span><button class="item-rm" onclick="removeItemModal(${p.id},'${topic}',${ii})">×</button></div>`;
-      }).join('');
-      return `<div class="pm-section"><div class="pm-section-title">${topic}</div>${rows||`<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Nothing yet.</div>`}<div class="add-item"><input id="mci-${p.id}-${topic.replace(/\s/g,'_')}" placeholder="Add item..." onkeydown="if(event.key==='Enter')addItemModal(${p.id},'${topic}')"/><button onclick="addItemModal(${p.id},'${topic}')">+ Add</button></div></div>`;
-    }).join('');
-    body.innerHTML=goalBox+sections;
-
-  } else if(modalTab==='contacts'){
-    const cards=p.contacts.map((ct,i)=>{
-      const a=ac(ct.name);
-      return `<div class="proj-modal-sticker"><div class="proj-modal-sticker-av" style="background:${a.bg};color:${a.tc}">${ini(ct.name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">${esc(ct.name)}</div><div style="font-size:11px;color:var(--text3)">${esc(ct.role)}</div>${ct.notes?`<div style="font-size:10px;color:var(--text3);font-style:italic">${esc(ct.notes)}</div>`:''}<span class="contact-tag tag-${ct.type}">${ct.type}</span></div><button class="rm" onclick="rmContactModal(${p.id},${i})">×</button></div>`;
-    }).join('')||`<div style="font-size:12px;color:var(--text3);margin-bottom:12px">No contacts yet.</div>`;
-    body.innerHTML=`${cards}<div class="add-contact" style="margin-top:10px"><input id="mcn-${p.id}" class="add-contact-full" placeholder="Name..."/><input id="mcr-${p.id}" placeholder="Role..."/><input id="mce-${p.id}" placeholder="Email..."/><select id="mct-${p.id}">${['team','investor','partner','client','vendor','press'].map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="mcno-${p.id}" placeholder="Notes..."/><button class="add-contact-full btn" onclick="addContactModal(${p.id})" style="padding:7px">+ Add contact</button></div>`;
-
-  } else if(modalTab==='finances'){
-    const revenue=p.finances.filter(f=>f.type==='revenue'||f.type==='investment').reduce((s,f)=>s+Number(f.amount||0),0);
-    const expenses=p.finances.filter(f=>f.type==='expense').reduce((s,f)=>s+Number(f.amount||0),0);
-    const net=revenue-expenses;
-    const rows=p.finances.map((f,i)=>`<tr><td style="color:var(--text)">${esc(f.desc)}</td><td><span class="fin-type type-${f.type}">${f.type}</span></td><td style="text-align:right;font-family:var(--mono);color:var(--text)">${fmt$(f.amount)}</td><td style="color:var(--text3)">${esc(f.status)}</td><td><button class="rm" onclick="rmFinModal(${p.id},${i})">×</button></td></tr>`).join('')||`<tr><td colspan="5" style="color:var(--text3);padding:10px 0">No entries yet.</td></tr>`;
-    body.innerHTML=`<div class="fin-summary"><div class="fin-card"><div class="fin-lbl">Revenue / funding</div><div class="fin-val green">${fmt$(revenue)}</div></div><div class="fin-card"><div class="fin-lbl">Expenses</div><div class="fin-val red">${fmt$(expenses)}</div></div><div class="fin-card"><div class="fin-lbl">Net</div><div class="fin-val ${net>=0?'green':'red'}">${fmt$(net)}</div></div></div><table class="fin-table"><thead><tr><th>Description</th><th>Type</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="add-fin"><input id="mfd-${p.id}" placeholder="Description..."/><select id="mft-${p.id}">${['revenue','expense','investment','grant'].map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="mfa-${p.id}" type="number" placeholder="Amount" min="0"/><button onclick="addFinModal(${p.id})">+ Add</button></div>`;
-
-  } else if(modalTab==='info'){
-    const stOpts=STAGES.map(s=>`<option value="${s.id}"${s.id===p.stage?' selected':''}>${s.label}</option>`).join('');
-    const swatches=PC.map((col,i)=>`<div class="cswatch${p.color===i?' sel':''}" style="background:${col.bg};outline:1.5px solid ${col.bd};border-color:${p.color===i?'rgba(0,0,0,.5)':'transparent'}" onclick="updateFieldModal(${p.id},'color',${i})"></div>`).join('');
-    const prows=p.people.map((per,i)=>`<div class="person-row"><div class="av" style="background:${ac(per.name).bg};color:${ac(per.name).tc};width:22px;height:22px;font-size:9px">${ini(per.name)}</div><span class="pname">${esc(per.name)}</span><select class="psel" onchange="setPermModal(${p.id},${i},this.value)"><option value="viewer"${per.perm==='viewer'?' selected':''}>Viewer</option><option value="editor"${per.perm==='editor'?' selected':''}>Editor</option></select><span class="ptag ${per.perm==='editor'?'te':'tv'}">${per.perm}</span><button class="tog ${per.visible?'tog-on':'tog-off'}" onclick="toggleVisModal(${p.id},${i})"></button><span class="ptag ${per.visible?'tvis':'th'}">${per.visible?'vis':'hidden'}</span><button class="rm" onclick="rmPersonModal(${p.id},${i})">×</button></div>`).join('');
-    body.innerHTML=`<div class="pm-field"><span class="pm-field-label">Name</span><input class="fi" value="${esc(p.name)}" onchange="updateFieldModal(${p.id},'name',this.value)"/></div><div class="pm-field"><span class="pm-field-label">Stage</span><select class="fi" onchange="updateFieldModal(${p.id},'stage',this.value)">${stOpts}</select></div><div class="pm-field"><span class="pm-field-label">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateFieldModal(${p.id},'desc',this.value)"/></div><div class="pm-field"><span class="pm-field-label">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateFieldModal(${p.id},'goal',this.value)"/></div><div class="pm-field" style="align-items:flex-start"><span class="pm-field-label" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div><div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px"><div class="pm-section-title">Team access</div>${prows||'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">No team members.</div>'}<div class="add-pr"><input id="mni-${p.id}" placeholder="Name or email..."/><select id="mnp-${p.id}"><option value="viewer">Viewer</option><option value="editor">Editor</option></select><button onclick="addPersonModal(${p.id})">+ Invite</button></div></div>`;
-  }
-}
-
-// Modal-specific data functions that re-render modal after change
-function updateFieldModal(id,field,val){
-  const v=field==='color'?parseInt(val):val;
-  projects=projects.map(p=>p.id===id?{...p,[field]:v}:p);
-  const p=projects.find(x=>x.id===id);
-  if(p)saveProject(p);
-  render();
-  renderProjModal();
-}
-function moveTkModal(pid,idx,status){
-  moveTk(pid,idx,status);
-  renderProjModal();
-}
-function rmTkModal(pid,idx){
-  rmTk(pid,idx);
-  renderProjModal();
-}
-function addTkModal(pid){
-  const inp=document.getElementById('mtki-'+pid);
-  const pri=document.getElementById('mtkp-'+pid);
-  if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,tickets:[...p.tickets,mkTk(inp.value.trim(),'todo',pri.value)]};});
-  const p=projects.find(x=>x.id===pid);if(p)saveProject(p);
-  render();renderProjModal();
-}
-function addItemModal(id,topic){
-  const key='mci-'+id+'-'+topic.replace(/\s/g,'_');
-  const inp=document.getElementById(key);
-  if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==id)return p;const ex=p.convo[topic]||'';return{...p,convo:{...p.convo,[topic]:ex?ex+'\n'+inp.value.trim():inp.value.trim()}};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function removeItemModal(id,topic,idx){
-  projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());items.splice(idx,1);return{...p,convo:{...p.convo,[topic]:items.join('\n')}};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function toggleItemModal(id,topic,idx,checked){
-  projects=projects.map(p=>{if(p.id!==id)return p;const items=(p.convo[topic]||'').split('\n').filter(x=>x.trim());const raw=items[idx].startsWith('[x]')?items[idx].slice(3).trim():items[idx];items[idx]=checked?'[x] '+raw:raw;return{...p,convo:{...p.convo,[topic]:items.join('\n')}};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function addContactModal(pid){
-  const n=document.getElementById('mcn-'+pid).value.trim();if(!n)return;
-  const r=document.getElementById('mcr-'+pid).value.trim();
-  const e=document.getElementById('mce-'+pid).value.trim();
-  const t=document.getElementById('mct-'+pid).value;
-  const no=document.getElementById('mcno-'+pid).value.trim();
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,contacts:[...p.contacts,{name:n,role:r,email:e,phone:'',type:t,notes:no}]};});
-  const p=projects.find(x=>x.id===pid);if(p)saveProject(p);
-  renderProjModal();
-}
-function rmContactModal(pid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,contacts:p.contacts.filter((_,i)=>i!==idx)};});
-  const p=projects.find(x=>x.id===pid);if(p)saveProject(p);
-  renderProjModal();
-}
-function addFinModal(pid){
-  const d=document.getElementById('mfd-'+pid).value.trim();if(!d)return;
-  const t=document.getElementById('mft-'+pid).value;
-  const a=parseFloat(document.getElementById('mfa-'+pid).value)||0;
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,finances:[...p.finances,{id:'f'+Date.now(),desc:d,type:t,amount:a,status:'entered'}]};});
-  const p=projects.find(x=>x.id===pid);if(p)saveProject(p);
-  renderProjModal();
-}
-function rmFinModal(pid,idx){
-  projects=projects.map(p=>{if(p.id!==pid)return p;return{...p,finances:p.finances.filter((_,i)=>i!==idx)};});
-  const p=projects.find(x=>x.id===pid);if(p)saveProject(p);
-  renderProjModal();
-}
-function setPermModal(id,i,val){
-  projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],perm:val};return{...p,people:pp};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function toggleVisModal(id,i){
-  projects=projects.map(p=>{if(p.id!==id)return p;const pp=[...p.people];pp[i]={...pp[i],visible:!pp[i].visible};return{...p,people:pp};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function rmPersonModal(id,i){
-  projects=projects.map(p=>{if(p.id!==id)return p;return{...p,people:p.people.filter((_,j)=>j!==i)};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-function addPersonModal(id){
-  const inp=document.getElementById('mni-'+id);
-  const sel=document.getElementById('mnp-'+id);
-  if(!inp||!inp.value.trim())return;
-  projects=projects.map(p=>{if(p.id!==id)return p;return{...p,people:[...p.people,{name:inp.value.trim(),perm:sel.value,visible:true}]};});
-  const p=projects.find(x=>x.id===id);if(p)saveProject(p);
-  renderProjModal();
-}
-// ── END PROJECT MODAL ─────────────────────────────────────────
-
-// ── DAX ──────────────────────────────────────────────────────
-let daxProjectId=null;
-let daxHistory=[];
-let daxTyping=false;
-
-const DAX_SYSTEM=`You are Dax, the built-in AI advisor for Vantage — an entrepreneurial operating system. Your job is to have sharp, productive conversations with entrepreneurs about their projects.
-
-Your personality: direct, curious, intellectually honest, a little relentless. You ask one pointed question at a time. You don't flatter or pad responses. You push people toward clarity. Think sharp co-founder meets seasoned mentor.
-
-Your goals in every conversation:
-1. Understand what the project really is and why this person is building it
-2. Surface blind spots, assumptions, and risks they haven't addressed
-3. Help them define what success actually looks like
-4. Identify the single most important next action
-
-Rules:
-- Ask ONE question at a time. Never list multiple questions.
-- Keep responses concise — 2-4 sentences max, then your question.
-- Use the project context provided to avoid asking things they've already answered.
-- When you have enough context, offer to summarize key insights back to them.
-- Never be a yes-man. Challenge vague answers with follow-up.
-- Adapt your tone to the project stage — early stage gets more exploratory questions, later stages get more tactical ones.`;
-
-function openDax(pid){
-  daxProjectId=pid;
-  const p=projects.find(x=>x.id===pid);
-  if(!p)return;
-  document.getElementById('dax-project-name').textContent=p.name;
-  document.getElementById('dax-overlay').classList.add('open');
-  const msgs=document.getElementById('dax-messages');
-  msgs.innerHTML='';
-  daxHistory=[];
-
-  // Build context string from project
-  const stage=sf(p.stage).label;
-  const goal=p.goal||'not defined yet';
-  const convoSummary=Object.entries(p.convo||{}).filter(([k,v])=>v&&v.trim()).map(([k,v])=>`${k}: ${v.replace(/\[x\] /g,'').replace(/\n/g,', ')}`).join(' | ')||'none yet';
-  const tickets=p.tickets.filter(t=>t.status==='todo').map(t=>t.title).join(', ')||'none';
-
-  const context=`Project: "${p.name}" | Stage: ${stage} | Goal: ${goal} | Notes: ${convoSummary} | Open tickets: ${tickets}`;
-
-  // Opening message from Dax
-  const opener=getOpener(p,stage);
-  daxAddMsg('dax','Dax',opener);
-  daxHistory.push({role:'user',content:`[Project context: ${context}]`});
-  daxHistory.push({role:'assistant',content:opener});
-
-  setTimeout(()=>document.getElementById('dax-input').focus(),100);
-}
-
-function getOpener(p,stage){
-  const stageOpeners={
-    'Idea':`"${p.name}" — I like it. Before we go anywhere, tell me this: what made you think of this idea, and why now?`,
-    'Conversation':`Good, you've moved "${p.name}" into conversation. Let's make this count. What's the single thing you're most uncertain about with this project?`,
-    'Plan':`You're planning "${p.name}" — that means the idea is solid enough to start structuring. What's the biggest assumption baked into your plan that you haven't validated yet?`,
-    'Evaluate':`You're evaluating "${p.name}". That tells me you're weighing whether to commit. What would have to be true for this to be a clear yes?`,
-    'Initiate':`"${p.name}" is about to kick off. Before you start spending time and money — what does success look like in 90 days, specifically?`,
-    'In progress':`"${p.name}" is in motion. What's the thing right now that's slowing you down the most?`,
-    'Complete':`"${p.name}" is done — or close to it. Honest question: did it turn out the way you expected? What surprised you?`,
-    'Goal ★':`You've put "${p.name}" at the goal stage. Walk me through what you've actually achieved versus what you originally set out to do.`
-  };
-  return stageOpeners[stage]||`Let's talk about "${p.name}". What's on your mind with this project right now?`;
-}
-
-function daxAddMsg(role,label,text){
-  const msgs=document.getElementById('dax-messages');
-  const div=document.createElement('div');
-  div.className=`dax-msg ${role}`;
-  div.innerHTML=`<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g,'<br>')}</div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop=msgs.scrollHeight;
-}
-
-function daxShowTyping(){
-  const msgs=document.getElementById('dax-messages');
-  const div=document.createElement('div');
-  div.className='dax-msg dax';
-  div.id='dax-typing-indicator';
-  div.innerHTML='<div class="dax-msg-label">Dax</div><div class="dax-typing"><span></span><span></span><span></span></div>';
-  msgs.appendChild(div);
-  msgs.scrollTop=msgs.scrollHeight;
-}
-
-function daxRemoveTyping(){
-  const el=document.getElementById('dax-typing-indicator');
-  if(el)el.remove();
-}
-
-async function daxSend(){
-  if(daxTyping)return;
-  const inp=document.getElementById('dax-input');
-  const text=inp.value.trim();
-  if(!text)return;
-  inp.value='';
-  inp.style.height='auto';
-
-  daxAddMsg('user','You',text);
-  daxHistory.push({role:'user',content:text});
-
-  daxTyping=true;
-  daxShowTyping();
-
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:DAX_SYSTEM,
-        messages:daxHistory
-      })
-    });
-    const data=await res.json();
-    daxRemoveTyping();
-    daxTyping=false;
-
-    const reply=data.content&&data.content[0]&&data.content[0].text;
-    if(reply){
-      daxAddMsg('dax','Dax',reply);
-      daxHistory.push({role:'assistant',content:reply});
-      // After 4+ exchanges offer to sync to convo tab
-      if(daxHistory.filter(m=>m.role==='user').length>=4){
-        daxOfferSync();
+  document.getElementById('fin-tbody').innerHTML = PROJECTS.map(p => {
+    const rem    = (p.budget||0) - (p.spent||0);
+    const pct    = p.budget ? Math.round((p.spent||0) / p.budget * 100) : 0;
+    const color  = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#22c55e';
+    const fin    = financeByProject(p.id);
+    return `<tr>
+      <td style="font-weight:600">${escHtml(p.name)}</td>
+      <td>${stageChip(p.stage)}</td>
+      <td><input class="fin-input" type="number" min="0" value="${Number(p.budget||0)}" data-project-id="${p.id}" data-field="budget"></td>
+      <td><input class="fin-input" type="number" min="0" value="${Number(p.spent||0)}" data-project-id="${p.id}" data-field="spent"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.mrr||0)}" data-project-id="${p.id}" data-field="mrr"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.one_time||0)}" data-project-id="${p.id}" data-field="one_time"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.proj_mrr||0)}" data-project-id="${p.id}" data-field="proj_mrr"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.dev_cost||0)}" data-project-id="${p.id}" data-field="dev_cost"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.marketing_cost||0)}" data-project-id="${p.id}" data-field="marketing_cost"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.tools_cost||0)}" data-project-id="${p.id}" data-field="tools_cost"></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;min-width:55px">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
+          </div>
+          <span style="color:${color};font-weight:700;font-size:12px;min-width:32px">${pct}%</span>
+          <button class="fin-reset-btn" data-project-id="${p.id}">Reset</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('.fin-input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (['budget', 'spent'].includes(input.dataset.field)) {
+        updateProjectField(input.dataset.projectId, input.dataset.field, input.value);
+        renderFinances();
+      } else {
+        updateFinanceField(input.dataset.projectId, input.dataset.field, input.value);
       }
-    }
-  }catch(err){
-    daxRemoveTyping();
-    daxTyping=false;
-    daxAddMsg('dax','Dax','Something went wrong on my end. Try again in a moment.');
-    console.error('Dax error:',err);
-  }
-}
-
-function daxOfferSync(){
-  const msgs=document.getElementById('dax-messages');
-  if(document.getElementById('dax-sync-offer'))return;
-  const div=document.createElement('div');
-  div.id='dax-sync-offer';
-  div.style.padding='0 0 4px';
-  div.innerHTML=`<button class="dax-sync-btn" onclick="daxSyncToConvo()">↓ Save this conversation to project notes</button>`;
-  msgs.appendChild(div);
-  msgs.scrollTop=msgs.scrollHeight;
-}
-
-async function daxSyncToConvo(){
-  const p=projects.find(x=>x.id===daxProjectId);
-  if(!p)return;
-  const btn=document.querySelector('.dax-sync-btn');
-  if(btn){btn.textContent='Saving...';btn.disabled=true;}
-  const sep=String.fromCharCode(10)+String.fromCharCode(10);
-  const lines=daxHistory.filter(function(m){return m.role!=='system'&&!m.content.startsWith('[Project context');});
-  const transcript=lines.map(function(m){return (m.role==='user'?'Michael':'Dax')+': '+m.content;}).join(sep);
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:'You extract structured insights from a conversation between an entrepreneur and an AI advisor. Return ONLY a JSON object with these keys: Goal, Ideas, Financing, Marketing, Team, Timeline, Risks, "Action items". Each value is a short string summary of what was discussed on that topic. If a topic was not discussed, return an empty string for that key. No markdown, no preamble, just raw JSON.',
-        messages:[{role:'user',content:'Extract insights from this conversation:\n\n'+transcript}]
-      })
     });
-    const data=await res.json();
-    const raw=data.content&&data.content[0]&&data.content[0].text;
-    if(raw){
-      let insights;
-      try{insights=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){insights=null;}
-      if(insights){
-        const newConvo={...p.convo};
-        Object.keys(insights).forEach(function(k){if(insights[k]&&insights[k].trim())newConvo[k]=insights[k];});
-        const updated={...p,convo:newConvo};
-        projects=projects.map(function(x){return x.id===p.id?updated:x;});
-        saveProject(updated);
-        if(btn){btn.textContent='Saved to project notes';btn.style.background='var(--green-bg)';btn.style.borderColor='var(--green)';}
-        return;
-      }
-    }
-  }catch(err){console.error('Sync error:',err);}
-  if(btn){btn.textContent='Save failed - try again';btn.disabled=false;}
-}
-
-function daxKeydown(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();daxSend();}
-  const inp=e.target;
-  inp.style.height='auto';
-  inp.style.height=Math.min(inp.scrollHeight,80)+'px';
-}
-
-function closeDax(){
-  document.getElementById('dax-overlay').classList.remove('open');
-  daxProjectId=null;
-}
-
-document.getElementById('dax-overlay').addEventListener('click',function(e){if(e.target===this)closeDax();});
-
-// Dax drag
-(function(){
-  let dragging=false,ox=0,oy=0,px=0,py=0;
-  document.addEventListener('DOMContentLoaded',function(){
-    const panel=document.getElementById('dax-panel');
-    const header=document.querySelector('.dax-header');
-    if(!header||!panel)return;
-    header.addEventListener('mousedown',function(e){
-      if(e.target.closest('.dax-close'))return;
-      dragging=true;
-      const r=panel.getBoundingClientRect();
-      // Switch from flex centering to absolute positioning
-      panel.style.position='fixed';
-      panel.style.left=r.left+'px';
-      panel.style.top=r.top+'px';
-      document.getElementById('dax-overlay').style.alignItems='flex-start';
-      document.getElementById('dax-overlay').style.justifyContent='flex-start';
-      ox=e.clientX-r.left;oy=e.clientY-r.top;
-      e.preventDefault();
-    });
-    document.addEventListener('mousemove',function(e){
-      if(!dragging)return;
-      panel.style.left=(e.clientX-ox)+'px';
-      panel.style.top=(e.clientY-oy)+'px';
-    });
-    document.addEventListener('mouseup',function(){dragging=false;});
   });
+  document.querySelectorAll('.fin-reset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Reset this finance row to zero?')) resetFinanceRecord(btn.dataset.projectId);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  PIP DRAWER
+// ═══════════════════════════════════════════════════════
+function openPipDrawer(pipId) {
+  const pip  = PIPS.find(p => p.id === pipId);
+  if (!pip) return;
+  activePipId = pip.id;
+  const proj = projectById(pip.proj);
+  const projOptions = PROJECTS.map(prj => `<option value="${prj.id}" ${prj.id === pip.proj ? 'selected' : ''}>${escHtml(prj.name)}</option>`).join('');
+  const statusOptions = ['Open','In Progress','Review','Complete','Blocked'].map(s => `<option ${s === pip.status ? 'selected' : ''}>${s}</option>`).join('');
+  const prioOptions = ['Critical','High','Medium','Low'].map(s => `<option ${s === pip.pri ? 'selected' : ''}>${s}</option>`).join('');
+  document.getElementById('d-id').textContent = pip.id;
+  document.getElementById('d-title').textContent = pip.title;
+  document.getElementById('d-badges').innerHTML =
+    statusBadge(pip.status) + ' ' + prioBadge(pip.pri) + ' ' + catBadge(pip.cat||'');
+  document.getElementById('d-fields').innerHTML = `
+    <div class="drawer-field">
+      <span class="drawer-field-label">Project</span>
+      <select class="drawer-edit select" id="pip-proj">${projOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Title</span>
+      <input class="drawer-edit" id="pip-title" value="${escAttr(pip.title)}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Category</span>
+      <input class="drawer-edit" id="pip-cat" value="${escAttr(pip.cat||'')}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Status</span>
+      <select class="drawer-edit select" id="pip-status">${statusOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Priority</span>
+      <select class="drawer-edit select" id="pip-pri">${prioOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Due Date</span>
+      <input class="drawer-edit" id="pip-due" type="date" value="${pip.due||''}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Created By</span>
+      <input class="drawer-edit" id="pip-by" value="${escAttr(pip.by||'')}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Assigned To</span>
+      <input class="drawer-edit" id="pip-assigned" value="${escAttr(pip.assigned||'')}" />
+    </div>`;
+  document.getElementById('d-desc').value = pip.descr || '';
+  syncPipDrawer(pip.id);
+  document.getElementById('d-actions').innerHTML = `
+    <button class="drawer-btn" id="pip-save-btn">Save</button>
+    <button class="drawer-btn danger" id="pip-delete-btn">Delete</button>
+    <button class="drawer-btn" id="pip-new-btn">New PIP</button>
+  `;
+  document.getElementById('pip-new-btn').onclick = () => createPip();
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('pip-drawer').classList.add('open');
+  wirePipDrawer();
+}
+
+function closePipDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('pip-drawer').classList.remove('open');
+  activePipId = null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DAX AI PANEL
+// ═══════════════════════════════════════════════════════
+let daxOpen = false;
+
+function toggleDax(force) {
+  daxOpen = (force !== undefined) ? force : !daxOpen;
+  document.getElementById('dax-panel').classList.toggle('open', daxOpen);
+  document.getElementById('dax-toggle-btn').classList.toggle('active', daxOpen);
+}
+
+function buildContext() {
+  const openItems = PIPS.filter(p => p.status !== 'Complete');
+  return {
+    projects: PROJECTS.map(p => ({
+      id: p.id, name: p.name, stage: p.stage, goal: p.goal,
+      pct_complete: calcPct(p.id),
+      open_pips: openPips(p.id).length,
+      budget: p.budget, spent: p.spent,
+    })),
+    pips: openItems.map(p => ({
+      id: p.id, title: p.title, project: projectById(p.proj)?.name,
+      status: p.status, priority: p.pri, due: p.due, assigned: p.assigned, cat: p.cat,
+    })),
+    team: TEAM.map(m => ({
+      name: m.name, role: m.role,
+      open_pips: PIPS.filter(p => p.assigned === m.name && p.status !== 'Complete').length,
+    })),
+    finances: PROJECTS.map(p => {
+      const fin = financeByProject(p.id);
+      return {
+        project: p.name,
+        budget: p.budget,
+        spent: p.spent,
+        remaining: (p.budget||0)-(p.spent||0),
+        burn_pct: p.budget ? Math.round((p.spent||0)/p.budget*100) : 0,
+        ...fin,
+      };
+    }),
+  };
+}
+
+function renderDaxMessages() {
+  const container = document.getElementById('dax-messages');
+  const empty     = document.getElementById('dax-empty');
+
+  if (!daxMessages.length) {
+    if (!container.contains(empty)) container.appendChild(empty);
+    return;
+  }
+  if (container.contains(empty)) empty.remove();
+
+  const existing = [...container.querySelectorAll('.dax-msg, .dax-thinking')];
+  const needed   = daxMessages.length;
+  const have     = existing.length;
+
+  // Only append new messages rather than full re-render (avoids flicker)
+  if (have < needed) {
+    daxMessages.slice(have).forEach(m => {
+      const div = document.createElement('div');
+      div.className = `dax-msg ${m.role}`;
+      div.innerHTML = formatDaxContent(m.content);
+      container.appendChild(div);
+    });
+  }
+  container.scrollTop = container.scrollHeight;
+
+  // Hide suggestions once conversation starts
+  document.getElementById('dax-suggestions').style.display = 'none';
+}
+
+function formatDaxContent(text) {
+  // Basic markdown: bold, bullets
+  return escHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^[-•]\s+(.+)/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n/g, '<br>');
+}
+
+function addThinkingIndicator() {
+  const container = document.getElementById('dax-messages');
+  const div = document.createElement('div');
+  div.className = 'dax-thinking';
+  div.id = 'dax-thinking';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+function removeThinkingIndicator() {
+  document.getElementById('dax-thinking')?.remove();
+}
+
+async function sendDaxMessage(text) {
+  text = text.trim();
+  if (!text) return;
+
+  const input   = document.getElementById('dax-input');
+  const sendBtn = document.getElementById('dax-send-btn');
+  input.value   = '';
+  input.style.height = '';
+  sendBtn.disabled = true;
+
+  // Remove empty state
+  document.getElementById('dax-empty')?.remove();
+  document.getElementById('dax-suggestions').style.display = 'none';
+
+  // Add user message to state + UI
+  daxMessages.push({ role: 'user', content: text });
+  renderDaxMessages();
+  addThinkingIndicator();
+  await saveDaxMsg('user', text);
+
+  try {
+    const res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'apikey': SUPA_KEY,
+      },
+      body: JSON.stringify({
+        messages: daxMessages.map(m => ({ role: m.role, content: m.content })),
+        context: buildContext(),
+      }),
+    });
+
+    const json = await res.json();
+    removeThinkingIndicator();
+
+    if (!res.ok || json.error) {
+      throw new Error(json.error || `HTTP ${res.status}`);
+    }
+
+    const reply = json.reply || '(no response)';
+    daxMessages.push({ role: 'assistant', content: reply });
+    renderDaxMessages();
+    await saveDaxMsg('assistant', reply);
+  } catch (err) {
+    removeThinkingIndicator();
+    const errMsg = `⚠ ${err.message}`;
+    daxMessages.push({ role: 'assistant', content: errMsg });
+    renderDaxMessages();
+    console.error('Dax error:', err);
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+async function clearDaxHistory() {
+  daxMessages = [];
+  const container = document.getElementById('dax-messages');
+  container.innerHTML = '';
+  const empty = document.createElement('div');
+  empty.className = 'dax-empty';
+  empty.id = 'dax-empty';
+  empty.innerHTML = `<div class="dax-empty-icon">D</div><h3>Hi, I'm Dax</h3><p>Your AI advisor for Vantage.<br/>Ask me anything about your projects, PIPs, team, or finances.</p>`;
+  container.appendChild(empty);
+  document.getElementById('dax-suggestions').style.display = '';
+  await sb.from('dax_history').delete().neq('id', 0);
+  toast('Chat cleared');
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAV + EVENT WIRING
+// ═══════════════════════════════════════════════════════
+function switchView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + viewId).classList.add('active');
+  document.querySelector(`nav button[data-view="${viewId}"]`).classList.add('active');
+}
+
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+document.getElementById('new-project-btn').addEventListener('click', createProject);
+document.getElementById('new-pip-btn').addEventListener('click', createPip);
+document.getElementById('new-team-btn').addEventListener('click', createTeamMember);
+document.getElementById('dax-toggle-btn').addEventListener('click', () => toggleDax());
+document.getElementById('dax-clear-btn').addEventListener('click', clearDaxHistory);
+
+document.getElementById('drawer-close').addEventListener('click', closePipDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closePipDrawer);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePipDrawer();
+});
+
+// Dax send button + Enter key
+document.getElementById('dax-send-btn').addEventListener('click', () => {
+  sendDaxMessage(document.getElementById('dax-input').value);
+});
+document.getElementById('dax-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendDaxMessage(e.target.value);
+  }
+});
+// Auto-resize textarea
+document.getElementById('dax-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Suggestion chips
+document.querySelectorAll('.dax-suggestion').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!daxOpen) toggleDax(true);
+    sendDaxMessage(btn.dataset.q);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════════════════
+(async () => {
+  await loadFromSupabase();
 })();
-
-// ── END DAX ──────────────────────────────────────────────────
-
 </script>
 </body>
 </html>
-
