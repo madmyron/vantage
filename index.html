@@ -79,6 +79,19 @@
   nav button.active { background: var(--accent); color: #fff; }
 
   .header-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .header-action-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .header-action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   #sync-indicator {
     font-size: 11px;
     color: var(--muted);
@@ -190,6 +203,7 @@
   .pipeline-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   .project-tile {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -197,6 +211,29 @@
     cursor: pointer;
     transition: transform .15s, box-shadow .15s, border-color .15s;
   }
+  .tile-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity .12s;
+    pointer-events: none;
+  }
+  .project-tile:hover .tile-actions { opacity: 1; pointer-events: auto; }
+  .tile-action-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: rgba(26,29,39,.95);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  .tile-action-btn:hover { color: #fff; border-color: var(--accent); background: var(--accent); }
   .project-tile:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 28px rgba(0,0,0,.35);
@@ -230,8 +267,29 @@
 
   /* ── TEAM VIEW ── */
   .team-grid { flex: 1; overflow-y: auto; padding: 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; align-content: start; }
-  .team-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; cursor: pointer; transition: border-color .15s, transform .15s; }
+  .team-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; cursor: pointer; transition: border-color .15s, transform .15s; }
   .team-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .team-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .team-card:hover .team-actions { opacity: 1; }
+  .team-action-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .team-action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
   .member-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; margin-bottom: 10px; color: #fff; }
   .member-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
   .member-role { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
@@ -251,9 +309,36 @@
   .fin-card-value { font-size: 24px; font-weight: 700; }
   .fin-card-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
   .fin-table-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
-  .fin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .fin-table-shell { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  .fin-table-shell::-webkit-scrollbar { height: 5px; }
+  .fin-table-shell::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .fin-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1120px; }
   .fin-table th { text-align: left; padding: 7px 10px; color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .fin-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .fin-input {
+    width: 100%;
+    min-width: 82px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+  }
+  .fin-input:focus { border-color: var(--accent); }
+  .fin-reset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 7px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .fin-reset-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   /* ── BADGES ── */
   .badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; white-space: nowrap; }
@@ -296,6 +381,43 @@
   .drawer-section-title { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; }
   .drawer-description { font-size: 13px; color: var(--text); line-height: 1.7; background: var(--surface2); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
   .drawer-project-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: var(--surface2); }
+  .drawer-description.input {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    outline: none;
+  }
+  .drawer-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .drawer-btn {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .drawer-btn:hover { border-color: var(--accent); background: var(--accent); color: #fff; }
+  .drawer-btn.danger:hover { border-color: var(--danger); background: var(--danger); color: #fff; }
+  .drawer-edit {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+  }
+  .drawer-edit:focus { border-color: var(--accent); }
+  .drawer-edit.select { appearance: none; }
 
   /* ── DAX PANEL ── */
   .dax-panel {
@@ -517,6 +639,9 @@
     <button data-view="finances">Finances</button>
   </nav>
   <div class="header-right">
+    <button class="header-action-btn" id="new-project-btn">+ Project</button>
+    <button class="header-action-btn" id="new-pip-btn">+ PIP</button>
+    <button class="header-action-btn" id="new-team-btn">+ Member</button>
     <div id="sync-indicator"><span class="dot"></span><span id="sync-text">Synced</span></div>
     <button class="dax-toggle-btn" id="dax-toggle-btn">✦ Ask Dax</button>
   </div>
@@ -563,16 +688,19 @@
     <section class="view" id="view-finances">
       <div class="finances-wrap">
         <div class="finances-summary" id="fin-summary"></div>
-        <div class="fin-table-title">Budget by Project</div>
-        <table class="fin-table">
-          <thead>
-            <tr>
-              <th>Project</th><th>Stage</th><th>Budget</th>
-              <th>Spent</th><th>Remaining</th><th>% Used</th>
-            </tr>
-          </thead>
-          <tbody id="fin-tbody"></tbody>
-        </table>
+        <div class="fin-table-title">Budget and finance fields by project</div>
+        <div class="fin-table-shell">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <th>Project</th><th>Stage</th><th>Budget</th><th>Spent</th>
+                <th>MRR</th><th>One-Time</th><th>Proj MRR</th>
+                <th>Dev Cost</th><th>Marketing</th><th>Tools</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fin-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -624,9 +752,10 @@
     <div class="drawer-badges" id="d-badges"></div>
     <div class="drawer-fields" id="d-fields"></div>
     <div class="drawer-section-title">Description</div>
-    <div class="drawer-description" id="d-desc"></div>
+    <textarea class="drawer-description input" id="d-desc" rows="6"></textarea>
     <div class="drawer-section-title">Project</div>
     <div id="d-project"></div>
+    <div class="drawer-actions" id="d-actions"></div>
   </div>
 </div>
 
@@ -710,8 +839,12 @@ const SEED_PIPS = [
 let PROJECTS = [];
 let PIPS     = [];
 let TEAM     = [];
+let FINANCES = [];
 let daxMessages = [];   // { role, content }
 let activeStageFilter = null;
+let activePipId = null;
+let renderTimer = null;
+let saveTimers = { pip: null, finance: null };
 
 // ═══════════════════════════════════════════════════════
 //  SYNC INDICATOR
@@ -751,24 +884,35 @@ function toast(msg, ms = 2400) {
 async function loadFromSupabase() {
   setSyncing('Loading…');
   try {
-    const [pRes, pipRes, tRes] = await Promise.all([
+    const [pRes, pipRes, tRes, fRes] = await Promise.all([
       sb.from('projects').select('*').order('id'),
       sb.from('pips').select('*').order('id'),
       sb.from('team').select('*').order('id'),
+      sb.from('finances').select('*').order('proj_id'),
     ]);
     if (pRes.error)   throw pRes.error;
     if (pipRes.error) throw pipRes.error;
     if (tRes.error)   throw tRes.error;
+    if (fRes.error)   throw fRes.error;
 
     PROJECTS = pRes.data;
     PIPS     = pipRes.data;
     TEAM     = tRes.data;
+    FINANCES = fRes.data;
 
-    // Seed on first run
-    if (!PROJECTS.length) await seedDatabase();
+    if (!PROJECTS.length || !PIPS.length || !TEAM.length || !FINANCES.length) {
+      await seedMissingTables({
+        projects: !PROJECTS.length,
+        pips: !PIPS.length,
+        team: !TEAM.length,
+        finances: !FINANCES.length,
+      });
+      await reloadAllTables();
+    }
 
     setSynced();
     renderAll();
+    await loadDaxHistory();
   } catch (err) {
     setSyncError('Load failed');
     console.error('Supabase load error:', err);
@@ -776,41 +920,59 @@ async function loadFromSupabase() {
     PROJECTS = SEED_PROJECTS.map(p => ({ ...p, pct: calcPct(p.id, SEED_PIPS) }));
     PIPS     = SEED_PIPS;
     TEAM     = SEED_TEAM;
+    FINANCES = SEED_PROJECTS.map(p => ({
+      proj_id: p.id, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+    }));
     renderAll();
     toast('⚠ Running in offline mode');
   }
 }
 
-async function seedDatabase() {
+async function seedMissingTables(flags) {
   setSyncing('Seeding…');
   const pcts = SEED_PROJECTS.map(p => ({ ...p, pct: calcPct(p.id, SEED_PIPS) }));
-  const { error: pe } = await sb.from('projects').upsert(pcts, { onConflict: 'id' });
-  const { error: te } = await sb.from('team').upsert(SEED_TEAM, { onConflict: 'id' });
-  const { error: pie } = await sb.from('pips').upsert(SEED_PIPS, { onConflict: 'id' });
-  if (pe || te || pie) console.warn('Seed partial error:', pe, te, pie);
+  const projectRows = flags.projects ? pcts : PROJECTS;
+  const financeSeed = projectRows.map(p => ({
+    proj_id: p.id, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+  }));
+  const tasks = [];
+  if (flags.projects) tasks.push(sb.from('projects').upsert(pcts, { onConflict: 'id' }));
+  if (flags.pips && flags.projects) tasks.push(sb.from('pips').upsert(SEED_PIPS, { onConflict: 'id' }));
+  if (flags.team)     tasks.push(sb.from('team').upsert(SEED_TEAM, { onConflict: 'id' }));
+  if (flags.finances) tasks.push(sb.from('finances').upsert(financeSeed, { onConflict: 'proj_id' }));
+  const results = await Promise.all(tasks);
+  const err = results.find(r => r?.error)?.error;
+  if (err) console.warn('Seed partial error:', err);
+}
 
-  const { data: p2 } = await sb.from('projects').select('*').order('id');
-  const { data: pip2 } = await sb.from('pips').select('*').order('id');
-  const { data: t2 } = await sb.from('team').select('*').order('id');
-  PROJECTS = p2 || pcts;
-  PIPS     = pip2 || SEED_PIPS;
-  TEAM     = t2 || SEED_TEAM;
+async function reloadAllTables() {
+  const [pRes, pipRes, tRes, fRes] = await Promise.all([
+    sb.from('projects').select('*').order('id'),
+    sb.from('pips').select('*').order('id'),
+    sb.from('team').select('*').order('id'),
+    sb.from('finances').select('*').order('proj_id'),
+  ]);
+  PROJECTS = pRes.data || [];
+  PIPS     = pipRes.data || [];
+  TEAM     = tRes.data || [];
+  FINANCES = fRes.data || [];
 }
 
 async function loadDaxHistory() {
   const { data, error } = await sb
     .from('dax_history')
-    .select('role, content')
+    .select('role, content, created_at')
     .order('created_at')
-    .limit(60);
-  if (!error && data?.length) {
-    daxMessages = data;
+    .limit(200);
+  if (!error) {
+    daxMessages = data || [];
     renderDaxMessages();
   }
 }
 
 async function saveDaxMsg(role, content) {
-  await sb.from('dax_history').insert({ role, content });
+  const { error } = await sb.from('dax_history').insert({ role, content });
+  if (error) console.warn('Failed to save Dax history item:', error);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -843,6 +1005,342 @@ function stageChip(s) { return `<span class="stage-chip" style="background:${sta
 function initials(n)  { return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function fmt(n)       { return '$' + Number(n||0).toLocaleString(); }
 function escHtml(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s)   { return escHtml(s).replace(/"/g,'&quot;'); }
+
+function scheduleRenderAll() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    renderAll();
+    if (activePipId) syncPipDrawer(activePipId);
+  }, 80);
+}
+
+function financeByProject(pid) {
+  return FINANCES.find(f => f.proj_id === pid) || {
+    proj_id: pid, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+  };
+}
+
+function nextId(prefix, rows, key, width) {
+  const nums = (rows || [])
+    .map(row => String(row[key] || ''))
+    .map(val => val.match(/\d+/)?.[0])
+    .filter(Boolean)
+    .map(Number);
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `${prefix}${String(next).padStart(width, '0')}`;
+}
+
+function nextProjectId() { return nextId('P', PROJECTS, 'id', 2); }
+function nextPipId() { return nextId('PIP-', PIPS, 'id', 3); }
+function nextTeamId() { return nextId('M', TEAM, 'id', 2); }
+
+function projectPayload(project) {
+  return {
+    id: project.id,
+    name: project.name,
+    stage: project.stage,
+    goal: project.goal || '',
+    pct: calcPct(project.id),
+    budget: Number(project.budget || 0),
+    spent: Number(project.spent || 0),
+  };
+}
+
+function pipPayload(pip) {
+  return {
+    id: pip.id,
+    proj: pip.proj,
+    num: pip.num ?? null,
+    title: pip.title,
+    cat: pip.cat || '',
+    status: pip.status || 'Open',
+    pri: pip.pri || 'Medium',
+    by: pip.by || '',
+    assigned: pip.assigned || '',
+    descr: pip.descr || '',
+    due: pip.due || null,
+  };
+}
+
+function teamPayload(member) {
+  return {
+    id: member.id,
+    name: member.name,
+    role: member.role || '',
+    color: member.color || '#6366f1',
+  };
+}
+
+function financePayload(row) {
+  return {
+    proj_id: row.proj_id,
+    mrr: Number(row.mrr || 0),
+    one_time: Number(row.one_time || 0),
+    proj_mrr: Number(row.proj_mrr || 0),
+    dev_cost: Number(row.dev_cost || 0),
+    marketing_cost: Number(row.marketing_cost || 0),
+    tools_cost: Number(row.tools_cost || 0),
+  };
+}
+
+async function saveProjectRecord(project) {
+  const payload = projectPayload(project);
+  PROJECTS = PROJECTS.some(p => p.id === project.id)
+    ? PROJECTS.map(p => p.id === project.id ? { ...p, ...payload } : p)
+    : [...PROJECTS, payload];
+  const { error } = await sb.from('projects').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('Project save failed:', error);
+  scheduleRenderAll();
+}
+
+async function savePipRecord(pip, previousProjId) {
+  const payload = pipPayload(pip);
+  const prev = previousProjId || payload.proj;
+  PIPS = PIPS.some(p => p.id === pip.id)
+    ? PIPS.map(p => p.id === pip.id ? { ...p, ...payload } : p)
+    : [...PIPS, payload];
+  const { error } = await sb.from('pips').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('PIP save failed:', error);
+  await refreshProjectPct(prev);
+  if (payload.proj !== prev) await refreshProjectPct(payload.proj);
+  scheduleRenderAll();
+}
+
+async function saveTeamRecord(member) {
+  const payload = teamPayload(member);
+  TEAM = TEAM.some(m => m.id === member.id)
+    ? TEAM.map(m => m.id === member.id ? { ...m, ...payload } : m)
+    : [...TEAM, payload];
+  const { error } = await sb.from('team').upsert(payload, { onConflict: 'id' });
+  if (error) console.warn('Team save failed:', error);
+  scheduleRenderAll();
+}
+
+async function saveFinanceRecord(row) {
+  const payload = financePayload(row);
+  FINANCES = FINANCES.some(f => f.proj_id === row.proj_id)
+    ? FINANCES.map(f => f.proj_id === row.proj_id ? { ...f, ...payload } : f)
+    : [...FINANCES, payload];
+  const { error } = await sb.from('finances').upsert(payload, { onConflict: 'proj_id' });
+  if (error) console.warn('Finance save failed:', error);
+  scheduleRenderAll();
+}
+
+async function deleteProjectRecord(projectId) {
+  const { error } = await sb.from('projects').delete().eq('id', projectId);
+  if (error) console.warn('Project delete failed:', error);
+  PROJECTS = PROJECTS.filter(p => p.id !== projectId);
+  PIPS = PIPS.filter(p => p.proj !== projectId);
+  FINANCES = FINANCES.filter(f => f.proj_id !== projectId);
+  if (activePipId && !PIPS.some(p => p.id === activePipId)) closePipDrawer();
+  scheduleRenderAll();
+}
+
+async function deletePipRecord(pipId) {
+  const pip = PIPS.find(p => p.id === pipId);
+  if (!pip) return;
+  const { error } = await sb.from('pips').delete().eq('id', pipId);
+  if (error) console.warn('PIP delete failed:', error);
+  PIPS = PIPS.filter(p => p.id !== pipId);
+  await refreshProjectPct(pip.proj);
+  if (activePipId === pipId) closePipDrawer();
+  scheduleRenderAll();
+}
+
+async function deleteTeamRecord(memberId) {
+  const { error } = await sb.from('team').delete().eq('id', memberId);
+  if (error) console.warn('Team delete failed:', error);
+  TEAM = TEAM.filter(m => m.id !== memberId);
+  scheduleRenderAll();
+}
+
+async function resetFinanceRecord(projectId) {
+  await saveFinanceRecord({
+    proj_id: projectId, mrr: 0, one_time: 0, proj_mrr: 0, dev_cost: 0, marketing_cost: 0, tools_cost: 0,
+  });
+}
+
+async function refreshProjectPct(projectId) {
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+  const updated = { ...project, pct: calcPct(projectId) };
+  PROJECTS = PROJECTS.map(p => p.id === projectId ? updated : p);
+  const { error } = await sb.from('projects').upsert(projectPayload(updated), { onConflict: 'id' });
+  if (error) console.warn('Project pct sync failed:', error);
+}
+
+function promptProjectEditor(project) {
+  const name = prompt('Project name', project.name || '');
+  if (name === null) return;
+  const stage = prompt('Stage: Idea, Plan, Build, Launch, Active, Paused', project.stage || 'Idea');
+  if (stage === null) return;
+  const goal = prompt('Goal', project.goal || '');
+  if (goal === null) return;
+  const budget = prompt('Budget', String(project.budget || 0));
+  if (budget === null) return;
+  const spent = prompt('Spent', String(project.spent || 0));
+  if (spent === null) return;
+  saveProjectRecord({
+    ...project,
+    name: name.trim() || project.name,
+    stage: stage.trim() || project.stage,
+    goal: goal.trim(),
+    budget: Number(budget) || 0,
+    spent: Number(spent) || 0,
+  });
+}
+
+function promptTeamEditor(member) {
+  const name = prompt('Member name', member.name || '');
+  if (name === null) return;
+  const role = prompt('Role', member.role || '');
+  if (role === null) return;
+  const color = prompt('Color hex', member.color || '#6366f1');
+  if (color === null) return;
+  saveTeamRecord({
+    ...member,
+    name: name.trim() || member.name,
+    role: role.trim(),
+    color: color.trim() || '#6366f1',
+  });
+}
+
+function createProject() {
+  const project = {
+    id: nextProjectId(),
+    name: 'New Project',
+    stage: 'Idea',
+    goal: '',
+    budget: 0,
+    spent: 0,
+  };
+  saveProjectRecord(project);
+}
+
+function createPip() {
+  const project = PROJECTS[0];
+  if (!project) return toast('Create a project first');
+  const pip = {
+    id: nextPipId(),
+    proj: project.id,
+    title: 'New PIP',
+    cat: 'Feature',
+    status: 'Open',
+    pri: 'Medium',
+    due: '',
+    by: '',
+    assigned: '',
+    descr: '',
+  };
+  savePipRecord(pip);
+  openPipDrawer(pip.id);
+}
+
+function createTeamMember() {
+  const member = {
+    id: nextTeamId(),
+    name: 'New Member',
+    role: '',
+    color: '#6366f1',
+  };
+  saveTeamRecord(member);
+}
+
+function syncPipDrawer(pipId) {
+  const pip = PIPS.find(p => p.id === pipId);
+  if (!pip) return;
+  const proj = projectById(pip.proj);
+  document.getElementById('d-id').textContent = pip.id;
+  document.getElementById('d-title').textContent = pip.title;
+  document.getElementById('d-badges').innerHTML =
+    statusBadge(pip.status) + ' ' + prioBadge(pip.pri) + ' ' + catBadge(pip.cat || '');
+  document.getElementById('d-project').innerHTML = proj
+    ? `<div class="drawer-project-chip">
+        <span style="width:9px;height:9px;border-radius:50%;background:${stageColor(proj.stage)};display:inline-block"></span>
+        ${escHtml(proj.name)} — ${proj.stage}
+       </div>` : '';
+}
+
+function queuePipSave() {
+  clearTimeout(saveTimers.pip);
+  saveTimers.pip = setTimeout(async () => {
+    if (!activePipId) return;
+    const pip = PIPS.find(p => p.id === activePipId);
+    if (!pip) return;
+    const prevProj = pip.proj;
+    const next = {
+      ...pip,
+      proj: document.getElementById('pip-proj').value,
+      title: document.getElementById('pip-title').value.trim(),
+      cat: document.getElementById('pip-cat').value.trim(),
+      status: document.getElementById('pip-status').value,
+      pri: document.getElementById('pip-pri').value,
+      due: document.getElementById('pip-due').value || '',
+      by: document.getElementById('pip-by').value.trim(),
+      assigned: document.getElementById('pip-assigned').value.trim(),
+      descr: document.getElementById('d-desc').value.trim(),
+    };
+    document.getElementById('d-title').textContent = next.title || next.id;
+    await savePipRecord(next, prevProj);
+    syncPipDrawer(activePipId);
+  }, 180);
+}
+
+async function savePipNow() {
+  clearTimeout(saveTimers.pip);
+  if (!activePipId) return;
+  const pip = PIPS.find(p => p.id === activePipId);
+  if (!pip) return;
+  const prevProj = pip.proj;
+  const next = {
+    ...pip,
+    proj: document.getElementById('pip-proj').value,
+    title: document.getElementById('pip-title').value.trim(),
+    cat: document.getElementById('pip-cat').value.trim(),
+    status: document.getElementById('pip-status').value,
+    pri: document.getElementById('pip-pri').value,
+    due: document.getElementById('pip-due').value || '',
+    by: document.getElementById('pip-by').value.trim(),
+    assigned: document.getElementById('pip-assigned').value.trim(),
+    descr: document.getElementById('d-desc').value.trim(),
+  };
+  document.getElementById('d-title').textContent = next.title || next.id;
+  await savePipRecord(next, prevProj);
+  syncPipDrawer(activePipId);
+}
+
+function updateProjectField(projectId, field, value) {
+  const project = PROJECTS.find(p => p.id === projectId);
+  if (!project) return;
+  saveProjectRecord({
+    ...project,
+    [field]: field === 'budget' || field === 'spent' ? Number(value) || 0 : value,
+  });
+}
+
+function updateFinanceField(projectId, field, value) {
+  const row = financeByProject(projectId);
+  saveFinanceRecord({
+    ...row,
+    [field]: Number(value) || 0,
+  });
+}
+
+function wirePipDrawer() {
+  ['pip-proj', 'pip-title', 'pip-cat', 'pip-status', 'pip-pri', 'pip-due', 'pip-by', 'pip-assigned', 'd-desc']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(id === 'd-desc' || id === 'pip-title' || id === 'pip-by' || id === 'pip-assigned' || id === 'pip-cat'
+        ? 'input'
+        : 'change', queuePipSave);
+    });
+  const saveBtn = document.getElementById('pip-save-btn');
+  if (saveBtn) saveBtn.onclick = savePipNow;
+  const deleteBtn = document.getElementById('pip-delete-btn');
+  if (deleteBtn) deleteBtn.onclick = () => activePipId && confirm('Delete this PIP?') && deletePipRecord(activePipId);
+}
 
 // ═══════════════════════════════════════════════════════
 //  RENDER ALL
@@ -893,6 +1391,10 @@ function renderPipelineGrid() {
     const open   = openPips(proj.id).length;
     const total  = pipsForProject(proj.id).length;
     return `<div class="project-tile" data-pid="${proj.id}">
+      <div class="tile-actions">
+        <button class="tile-action-btn tile-edit-btn" data-project-id="${proj.id}" title="Edit project">✎</button>
+        <button class="tile-action-btn tile-delete-btn" data-project-id="${proj.id}" title="Delete project">🗑</button>
+      </div>
       <div class="tile-header" style="background:${color}"></div>
       <div class="tile-body">
         <div class="tile-stage" style="color:${color}">${proj.stage}</div>
@@ -911,6 +1413,21 @@ function renderPipelineGrid() {
 
   grid.querySelectorAll('.project-tile').forEach(el => {
     el.addEventListener('click', () => openProjectDrawer(el.dataset.pid));
+  });
+  grid.querySelectorAll('.tile-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      promptProjectEditor(PROJECTS.find(p => p.id === btn.dataset.projectId));
+    });
+  });
+  grid.querySelectorAll('.tile-delete-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const project = PROJECTS.find(p => p.id === btn.dataset.projectId);
+      if (project && confirm(`Delete ${project.name}? This also removes its PIPs and finance row.`)) {
+        deleteProjectRecord(project.id);
+      }
+    });
   });
 }
 
@@ -954,7 +1471,11 @@ function renderTeam() {
     const assigned  = PIPS.filter(p => p.assigned === m.name);
     const openCount = assigned.filter(p => p.status !== 'Complete').length;
     const topPips   = assigned.filter(p => p.status !== 'Complete').slice(0,4);
-    return `<div class="team-card">
+    return `<div class="team-card" data-member-id="${m.id}">
+      <div class="team-actions">
+        <button class="team-action-btn team-edit-btn" data-member-id="${m.id}" title="Edit member">✎</button>
+        <button class="team-action-btn team-delete-btn" data-member-id="${m.id}" title="Delete member">🗑</button>
+      </div>
       <div class="member-avatar" style="background:${m.color||'#6366f1'}">${initials(m.name)}</div>
       <div class="member-name">${escHtml(m.name)}</div>
       <div class="member-role">${escHtml(m.role||'')}</div>
@@ -979,6 +1500,26 @@ function renderTeam() {
   grid.querySelectorAll('.member-pip-item').forEach(el => {
     el.addEventListener('click', () => openPipDrawer(el.dataset.pipId));
   });
+  grid.querySelectorAll('.team-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('button') || e.target.closest('.member-pip-item')) return;
+      const member = TEAM.find(m => m.id === card.dataset.memberId);
+      if (member) promptTeamEditor(member);
+    });
+  });
+  grid.querySelectorAll('.team-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      promptTeamEditor(TEAM.find(m => m.id === btn.dataset.memberId));
+    });
+  });
+  grid.querySelectorAll('.team-delete-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const member = TEAM.find(m => m.id === btn.dataset.memberId);
+      if (member && confirm(`Delete ${member.name}?`)) deleteTeamRecord(member.id);
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -986,9 +1527,12 @@ function renderTeam() {
 // ═══════════════════════════════════════════════════════
 function renderFinances() {
   const totalBudget = PROJECTS.reduce((s,p) => s + (p.budget||0), 0);
-  const totalSpent  = PROJECTS.reduce((s,p) => s + (p.spent||0), 0);
-  const remaining   = totalBudget - totalSpent;
-  const burnPct     = totalBudget ? Math.round(totalSpent / totalBudget * 100) : 0;
+  const totalSpent   = PROJECTS.reduce((s,p) => s + (p.spent||0), 0);
+  const totalMRR     = FINANCES.reduce((s,f) => s + Number(f.mrr||0), 0);
+  const totalProjMRR = FINANCES.reduce((s,f) => s + Number(f.proj_mrr||0), 0);
+  const totalCost    = FINANCES.reduce((s,f) => s + Number(f.dev_cost||0) + Number(f.marketing_cost||0) + Number(f.tools_cost||0), 0);
+  const remaining    = totalBudget - totalSpent;
+  const burnPct      = totalBudget ? Math.round(totalSpent / totalBudget * 100) : 0;
 
   document.getElementById('fin-summary').innerHTML = `
     <div class="fin-card">
@@ -1007,31 +1551,63 @@ function renderFinances() {
       <div class="fin-card-sub">${100-burnPct}% unallocated</div>
     </div>
     <div class="fin-card">
-      <div class="fin-card-label">Active Projects</div>
-      <div class="fin-card-value">${PROJECTS.filter(p=>p.stage==='Active').length}</div>
-      <div class="fin-card-sub">Currently in production</div>
+      <div class="fin-card-label">Monthly MRR</div>
+      <div class="fin-card-value" style="color:#38bdf8">${fmt(totalMRR)}</div>
+      <div class="fin-card-sub">Across all finance rows</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Projected MRR</div>
+      <div class="fin-card-value" style="color:#a855f7">${fmt(totalProjMRR)}</div>
+      <div class="fin-card-sub">Revenue forecast</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Operating Cost</div>
+      <div class="fin-card-value" style="color:#f59e0b">${fmt(totalCost)}</div>
+      <div class="fin-card-sub">Dev + marketing + tools</div>
     </div>`;
 
   document.getElementById('fin-tbody').innerHTML = PROJECTS.map(p => {
-    const rem   = (p.budget||0) - (p.spent||0);
-    const pct   = p.budget ? Math.round((p.spent||0) / p.budget * 100) : 0;
-    const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#22c55e';
+    const rem    = (p.budget||0) - (p.spent||0);
+    const pct    = p.budget ? Math.round((p.spent||0) / p.budget * 100) : 0;
+    const color  = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#22c55e';
+    const fin    = financeByProject(p.id);
     return `<tr>
       <td style="font-weight:600">${escHtml(p.name)}</td>
       <td>${stageChip(p.stage)}</td>
-      <td>${fmt(p.budget)}</td>
-      <td style="color:#ef4444">${fmt(p.spent)}</td>
-      <td style="color:#22c55e">${fmt(rem)}</td>
+      <td><input class="fin-input" type="number" min="0" value="${Number(p.budget||0)}" data-project-id="${p.id}" data-field="budget"></td>
+      <td><input class="fin-input" type="number" min="0" value="${Number(p.spent||0)}" data-project-id="${p.id}" data-field="spent"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.mrr||0)}" data-project-id="${p.id}" data-field="mrr"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.one_time||0)}" data-project-id="${p.id}" data-field="one_time"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.proj_mrr||0)}" data-project-id="${p.id}" data-field="proj_mrr"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.dev_cost||0)}" data-project-id="${p.id}" data-field="dev_cost"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.marketing_cost||0)}" data-project-id="${p.id}" data-field="marketing_cost"></td>
+      <td><input class="fin-input" type="number" min="0" step="0.01" value="${Number(fin.tools_cost||0)}" data-project-id="${p.id}" data-field="tools_cost"></td>
       <td>
         <div style="display:flex;align-items:center;gap:7px">
           <div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;min-width:55px">
             <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
           </div>
           <span style="color:${color};font-weight:700;font-size:12px;min-width:32px">${pct}%</span>
+          <button class="fin-reset-btn" data-project-id="${p.id}">Reset</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  document.querySelectorAll('.fin-input').forEach(input => {
+    input.addEventListener('change', () => {
+      if (['budget', 'spent'].includes(input.dataset.field)) {
+        updateProjectField(input.dataset.projectId, input.dataset.field, input.value);
+        renderFinances();
+      } else {
+        updateFinanceField(input.dataset.projectId, input.dataset.field, input.value);
+      }
+    });
+  });
+  document.querySelectorAll('.fin-reset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Reset this finance row to zero?')) resetFinanceRecord(btn.dataset.projectId);
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1040,38 +1616,65 @@ function renderFinances() {
 function openPipDrawer(pipId) {
   const pip  = PIPS.find(p => p.id === pipId);
   if (!pip) return;
-  const proj  = projectById(pip.proj);
-  const color = stageColor(proj?.stage || 'Idea');
-
-  document.getElementById('d-id').textContent    = pip.id;
+  activePipId = pip.id;
+  const proj = projectById(pip.proj);
+  const projOptions = PROJECTS.map(prj => `<option value="${prj.id}" ${prj.id === pip.proj ? 'selected' : ''}>${escHtml(prj.name)}</option>`).join('');
+  const statusOptions = ['Open','In Progress','Review','Complete','Blocked'].map(s => `<option ${s === pip.status ? 'selected' : ''}>${s}</option>`).join('');
+  const prioOptions = ['Critical','High','Medium','Low'].map(s => `<option ${s === pip.pri ? 'selected' : ''}>${s}</option>`).join('');
+  document.getElementById('d-id').textContent = pip.id;
   document.getElementById('d-title').textContent = pip.title;
-
   document.getElementById('d-badges').innerHTML =
     statusBadge(pip.status) + ' ' + prioBadge(pip.pri) + ' ' + catBadge(pip.cat||'');
-
   document.getElementById('d-fields').innerHTML = `
-    <div class="drawer-field"><span class="drawer-field-label">Due Date</span><span class="drawer-field-value">${pip.due||'—'}</span></div>
-    <div class="drawer-field"><span class="drawer-field-label">Created By</span><span class="drawer-field-value">${escHtml(pip.by||'—')}</span></div>
-    <div class="drawer-field"><span class="drawer-field-label">Assigned To</span><span class="drawer-field-value">${escHtml(pip.assigned||'—')}</span></div>
-    <div class="drawer-field"><span class="drawer-field-label">Category</span><span class="drawer-field-value">${escHtml(pip.cat||'—')}</span></div>
-    <div class="drawer-field"><span class="drawer-field-label">Status</span><span class="drawer-field-value">${pip.status}</span></div>
-    <div class="drawer-field"><span class="drawer-field-label">Priority</span><span class="drawer-field-value">${pip.pri}</span></div>`;
-
-  document.getElementById('d-desc').textContent = pip.descr || '—';
-
-  document.getElementById('d-project').innerHTML = proj
-    ? `<div class="drawer-project-chip">
-        <span style="width:9px;height:9px;border-radius:50%;background:${color};display:inline-block"></span>
-        ${escHtml(proj.name)} — ${proj.stage}
-       </div>` : '';
-
+    <div class="drawer-field">
+      <span class="drawer-field-label">Project</span>
+      <select class="drawer-edit select" id="pip-proj">${projOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Title</span>
+      <input class="drawer-edit" id="pip-title" value="${escAttr(pip.title)}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Category</span>
+      <input class="drawer-edit" id="pip-cat" value="${escAttr(pip.cat||'')}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Status</span>
+      <select class="drawer-edit select" id="pip-status">${statusOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Priority</span>
+      <select class="drawer-edit select" id="pip-pri">${prioOptions}</select>
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Due Date</span>
+      <input class="drawer-edit" id="pip-due" type="date" value="${pip.due||''}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Created By</span>
+      <input class="drawer-edit" id="pip-by" value="${escAttr(pip.by||'')}" />
+    </div>
+    <div class="drawer-field">
+      <span class="drawer-field-label">Assigned To</span>
+      <input class="drawer-edit" id="pip-assigned" value="${escAttr(pip.assigned||'')}" />
+    </div>`;
+  document.getElementById('d-desc').value = pip.descr || '';
+  syncPipDrawer(pip.id);
+  document.getElementById('d-actions').innerHTML = `
+    <button class="drawer-btn" id="pip-save-btn">Save</button>
+    <button class="drawer-btn danger" id="pip-delete-btn">Delete</button>
+    <button class="drawer-btn" id="pip-new-btn">New PIP</button>
+  `;
+  document.getElementById('pip-new-btn').onclick = () => createPip();
   document.getElementById('drawer-overlay').classList.add('open');
   document.getElementById('pip-drawer').classList.add('open');
+  wirePipDrawer();
 }
 
 function closePipDrawer() {
   document.getElementById('drawer-overlay').classList.remove('open');
   document.getElementById('pip-drawer').classList.remove('open');
+  activePipId = null;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1102,11 +1705,17 @@ function buildContext() {
       name: m.name, role: m.role,
       open_pips: PIPS.filter(p => p.assigned === m.name && p.status !== 'Complete').length,
     })),
-    finances: PROJECTS.map(p => ({
-      project: p.name, budget: p.budget, spent: p.spent,
-      remaining: (p.budget||0)-(p.spent||0),
-      burn_pct: p.budget ? Math.round((p.spent||0)/p.budget*100) : 0,
-    })),
+    finances: PROJECTS.map(p => {
+      const fin = financeByProject(p.id);
+      return {
+        project: p.name,
+        budget: p.budget,
+        spent: p.spent,
+        remaining: (p.budget||0)-(p.spent||0),
+        burn_pct: p.budget ? Math.round((p.spent||0)/p.budget*100) : 0,
+        ...fin,
+      };
+    }),
   };
 }
 
@@ -1246,6 +1855,9 @@ document.querySelectorAll('nav button').forEach(btn => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
+document.getElementById('new-project-btn').addEventListener('click', createProject);
+document.getElementById('new-pip-btn').addEventListener('click', createPip);
+document.getElementById('new-team-btn').addEventListener('click', createTeamMember);
 document.getElementById('dax-toggle-btn').addEventListener('click', () => toggleDax());
 document.getElementById('dax-clear-btn').addEventListener('click', clearDaxHistory);
 
@@ -1284,7 +1896,6 @@ document.querySelectorAll('.dax-suggestion').forEach(btn => {
 // ═══════════════════════════════════════════════════════
 (async () => {
   await loadFromSupabase();
-  await loadDaxHistory();
 })();
 </script>
 </body>
