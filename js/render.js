@@ -41,7 +41,7 @@ function render() {
         <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
         ${p.desc ? `<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40 ? p.desc.slice(0,40)+'\u2026' : p.desc)}</div>` : ''}
         <div style="font-size:11px;color:#222;margin-top:5px;font-family:var(--mono)">
-          <span style="font-size:10px;font-family:var(--mono)">${tkTodo} to do · ${tkIP} in prog · ${tkDone} done${(()=>{const lastStage=p.subStages[p.subStages.length-1]?.id;const activePips=p.subProjects.filter(sp=>sp.stage!==lastStage).length;return activePips>0?` · ${activePips} pips`:'';})()} </span>
+          <span style="font-size:10px;font-family:var(--mono)">${tkTodo} to do · ${tkIP} in prog · ${tkDone} done</span>
         </div>
         <div style="margin-top:5px;position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.12)">
           <div style="height:100%;border-radius:3px;background:${c.bar};width:${st.pct}%"></div>
