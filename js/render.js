@@ -51,7 +51,6 @@ function render() {
     </div>
     <div id="sub-${p.id}"></div>`;
     body.appendChild(wrap);
-    if (p.openSubBoard) renderSubBoard(p);
   });
 
   wireDrag();

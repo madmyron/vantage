@@ -238,11 +238,16 @@ function addPerson(id) {
 function toggleSubBoard(pid) {
   const wasOpen = projects.find(p => p.id === pid)?.openSubBoard;
   projects = projects.map(p => ({...p, openSubBoard: p.id === pid ? !p.openSubBoard : false}));
+  const overlay = document.getElementById('subboard-overlay');
   if (wasOpen) {
-    const overlay = document.getElementById('subboard-overlay');
-    if (overlay) { overlay.classList.remove('open'); overlay.innerHTML = ''; }
+    overlay.classList.remove('open');
+    overlay.innerHTML = '';
+    render();
+  } else {
+    render();
+    const p = projects.find(x => x.id === pid);
+    if (p) renderSubBoard(p);
   }
-  render();
 }
 
 function toggleSubNote(pid, spid) {
