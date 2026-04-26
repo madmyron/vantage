@@ -119,13 +119,13 @@ async function daxSend() {
     daxTyping = false;
     const reply = data.content && data.content[0] && data.content[0].text;
     if (reply) {
-      const actionMatch = reply.match(/<action>(.*?)<\/action>/s);
-      const displayText = reply.replace(/<action>.*?<\/action>/s, '').trim();
-      daxAddMsg('dax', 'Dax', displayText);
-      daxHistory.push({role:'assistant', content:displayText});
-      if (actionMatch) {
+      const actionMatches = [...reply.matchAll(/<action>(.*?)<\/action>/gs)];
+      const cleanText = reply.replace(/<action>.*?<\/action>/gs, '').trim();
+      daxAddMsg('dax', 'Dax', cleanText || reply);
+      daxHistory.push({role:'assistant', content:cleanText || reply});
+      for (const match of actionMatches) {
         try {
-          const action = JSON.parse(actionMatch[1]);
+          const action = JSON.parse(match[1]);
           if (action.type === 'create_pip') {
             const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
             if (proj) {
