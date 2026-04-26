@@ -37,12 +37,22 @@ function promptDaxKey() {
 
 function openDax(pid) {
   daxProjectId = pid;
-  const p = projects.find(x => x.id === pid);
-  if (!p) return;
-  document.getElementById('dax-project-name').textContent = p.name;
   document.getElementById('dax-overlay').classList.add('open');
   document.getElementById('dax-messages').innerHTML = '';
   daxHistory = [];
+
+  if (!pid) {
+    document.getElementById('dax-project-name').textContent = 'General';
+    const opener = 'Hey — I\'m Dax, your AI advisor. What project or idea is on your mind right now?';
+    daxAddMsg('dax', 'Dax', opener);
+    daxHistory.push({role:'assistant', content:opener});
+    setTimeout(() => document.getElementById('dax-input').focus(), 100);
+    return;
+  }
+
+  const p = projects.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById('dax-project-name').textContent = p.name;
 
   const stage = sf(p.stage).label;
   const goal  = p.goal || 'not defined yet';
