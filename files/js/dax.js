@@ -119,16 +119,19 @@ async function daxSend() {
     daxTyping = false;
     const reply = data.content && data.content[0] && data.content[0].text;
     if (reply) {
-      const actionMatches = [...reply.matchAll(/<action>(.*?)<\/action>/gs)];
-      const cleanText = reply.replace(/<action>.*?<\/action>/gs, '').trim();
-      daxAddMsg('dax', 'Dax', cleanText || reply);
-      daxHistory.push({role:'assistant', content:cleanText || reply});
+      // Unescape HTML entities in case the response was encoded
+      const raw = reply.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+      const actionMatches = [...raw.matchAll(/<action>(.*?)<\/action>/gs)];
+      const cleanText = raw.replace(/<action>.*?<\/action>/gs, '').trim();
+      if (cleanText) {
+        daxAddMsg('dax', 'Dax', cleanText);
+        daxHistory.push({role:'assistant', content:cleanText});
+      }
       for (const match of actionMatches) {
         try {
           const action = JSON.parse(match[1]);
           if (action.type === 'create_pip') {
             const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
-            console.log('Dax create_pip:', action, 'found project:', proj?.name, 'subStages:', proj?.subStages, 'dbId:', proj?.dbId);
             if (proj) {
               const firstStage = proj.subStages[0]?.id || 'ss1';
               const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
@@ -142,6 +145,10 @@ async function daxSend() {
             }
           }
         } catch(e) { console.warn('Dax action parse error:', e); }
+      }
+      if (!cleanText && actionMatches.length === 0) {
+        daxAddMsg('dax', 'Dax', raw);
+        daxHistory.push({role:'assistant', content:raw});
       }
       if (daxHistory.filter(m => m.role === 'user').length >= 4) daxOfferSync();
     }
