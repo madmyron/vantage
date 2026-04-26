@@ -22,8 +22,8 @@ Rules:
 - Never be a yes-man. Challenge vague answers with follow-up.
 - Adapt your tone to the project stage — early stage gets more exploratory questions, later stages get more tactical ones.
 
-You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append a JSON action block at the very end:
-<action>{"type":"create_pip","projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}</action>`;
+You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append one JSON block per pip at the very end, using this exact format:
+[PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]`;
 
 function openDax(pid) {
   daxProjectId = pid;
@@ -119,10 +119,9 @@ async function daxSend() {
     daxTyping = false;
     const reply = data.content && data.content[0] && data.content[0].text;
     if (reply) {
-      // Unescape HTML entities in case the response was encoded
       const raw = reply.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
-      const actionMatches = [...raw.matchAll(/<action>(.*?)<\/action>/gs)];
-      const cleanText = raw.replace(/<action>.*?<\/action>/gs, '').trim();
+      const actionMatches = [...raw.matchAll(/\[PIP:(.*?)\]/gs)];
+      const cleanText = raw.replace(/\[PIP:.*?\]/gs, '').trim();
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
         daxHistory.push({role:'assistant', content:cleanText});
@@ -130,21 +129,19 @@ async function daxSend() {
       for (const match of actionMatches) {
         try {
           const action = JSON.parse(match[1]);
-          if (action.type === 'create_pip') {
-            const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
-            if (proj) {
-              const firstStage = proj.subStages[0]?.id || 'ss1';
-              const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
-              projects = projects.map(p => p.id === proj.id ? {...p, subProjects:[...p.subProjects, newPip]} : p);
-              const updated = projects.find(x => x.id === proj.id);
-              if (updated) saveProject(updated);
-              render();
-              daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
-            } else {
-              daxAddMsg('dax', 'Dax', `Couldn't find a project matching "${action.projectName}".`);
-            }
+          const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
+          if (proj) {
+            const firstStage = proj.subStages[0]?.id || 'ss1';
+            const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
+            projects = projects.map(p => p.id === proj.id ? {...p, subProjects:[...p.subProjects, newPip]} : p);
+            const updated = projects.find(x => x.id === proj.id);
+            if (updated) saveProject(updated);
+            render();
+            daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
+          } else {
+            daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}".`);
           }
-        } catch(e) { console.warn('Dax action parse error:', e); }
+        } catch(e) { console.warn('Dax pip parse error:', e, match[1]); }
       }
       if (!cleanText && actionMatches.length === 0) {
         daxAddMsg('dax', 'Dax', raw);
