@@ -40,7 +40,7 @@ function render() {
       <div style="margin-top:4px;cursor:pointer" onclick="openProjModal(${p.id})">
         <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
         ${p.desc ? `<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40 ? p.desc.slice(0,40)+'\u2026' : p.desc)}</div>` : ''}
-        <div style="font-size:11px;color:#222;margin-top:5px;font-family:var(--mono);display:flex;justify-content:space-between">
+        <div style="font-size:11px;color:#222;margin-top:5px;font-family:var(--mono)">
           <span>📋${tkTodo} · ⚡${tkIP} · ✓${tkDone}</span>
         </div>
         <div style="margin-top:5px;position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.12)">
