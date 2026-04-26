@@ -192,56 +192,15 @@
 
   .pipeline-grid {
     flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
     padding: 0 18px 18px;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 12px;
-    align-items: stretch;
+    align-content: start;
   }
-  .pipeline-grid::-webkit-scrollbar { height: 8px; }
-  .pipeline-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  .pipeline-board { display: flex; gap: 12px; min-height: 0; width: max-content; min-width: 100%; }
-  .pipeline-column {
-    width: 280px;
-    min-width: 280px;
-    background: linear-gradient(180deg, rgba(34,37,54,.7), rgba(26,29,39,.9));
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .column-head {
-    padding: 12px 12px 10px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .column-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: .7px;
-    text-transform: uppercase;
-  }
-  .column-title .dot { width: 10px; height: 10px; border-radius: 50%; }
-  .column-count { font-size: 11px; color: var(--muted); }
-  .column-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
-  .column-body::-webkit-scrollbar { width: 5px; }
-  .column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .empty-column {
-    border: 1px dashed var(--border);
-    color: var(--muted);
-    font-size: 12px;
-    padding: 14px;
-    border-radius: 12px;
-    text-align: center;
-  }
+  .pipeline-grid::-webkit-scrollbar { width: 5px; }
+  .pipeline-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   .project-tile {
     position: relative;
@@ -291,57 +250,8 @@
   .tile-pct    { font-size: 13px; font-weight: 700; }
   .tile-progress { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
   .tile-progress-fill { height: 100%; border-radius: 3px; }
-  .tile-financials {
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 12px;
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.04);
-    display: grid;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .tile-financials strong { color: var(--text); font-size: 12px; }
-  .tile-financials-row { display: flex; justify-content: space-between; gap: 10px; }
 
   /* ── ALL PIPs VIEW ── */
-  .pip-filter-bar {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    padding: 14px 18px 10px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(15,17,23,.75);
-    backdrop-filter: blur(8px);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-  .pip-filter {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .pip-filter label {
-    font-size: 10px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    font-weight: 700;
-  }
-  .pip-filter select {
-    width: 100%;
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 8px 10px;
-    font: inherit;
-    font-size: 12px;
-    outline: none;
-  }
-  .pip-filter select:focus { border-color: var(--accent); }
   .pip-table-wrap { flex: 1; overflow: auto; padding: 14px 18px 18px; }
   .pip-table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
   .pip-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -750,24 +660,6 @@
 
     <!-- ══ ALL PIPs VIEW ══ -->
     <section class="view" id="view-all-pips">
-      <div class="pip-filter-bar">
-        <div class="pip-filter">
-          <label for="pip-filter-project">Project</label>
-          <select id="pip-filter-project"></select>
-        </div>
-        <div class="pip-filter">
-          <label for="pip-filter-status">Status</label>
-          <select id="pip-filter-status"></select>
-        </div>
-        <div class="pip-filter">
-          <label for="pip-filter-priority">Priority</label>
-          <select id="pip-filter-priority"></select>
-        </div>
-        <div class="pip-filter">
-          <label for="pip-filter-assignee">Assignee</label>
-          <select id="pip-filter-assignee"></select>
-        </div>
-      </div>
       <div class="pip-table-wrap">
         <table class="pip-table">
           <thead>
@@ -893,18 +785,20 @@ const SEED_PROJECTS = [
   { id:'P07', name:'CloudShift Migration', stage:'Paused', goal:'Lift-and-shift legacy on-prem workloads to AWS with zero-downtime cutovers.',                                budget:510000, spent:198000 },
   { id:'P08', name:'Ember Design System',  stage:'Active', goal:'Unified component library and brand-token system across all product surfaces.',                              budget:90000,  spent:74000  },
   { id:'P09', name:'Sentinel Security',    stage:'Idea',   goal:'Zero-trust network access and continuous compliance monitoring initiative.',                                  budget:470000, spent:18000  },
-  { id:'P10', name:'Northstar Sales',      stage:'Plan',   goal:'Revenue ops system for forecasting, territory planning, and account intelligence.',                        budget:260000, spent:36000  },
 ];
 
 const SEED_TEAM = [
-  { id:'M01', name:'Michael', role:'Founder / Ops',        color:'#6366f1' },
-  { id:'M02', name:'Sean',    role:'Product / Strategy',  color:'#a855f7' },
-  { id:'M03', name:'Ryan',    role:'Engineering Lead',   color:'#3b82f6' },
-  { id:'M04', name:'David',   role:'Design / UX',         color:'#06b6d4' },
-  { id:'M05', name:'Brian',   role:'Finance / Delivery',  color:'#22c55e' },
+  { id:'M01', name:'Alex Rivera',   role:'Engineering Lead',  color:'#6366f1' },
+  { id:'M02', name:'Jordan Kim',    role:'Product Manager',   color:'#a855f7' },
+  { id:'M03', name:'Sam Okafor',    role:'Senior Engineer',   color:'#3b82f6' },
+  { id:'M04', name:'Taylor Nguyen', role:'UX Designer',       color:'#06b6d4' },
+  { id:'M05', name:'Morgan Chen',   role:'Data Engineer',     color:'#22c55e' },
+  { id:'M06', name:'Casey Patel',   role:'QA Engineer',       color:'#f59e0b' },
+  { id:'M07', name:'Riley Torres',  role:'DevOps Engineer',   color:'#ef4444' },
+  { id:'M08', name:'Drew Nakamura', role:'Backend Engineer',  color:'#ec4899' },
 ];
 
-const RAW_SEED_PIPS = [
+const SEED_PIPS = [
   { id:'PIP-001', proj:'P01', title:'AI Lead Scoring Model',         cat:'Feature',       status:'In Progress', pri:'High',     due:'2026-05-15', by:'Jordan Kim',    assigned:'Sam Okafor',     descr:'Implement gradient-boosted model ingesting CRM signals to produce a 0–100 lead score. Score surfaced in card header and filterable in list view.' },
   { id:'PIP-002', proj:'P01', title:'Pipeline Analytics Dashboard',  cat:'Feature',       status:'Complete',    pri:'High',     due:'2026-04-01', by:'Jordan Kim',    assigned:'Morgan Chen',    descr:'Aggregate deal-stage metrics into a live chart panel including funnel conversion rates and projected close-date variance.' },
   { id:'PIP-003', proj:'P01', title:'Email Sequence Automation',     cat:'Feature',       status:'Open',        pri:'Medium',   due:'2026-06-10', by:'Alex Rivera',   assigned:'Drew Nakamura',  descr:'Build trigger-based email sequence engine with A/B variants, send-time optimisation, and unsubscribe handling.' },
@@ -937,40 +831,7 @@ const RAW_SEED_PIPS = [
   { id:'PIP-030', proj:'P09', title:'Zero-Trust Architecture Design',cat:'Research',      status:'Open',        pri:'Critical', due:'2026-06-01', by:'Alex Rivera',   assigned:'Alex Rivera',    descr:'ADR for zero-trust implementation evaluating BeyondCorp model, micro-segmentation, and identity-aware proxy options.' },
   { id:'PIP-031', proj:'P09', title:'Compliance Gap Assessment',     cat:'Compliance',    status:'Open',        pri:'High',     due:'2026-05-15', by:'Casey Patel',   assigned:'Casey Patel',    descr:'SOC 2 Type II gap analysis against current controls with prioritised remediation backlog mapped to trust service criteria.' },
   { id:'PIP-032', proj:'P09', title:'SIEM Integration (Splunk)',     cat:'Infrastructure',status:'Open',        pri:'High',     due:'2026-07-30', by:'Riley Torres',  assigned:'Riley Torres',   descr:'Configure Splunk forwarders on all production hosts. Build detection rules for top-10 MITRE ATT&CK techniques relevant to our threat model.' },
-  { id:'PIP-033', proj:'P10', title:'Forecast Engine',               cat:'Feature',       status:'Open',        pri:'High',     due:'2026-06-18', by:'Sean',          assigned:'Brian',          descr:'Revenue forecasting engine with scenario toggles, ARR pipeline weighting, and executive rollup cards.' },
-  { id:'PIP-034', proj:'P10', title:'Territory Planner',             cat:'Ops',           status:'In Progress', pri:'Medium',   due:'2026-07-02', by:'Brian',         assigned:'Sean',           descr:'Account territory segmentation, rep coverage heatmap, and territory exception workflow for the sales team.' },
-  { id:'PIP-035', proj:'P10', title:'Executive Dashboards',          cat:'Docs',          status:'Review',      pri:'Medium',   due:'2026-06-30', by:'Michael',       assigned:'David',          descr:'Board-ready KPI dashboards with KPI lock, PDF export, and weekly summary narrative.' },
 ];
-
-const NAME_ALIAS = {
-  'Alex Rivera': 'Michael',
-  'Jordan Kim': 'Sean',
-  'Sam Okafor': 'Ryan',
-  'Taylor Nguyen': 'David',
-  'Morgan Chen': 'Brian',
-  'Casey Patel': 'Michael',
-  'Riley Torres': 'Sean',
-  'Drew Nakamura': 'Ryan',
-  'Michael': 'Michael',
-  'Sean': 'Sean',
-  'Ryan': 'Ryan',
-  'David': 'David',
-  'Brian': 'Brian',
-};
-
-function aliasName(name) {
-  return NAME_ALIAS[name] || name || '';
-}
-
-const SEED_PIPS = RAW_SEED_PIPS.map((pip, idx, arr) => {
-  const seq = arr.slice(0, idx).filter(x => x.proj === pip.proj).length + 1;
-  return {
-    ...pip,
-    by: aliasName(pip.by),
-    assigned: aliasName(pip.assigned),
-    num: pip.num ?? seq,
-  };
-});
 
 // ═══════════════════════════════════════════════════════
 //  APP STATE
@@ -981,7 +842,6 @@ let TEAM     = [];
 let FINANCES = [];
 let daxMessages = [];   // { role, content }
 let activeStageFilter = null;
-let pipFilters = { project:'', status:'', priority:'', assignee:'' };
 let activePipId = null;
 let renderTimer = null;
 let saveTimers = { pip: null, finance: null };
@@ -1146,12 +1006,6 @@ function initials(n)  { return n.split(' ').map(w=>w[0]).join('').toUpperCase().
 function fmt(n)       { return '$' + Number(n||0).toLocaleString(); }
 function escHtml(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s)   { return escHtml(s).replace(/"/g,'&quot;'); }
-function pipCode(pip) {
-  const map = { Feature:'FEAT', Infrastructure:'INF', Compliance:'COMP', Research:'RES', Milestone:'MILE', Docs:'DOC', Security:'SEC', Ops:'OPS' };
-  const prefix = map[pip?.cat] || 'GEN';
-  const n = String(pip?.num ?? 0).padStart(3, '0');
-  return `${prefix}-${n}`;
-}
 
 function scheduleRenderAll() {
   clearTimeout(renderTimer);
@@ -1525,57 +1379,37 @@ function renderStagesBar() {
 
 function renderPipelineGrid() {
   const grid = document.getElementById('pipeline-grid');
-  const stages = activeStageFilter ? [activeStageFilter] : STAGES;
-  const visible = PROJECTS.filter(p => stages.includes(p.stage));
+  const projects = activeStageFilter ? PROJECTS.filter(p => p.stage === activeStageFilter) : PROJECTS;
 
-  grid.innerHTML = `<div class="pipeline-board">${
-    stages.map(stage => {
-      const stageProjects = visible.filter(p => p.stage === stage);
-      return `<section class="pipeline-column">
-        <div class="column-head">
-          <div class="column-title" style="color:${stageColor(stage)}">
-            <span class="dot" style="background:${stageColor(stage)}"></span>${stage}
-          </div>
-          <div class="column-count">${stageProjects.length}</div>
+  if (!projects.length) {
+    grid.innerHTML = '<div class="no-results">No projects in this stage.</div>';
+    return;
+  }
+  grid.innerHTML = projects.map(proj => {
+    const color  = stageColor(proj.stage);
+    const pct    = calcPct(proj.id);
+    const open   = openPips(proj.id).length;
+    const total  = pipsForProject(proj.id).length;
+    return `<div class="project-tile" data-pid="${proj.id}">
+      <div class="tile-actions">
+        <button class="tile-action-btn tile-edit-btn" data-project-id="${proj.id}" title="Edit project">✎</button>
+        <button class="tile-action-btn tile-delete-btn" data-project-id="${proj.id}" title="Delete project">🗑</button>
+      </div>
+      <div class="tile-header" style="background:${color}"></div>
+      <div class="tile-body">
+        <div class="tile-stage" style="color:${color}">${proj.stage}</div>
+        <div class="tile-name">${escHtml(proj.name)}</div>
+        <div class="tile-goal">${escHtml(proj.goal||'')}</div>
+        <div class="tile-stats">
+          <div class="tile-pip-count"><strong>${open}</strong> open / ${total} PIPs</div>
+          <div class="tile-pct" style="color:${color}">${pct}%</div>
         </div>
-        <div class="column-body">
-          ${stageProjects.length ? stageProjects.map(proj => {
-            const color = stageColor(proj.stage);
-            const pct = calcPct(proj.id);
-            const open = openPips(proj.id).length;
-            const total = pipsForProject(proj.id).length;
-            const fin = financeByProject(proj.id);
-            const rem = (proj.budget || 0) - (proj.spent || 0);
-            return `<div class="project-tile" data-pid="${proj.id}">
-              <div class="tile-actions">
-                <button class="tile-action-btn tile-edit-btn" data-project-id="${proj.id}" title="Edit project">✎</button>
-                <button class="tile-action-btn tile-delete-btn" data-project-id="${proj.id}" title="Delete project">🗑</button>
-              </div>
-              <div class="tile-header" style="background:${color}"></div>
-              <div class="tile-body">
-                <div class="tile-stage" style="color:${color}">${proj.stage}</div>
-                <div class="tile-name">${escHtml(proj.name)}</div>
-                <div class="tile-goal">${escHtml(proj.goal || '')}</div>
-                <div class="tile-stats">
-                  <div class="tile-pip-count"><strong>${open}</strong> open / ${total} PIPs</div>
-                  <div class="tile-pct" style="color:${color}">${pct}%</div>
-                </div>
-                <div class="tile-progress">
-                  <div class="tile-progress-fill" style="width:${pct}%;background:${color}"></div>
-                </div>
-                <div class="tile-financials">
-                  <div class="tile-financials-row"><span>Budget</span><strong>${fmt(proj.budget)}</strong></div>
-                  <div class="tile-financials-row"><span>Spent</span><strong style="color:#ef4444">${fmt(proj.spent)}</strong></div>
-                  <div class="tile-financials-row"><span>Remaining</span><strong style="color:#22c55e">${fmt(rem)}</strong></div>
-                  <div class="tile-financials-row"><span>MRR</span><strong style="color:#38bdf8">${fmt(fin.mrr)}</strong></div>
-                </div>
-              </div>
-            </div>`;
-          }).join('') : '<div class="empty-column">No projects in this stage.</div>'}
+        <div class="tile-progress">
+          <div class="tile-progress-fill" style="width:${pct}%;background:${color}"></div>
         </div>
-      </section>`;
-    }).join('')
-  }</div>`;
+      </div>
+    </div>`;
+  }).join('');
 
   grid.querySelectorAll('.project-tile').forEach(el => {
     el.addEventListener('click', () => openProjectDrawer(el.dataset.pid));
@@ -1608,45 +1442,11 @@ function openProjectDrawer(pid) {
 // ═══════════════════════════════════════════════════════
 function renderAllPips() {
   const tbody = document.getElementById('all-pips-tbody');
-  const projectSel = document.getElementById('pip-filter-project');
-  const statusSel = document.getElementById('pip-filter-status');
-  const prioritySel = document.getElementById('pip-filter-priority');
-  const assigneeSel = document.getElementById('pip-filter-assignee');
-  if (projectSel && !projectSel.dataset.ready) {
-    projectSel.innerHTML = `<option value="">All projects</option>` + PROJECTS.map(p => `<option value="${p.id}">${escHtml(p.name)}</option>`).join('');
-    statusSel.innerHTML = `<option value="">All statuses</option>` + ['Open','In Progress','Review','Complete','Blocked'].map(s => `<option value="${s}">${s}</option>`).join('');
-    prioritySel.innerHTML = `<option value="">All priorities</option>` + ['Critical','High','Medium','Low'].map(s => `<option value="${s}">${s}</option>`).join('');
-    assigneeSel.innerHTML = `<option value="">All assignees</option>` + [...new Set(PIPS.map(p => p.assigned).filter(Boolean))].sort().map(n => `<option value="${escAttr(n)}">${escHtml(n)}</option>`).join('');
-    projectSel.dataset.ready = '1';
-    [projectSel, statusSel, prioritySel, assigneeSel].forEach(sel => {
-      sel.addEventListener('change', () => {
-        pipFilters = {
-          project: projectSel.value,
-          status: statusSel.value,
-          priority: prioritySel.value,
-          assignee: assigneeSel.value,
-        };
-        renderAllPips();
-      });
-    });
-  }
-  if (projectSel) projectSel.value = pipFilters.project;
-  if (statusSel) statusSel.value = pipFilters.status;
-  if (prioritySel) prioritySel.value = pipFilters.priority;
-  if (assigneeSel) assigneeSel.value = pipFilters.assignee;
-
-  const filtered = PIPS.filter(pip =>
-    (!pipFilters.project || pip.proj === pipFilters.project) &&
-    (!pipFilters.status || pip.status === pipFilters.status) &&
-    (!pipFilters.priority || pip.pri === pipFilters.priority) &&
-    (!pipFilters.assignee || pip.assigned === pipFilters.assignee)
-  );
-
-  tbody.innerHTML = filtered.map(pip => {
+  tbody.innerHTML = PIPS.map(pip => {
     const proj  = projectById(pip.proj);
     const color = stageColor(proj?.stage || 'Idea');
     return `<tr data-pip-id="${pip.id}">
-      <td style="color:${color};font-weight:700;font-size:11px">${pipCode(pip)}</td>
+      <td style="color:${color};font-weight:700;font-size:11px">${pip.id}</td>
       <td style="max-width:210px;white-space:normal;font-weight:500">${escHtml(pip.title)}</td>
       <td>${stageChip(proj?.stage||'')}&nbsp;<span style="font-size:11px">${escHtml(proj?.name||'')}</span></td>
       <td>${catBadge(pip.cat||'')}</td>
@@ -1656,10 +1456,6 @@ function renderAllPips() {
       <td style="font-size:12px;color:var(--muted)">${pip.due||''}</td>
     </tr>`;
   }).join('');
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px;color:var(--muted);text-align:center">No PIPs match the current filters.</td></tr>';
-  }
 
   tbody.querySelectorAll('tr').forEach(row => {
     row.addEventListener('click', () => openPipDrawer(row.dataset.pipId));
