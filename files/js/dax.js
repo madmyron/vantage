@@ -77,6 +77,8 @@ function daxAddMsg(role, label, text) {
 
 function daxShowTyping() {
   const msgs = document.getElementById('dax-messages');
+  const existing = document.getElementById('dax-typing-indicator');
+  if (existing) existing.remove();
   const div  = document.createElement('div');
   div.className = 'dax-msg dax';
   div.id = 'dax-typing-indicator';
@@ -135,7 +137,7 @@ async function daxSend() {
             const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
             projects = projects.map(p => p.id === proj.id ? {...p, subProjects:[...p.subProjects, newPip]} : p);
             const updated = projects.find(x => x.id === proj.id);
-            if (updated) saveProject(updated);
+            if (updated) await saveProject(updated);
             render();
             daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
           } else {
