@@ -120,6 +120,7 @@ async function daxSend() {
     daxRemoveTyping();
     daxTyping = false;
     const reply = data.content && data.content[0] && data.content[0].text;
+    console.log('DAX RAW REPLY:', JSON.stringify(reply));
     if (reply) {
       const raw = reply.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
       const actionMatches = [...raw.matchAll(/\[PIP:(.*?)\]/gs)];
