@@ -32,10 +32,33 @@
 </div>
 
 <div class="main">
-  <div class="drag-hint">Drag cards between stages &nbsp;·&nbsp; click a card for details &nbsp;·&nbsp; use Move ▾ to jump stages</div>
-  <div class="pipe-wrap"><div class="pipeline" id="pipeline"></div></div>
-  <div id="detail-area"></div>
+  <!-- Pipeline side -->
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+    <div class="drag-hint">Drag cards between stages &nbsp;·&nbsp; click a card for details &nbsp;·&nbsp; use Move ▾ to jump stages</div>
+    <div class="pipe-wrap"><div class="pipeline" id="pipeline"></div></div>
+    <div id="detail-area"></div>
+  </div>
+
+  <!-- Dax panel — always visible right side -->
+  <div class="dax-panel" id="dax-panel">
+    <div class="dax-header">
+      <div class="dax-avatar">D</div>
+      <div class="dax-header-info">
+        <div class="dax-name">Dax</div>
+        <div class="dax-status">ready</div>
+      </div>
+    </div>
+    <div class="dax-project-badge" id="dax-project-badge" style="display:none">Project: <span id="dax-project-name">—</span></div>
+    <div class="dax-messages" id="dax-messages"></div>
+    <div class="dax-footer">
+      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
+      <button class="dax-send" onclick="daxSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
 </div>
+
+<!-- dax-overlay kept as empty div for JS compatibility -->
+<div id="dax-overlay"></div>
 
 <!-- Project detail modal -->
 <div class="proj-modal-overlay" id="proj-modal-overlay">
@@ -46,30 +69,7 @@
   </div>
 </div>
 
-<!-- Dax AI chat -->
-<div class="dax-overlay" id="dax-overlay">
-  <div class="dax-panel" id="dax-panel">
-    <div class="dax-header">
-      <div class="dax-avatar">D</div>
-      <div class="dax-header-info">
-        <div class="dax-name">Dax</div>
-        <div class="dax-status">ready</div>
-      </div>
-      <button class="dax-close" onclick="closeDax()">×</button>
-    </div>
-    <div class="dax-project-badge" id="dax-project-badge">Project: <span id="dax-project-name">—</span></div>
-    <div class="dax-messages" id="dax-messages"></div>
-    <div class="dax-footer">
-      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
-      <button class="dax-send" onclick="daxSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
-    </div>
-  </div>
-</div>
-
-<!-- Dax floating button -->
-<button class="dax-fab" onclick="openDax(null)" title="Ask Dax">✦</button>
-
-<!-- Generic modal (new project, sub-stage, etc.) -->
+<!-- Generic modal -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal-inner"></div>
 </div>
