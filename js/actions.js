@@ -303,10 +303,12 @@ function toggleSubMove(e, pid, spid) {
 function addSubTk(pid, spid) {
   const inp = document.getElementById('sti-' + pid + '-' + spid);
   if (!inp || !inp.value.trim()) return;
+  const proj = projects.find(x => x.id === pid);
+  const pfx = proj ? projPrefix(proj.name) : 'TK';
   projects = projects.map(p => {
     if (p.id !== pid) return p;
     return {...p, subProjects:p.subProjects.map(sp =>
-      sp.id !== spid ? sp : {...sp, tickets:[...sp.tickets, {id:'ST-'+(tkSeq++), title:inp.value.trim(), status:'todo'}]}
+      sp.id !== spid ? sp : {...sp, tickets:[...sp.tickets, {id:pfx+'-'+(tkSeq++), title:inp.value.trim(), status:'todo'}]}
     )};
   });
   inp.value = '';
