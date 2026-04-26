@@ -24,9 +24,9 @@ function renderProjModal() {
   if (!p) return;
   const c = pc(p.color);
   const st = sf(p.stage);
-  const TABS = ['tickets','convo','contacts','finances','info'];
+  const TABS = ['tickets','pips','convo','contacts','finances','info'];
   const tabHTML = TABS.map(t =>
-    `<button class="proj-modal-tab${modalTab===t?' on':''}" onclick="switchModalTab('${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
+    `<button class="proj-modal-tab${modalTab===t?' on':''}" onclick="switchModalTab('${t}')">${t === 'pips' ? 'PIPs' : t.charAt(0).toUpperCase()+t.slice(1)}</button>`
   ).join('');
 
   document.getElementById('proj-modal-header').innerHTML = `
@@ -53,7 +53,6 @@ function renderProjModal() {
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="openDax(${p.id})">✦ Dax</button>
-      <button class="btn" onclick="closeProjModal();toggleSubBoard(${p.id})">⊞ Board</button>
       <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
     </div>`;
 
@@ -78,7 +77,47 @@ function switchModalTab(tab) {
 function renderModalBody(p) {
   const body = document.getElementById('proj-modal-body');
 
-  if (modalTab === 'tickets') {
+  if (modalTab === 'pips') {
+    const stagesHTML = p.subStages.map((st, si) => {
+      const subs = p.subProjects.filter(sp => sp.stage === st.id);
+      const sc = SUB_COLORS[si % SUB_COLORS.length];
+      const cards = subs.map(sp => {
+        const otherSS = p.subStages.filter(s => s.id !== st.id);
+        const moveOpts = otherSS.map(s =>
+          `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProjModal(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
+        ).join('');
+        return `<div class="sub-card" style="background:${sc.bg};border-color:${sc.bd};margin-bottom:8px;border-radius:10px;padding:10px 12px;border:1.5px solid ${sc.bd}">
+          <div style="font-size:12px;font-weight:700;color:${sc.tx};margin-bottom:4px">${esc(sp.name)}</div>
+          ${sp.desc ? `<div style="font-size:11px;color:${sc.tx};opacity:.65;margin-bottom:8px">${esc(sp.desc)}</div>` : ''}
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <div style="position:relative;display:inline-block">
+              <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button>
+              <div class="sub-move-dd" id="smv-${p.id}-${sp.id}">${moveOpts}</div>
+            </div>
+            <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="removeSubProjModal(${p.id},'${sp.id}')">Delete</button>
+          </div>
+        </div>`;
+      }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
+      return `<div style="min-width:180px;flex-shrink:0">
+        <div style="text-align:center;padding:4px 6px 10px">
+          <span style="font-size:10px;font-weight:600;padding:3px 12px;border-radius:20px;display:inline-block;text-transform:uppercase;letter-spacing:.06em;border:1px solid ${sc.bd};background:${sc.bg};color:${sc.tx}">${esc(st.label)}</span>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
+        </div>
+        <div>${cards}</div>
+      </div>
+      ${si < p.subStages.length - 1 ? '<div style="width:1px;background:var(--border);margin:0 8px;flex-shrink:0"></div>' : ''}`;
+    }).join('');
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--text3)">${p.subProjects.length} pip${p.subProjects.length!==1?'s':''}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn" style="font-size:11px" onclick="openAddSubStage(${p.id})">+ Stage</button>
+          <button class="btn btn-accent" style="font-size:11px" onclick="openAddSubProjModal(${p.id})">+ Sub-project</button>
+        </div>
+      </div>
+      <div style="display:flex;overflow-x:auto;gap:0;padding-bottom:8px">${stagesHTML}</div>`;
+
+  } else if (modalTab === 'tickets') {
     const cols = ['todo','inprogress','done'];
     const cL = {todo:'To do', inprogress:'In progress', done:'Done'};
     const stats = cols.map(s => p.tickets.filter(t => t.status === s).length);
@@ -347,5 +386,55 @@ function addPersonModal(id) {
     return {...p, people:[...p.people, {name:inp.value.trim(), perm:sel.value, visible:true}]};
   });
   const p = projects.find(x => x.id === id); if (p) saveProject(p);
+  renderProjModal();
+}
+
+function openAddSubProjModal(pid) {
+  const p = projects.find(x => x.id === pid);
+  const stageOpts = p.subStages.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  document.getElementById('modal-inner').innerHTML = `<div class="modal-title">New sub-project — ${esc(p.name)}</div>
+    <div class="fl"><span class="fl-lbl">Name</span><input class="fi" id="sp-name" placeholder="Sub-project name..."/></div>
+    <div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="sp-stage">${stageOpts}</select></div>
+    <div class="fl"><span class="fl-lbl">Description</span><input class="fi" id="sp-desc" placeholder="One-liner..."/></div>
+    <div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveSubProjModal(${pid})">Add</button></div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('sp-name').focus(), 50);
+}
+
+function saveSubProjModal(pid) {
+  const name = document.getElementById('sp-name').value.trim(); if (!name) return;
+  const stage = document.getElementById('sp-stage').value;
+  const desc  = document.getElementById('sp-desc').value.trim();
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:[...p.subProjects, mkSubP(name, desc, stage)]};
+  });
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  closeModal();
+  render();
+  renderProjModal();
+}
+
+function moveSubProjModal(pid, spid, newStage) {
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.map(sp => sp.id === spid ? {...sp, stage:newStage} : sp)};
+  });
+  document.querySelectorAll('.sub-move-dd.open').forEach(m => m.classList.remove('open'));
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  render();
+  renderProjModal();
+}
+
+function removeSubProjModal(pid, spid) {
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.filter(sp => sp.id !== spid)};
+  });
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  render();
   renderProjModal();
 }
