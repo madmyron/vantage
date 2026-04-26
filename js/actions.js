@@ -402,10 +402,10 @@ function saveSubProj(pid) {
     if (p.id !== pid) return p;
     return {...p, subProjects:[...p.subProjects, mkSubP(name, desc, stage)]};
   });
-  const p = projects.find(x => x.id === pid);
-  if (p) saveProject(p);
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
   closeModal();
-  renderSubBoard(p);
+  renderSubBoard(updated);
 }
 
 function openAddSubStage(pid) {

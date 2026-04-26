@@ -49,7 +49,7 @@ function rowToProject(row) {
     contacts:     row.contacts || [],
     finances:     row.finances || [],
     people:       row.people || [],
-    subStages:    row.sub_stages || [{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
+    subStages:    (row.sub_stages && row.sub_stages.length > 0) ? row.sub_stages : [{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
     subProjects:  (row.sub_projects || []).map(sp => ({...sp, _openNote:false, _openTickets:false})),
     openSubBoard: false,
     openTab:      null,
