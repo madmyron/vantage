@@ -1,4 +1,4 @@
-// ── DAX AI ADVISOR ────────────────────────────────────────────
+// ── DAX AI ADVISOR v2 ───────────────────────────────────────
 
 let daxProjectId = null;
 let daxHistory   = [];
