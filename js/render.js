@@ -45,8 +45,7 @@ function render() {
         </div>
         <div style="margin-top:5px;position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.12)">
           <div style="height:100%;border-radius:3px;background:${c.bar};width:${st.pct}%"></div>
-          <div style="position:absolute;top:50%;transform:translate(-50%,-50%);left:${st.pct}%;width:12px;height:12px;border-radius:50%;background:${c.bar};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
-          </div>
+          <div style="position:absolute;top:50%;transform:translate(-50%,-50%);left:${Math.min(st.pct,96)}%;width:18px;height:18px;border-radius:50%;background:${c.bar};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff">${STAGES.indexOf(st)+1}</div>
         </div>
       </div>
     </div>

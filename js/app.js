@@ -11,4 +11,9 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 
 // ── INIT ──────────────────────────────────────────────────────
 
-loadProjects();
+async function init() {
+  await loadProjects();
+  await initDax();
+}
+
+init();
