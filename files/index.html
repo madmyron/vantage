@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vantage — Entrepreneurial OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/styles.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="loading-screen" style="position:fixed;inset:0;background:#f5f4f0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;font-family:var(--font,DM Sans,sans-serif)">
+  <div style="width:36px;height:36px;background:#5b4de0;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:16px">V</div>
+  <div style="font-size:14px;color:#999990" id="loading-msg">Loading your projects...</div>
+</div>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">V</div>
+    <div>
+      <span class="logo-name">Vantage</span>
+      <span class="logo-sub">— entrepreneurial OS</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="ts" id="ts"></span>
+    <button class="btn btn-accent" onclick="openAdd()">+ New project</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="drag-hint">Drag cards between stages &nbsp;·&nbsp; click a card for details &nbsp;·&nbsp; use Move ▾ to jump stages</div>
+  <div class="pipe-wrap"><div class="pipeline" id="pipeline"></div></div>
+  <div id="detail-area"></div>
+</div>
+
+<!-- Project detail modal -->
+<div class="proj-modal-overlay" id="proj-modal-overlay">
+  <div class="proj-modal" id="proj-modal">
+    <div class="proj-modal-header" id="proj-modal-header"></div>
+    <div class="proj-modal-body"   id="proj-modal-body"></div>
+    <div class="proj-modal-footer" id="proj-modal-footer"></div>
+  </div>
+</div>
+
+<!-- Dax AI chat -->
+<div class="dax-overlay" id="dax-overlay">
+  <div class="dax-panel" id="dax-panel">
+    <div class="dax-header">
+      <div class="dax-avatar">D</div>
+      <div class="dax-header-info">
+        <div class="dax-name">Dax</div>
+        <div class="dax-status">ready</div>
+      </div>
+      <button class="dax-close" onclick="closeDax()">×</button>
+    </div>
+    <div class="dax-project-badge" id="dax-project-badge">Project: <span id="dax-project-name">—</span></div>
+    <div class="dax-messages" id="dax-messages"></div>
+    <div class="dax-footer">
+      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
+      <button class="dax-send" onclick="daxSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic modal (new project, sub-stage, etc.) -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/render.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/dax.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
