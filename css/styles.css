@@ -199,7 +199,7 @@ select.fi option{background:var(--bg3)}
 /* SUB-BOARD OVERLAY */
 .subboard-overlay{display:none;position:fixed;inset:0;z-index:200;pointer-events:none}
 .subboard-overlay.open{display:block}
-.subboard-wrap{position:fixed;bottom:0;left:0;right:0;height:65vh;background:var(--bg);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.15);pointer-events:all}
+.subboard-wrap{position:fixed;bottom:0;left:0;right:0;height:65vh;background:var(--bg);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.15);pointer-events:all;z-index:280}
 .subboard-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
 .subboard-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
 .subboard-header-btns{display:flex;gap:6px;align-items:center}

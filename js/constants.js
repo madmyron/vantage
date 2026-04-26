@@ -70,8 +70,13 @@ function stamp() {
   if (el) el.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }
 
-function mkTk(title, status, pri) {
-  return {id:'TK-'+(tkSeq++), title, status:status||'todo', priority:pri||'med', assignee:''};
+function mkTk(title, status, pri, prefix) {
+  const pfx = prefix || 'TK';
+  return {id:pfx+'-'+(tkSeq++), title, status:status||'todo', priority:pri||'med', assignee:''};
+}
+
+function projPrefix(name) {
+  return String(name || '').replace(/[^a-zA-Z0-9 ]/g,'').split(' ').filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0,3) || 'TK';
 }
 
 function mkSubP(name, desc, stageId) {

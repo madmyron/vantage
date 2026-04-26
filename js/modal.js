@@ -220,9 +220,10 @@ function addTkModal(pid) {
   const inp = document.getElementById('mtki-' + pid);
   const pri = document.getElementById('mtkp-' + pid);
   if (!inp || !inp.value.trim()) return;
+  const p0 = projects.find(x => x.id === pid);
   projects = projects.map(p => {
     if (p.id !== pid) return p;
-    return {...p, tickets:[...p.tickets, mkTk(inp.value.trim(), 'todo', pri.value)]};
+    return {...p, tickets:[...p.tickets, mkTk(inp.value.trim(), 'todo', pri.value, projPrefix(p.name))]};
   });
   const p = projects.find(x => x.id === pid); if (p) saveProject(p);
   render(); renderProjModal();
