@@ -1,4 +1,4 @@
-// ── DAX AI ADVISOR ────────────────────────────────────────────
+// ── DAX AI ADVISOR v2 ───────────────────────────────────────
 
 let daxProjectId = null;
 let daxTyping    = false;
@@ -20,8 +20,8 @@ Rules:
 - Never be a yes-man. Challenge vague answers.
 - Reference specific project context when you have it.
 
-You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append a JSON action block at the very end in this exact format (nothing after it):
-<action>{"type":"create_pip","projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description","stage":"first stage label"}</action>`;
+You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append one JSON block per pip at the very end, using this exact format:
+[PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]`;
 
 function getDaxKey() {
   return localStorage.getItem('vantage_dax_key') || '';
@@ -101,6 +101,7 @@ function daxAddMsg(role, label, text) {
 
 function daxShowTyping() {
   const msgs = document.getElementById('dax-messages');
+  document.getElementById('dax-typing-indicator')?.remove();
   const div = document.createElement('div');
   div.className = 'dax-msg dax';
   div.id = 'dax-typing-indicator';
@@ -164,37 +165,34 @@ async function daxSend() {
 
     const reply = data.content?.[0]?.text;
     if (reply) {
-      // Check for action block
-      const actionMatch = reply.match(/<action>(.*?)<\/action>/s);
-      const displayText = reply.replace(/<action>.*?<\/action>/s, '').trim();
-
-      daxAddMsg('dax', 'Dax', displayText);
-      daxHistory.push({ role: 'assistant', content: displayText });
-      await saveDaxMessage('assistant', displayText);
-
-      if (actionMatch) {
+      const actionMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
+      const cleanText = reply.replace(/\[PIP:.*?\]/gs, '').trim();
+      if (cleanText) {
+        daxAddMsg('dax', 'Dax', cleanText);
+        daxHistory.push({ role: 'assistant', content: cleanText });
+        await saveDaxMessage('assistant', cleanText);
+      }
+      for (const match of actionMatches) {
         try {
-          const action = JSON.parse(actionMatch[1]);
-          if (action.type === 'create_pip') {
-            const proj = projects.find(p => p.name.toLowerCase() === action.projectName.toLowerCase()
-              || p.name.toLowerCase().includes(action.projectName.toLowerCase()));
-            if (proj) {
-              const firstStage = proj.subStages[0]?.id || 'ss1';
-              const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
-              projects = projects.map(p => p.id === proj.id
-                ? {...p, subProjects:[...p.subProjects, newPip]}
-                : p);
-              const updated = projects.find(x => x.id === proj.id);
-              if (updated) saveProject(updated);
-              render();
-              daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
-            } else {
-              daxAddMsg('dax', 'Dax', `Couldn't find a project matching "${action.projectName}".`);
-            }
+          const action = JSON.parse(match[1]);
+          const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
+          if (proj) {
+            const firstStage = proj.subStages[0]?.id || 'ss1';
+            const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
+            projects = projects.map(p => p.id === proj.id ? {...p, subProjects:[...p.subProjects, newPip]} : p);
+            const updated = projects.find(x => x.id === proj.id);
+            if (updated) await saveProject(updated);
+            render();
+            daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
+          } else {
+            daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}".`);
           }
-        } catch(e) {
-          console.warn('Dax action parse error:', e);
-        }
+        } catch(e) { console.warn('Dax pip error:', e, match[1]); }
+      }
+      if (!cleanText && actionMatches.length === 0) {
+        daxAddMsg('dax', 'Dax', reply);
+        daxHistory.push({ role: 'assistant', content: reply });
+        await saveDaxMessage('assistant', reply);
       }
     } else if (data.error) {
       daxAddMsg('dax', 'Dax', `Error: ${data.error.message}`);
