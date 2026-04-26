@@ -128,6 +128,7 @@ async function daxSend() {
           const action = JSON.parse(match[1]);
           if (action.type === 'create_pip') {
             const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
+            console.log('Dax create_pip:', action, 'found project:', proj?.name, 'subStages:', proj?.subStages, 'dbId:', proj?.dbId);
             if (proj) {
               const firstStage = proj.subStages[0]?.id || 'ss1';
               const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
