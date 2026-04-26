@@ -197,7 +197,7 @@ select.fi option{background:var(--bg3)}
 .cswatch.sel{border-color:rgba(255,255,255,.7)}
 
 /* SUB-BOARD */
-.subboard-wrap{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin:6px 0 4px;border:1px solid var(--border)}
+.subboard-wrap{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin:6px 0 4px;border:1px solid var(--border);position:relative;left:0;width:calc(800% + 56px);max-width:90vw}
 .subboard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .subboard-title{font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
 .subboard-header-btns{display:flex;gap:6px;align-items:center}
