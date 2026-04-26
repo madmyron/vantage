@@ -90,7 +90,7 @@ function wireDrag() {
 // ── SUB-BOARD RENDER ──────────────────────────────────────────
 
 function renderSubBoard(p) {
-  const el = document.getElementById('sub-' + p.id);
+  const el = document.getElementById('subboard-overlay');
   if (!el) return;
   const c = pc(p.color);
   const stagesHTML = p.subStages.map((st, si) => {
@@ -101,12 +101,9 @@ function renderSubBoard(p) {
       const moveOpts = otherSS.map(s =>
         `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProj(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
       ).join('');
-      const taskCt = sp.tickets.filter(t => t.status === 'todo').length;
-      const doneCt = sp.tickets.filter(t => t.status === 'done').length;
       return `<div class="sub-card" style="background:${sc.bg};border-color:${sc.bd}">
         <div class="sub-card-name" style="color:${sc.tx}">${esc(sp.name)}</div>
-        ${sp.desc ? `<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc.length>42 ? sp.desc.slice(0,42)+'…' : sp.desc)}</div>` : ''}
-        ${sp.tickets.length > 0 ? `<div style="font-size:9px;color:${sc.tx};opacity:.55;margin-bottom:4px;font-family:var(--mono)">${taskCt}T · ${doneCt}D</div>` : ''}
+        ${sp.desc ? `<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc.length>50 ? sp.desc.slice(0,50)+'…' : sp.desc)}</div>` : ''}
         <div class="sub-card-btns">
           <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubNote(${p.id},'${sp.id}')">Notes</button>
           <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubTickets(${p.id},'${sp.id}')">Tasks</button>
@@ -118,30 +115,32 @@ function renderSubBoard(p) {
         </div>
         <div id="snp-${p.id}-${sp.id}"></div>
       </div>`;
-    }).join('') || `<div style="font-size:10px;color:var(--text3);padding:4px 2px">Empty</div>`;
+    }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
     return `<div class="sub-stage-col">
       <div class="sub-stage-head">
         <span class="sub-stage-pill" style="background:${sc.bg};color:${sc.tx};border-color:${sc.bd}">${esc(st.label)}</span>
-        <div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:var(--mono)">${subs.length}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
       </div>
       <div class="sub-stage-body" id="ssb-${p.id}-${st.id}" data-pid="${p.id}" data-stage="${st.id}">${cards}</div>
     </div>${si < p.subStages.length - 1 ? '<div class="sub-sdiv"></div>' : ''}`;
   }).join('');
 
-  el.innerHTML = `<div class="subboard-wrap" style="border-color:${c.bd}">
+  el.innerHTML = `<div class="subboard-wrap" style="border-top:3px solid ${c.bar}">
     <div class="subboard-header">
       <div class="subboard-title">
         <span style="width:10px;height:10px;border-radius:3px;background:${c.bar};display:inline-block;flex-shrink:0"></span>
         ${esc(p.name)} — board
+        <span style="font-size:11px;font-weight:400;color:var(--text3)">${p.subProjects.length} pip${p.subProjects.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="subboard-header-btns">
-        <button class="btn" style="font-size:10px;padding:4px 10px" onclick="openAddSubStage(${p.id})">+ Stage</button>
-        <button class="btn btn-accent" style="font-size:10px;padding:4px 10px" onclick="openAddSubProj(${p.id})">+ Sub-project</button>
-        <button class="btn" onclick="toggleSubBoard(${p.id})">✕ Close</button>
+        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="openAddSubStage(${p.id})">+ Stage</button>
+        <button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="openAddSubProj(${p.id})">+ Sub-project</button>
+        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="toggleSubBoard(${p.id})">✕ Close</button>
       </div>
     </div>
     <div class="sub-pipeline">${stagesHTML}</div>
   </div>`;
+  el.classList.add('open');
 
   wireSubDrag(p.id);
   p.subProjects.forEach(sp => {

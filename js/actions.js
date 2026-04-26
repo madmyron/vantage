@@ -236,12 +236,13 @@ function addPerson(id) {
 // ── SUB-BOARD ACTIONS ─────────────────────────────────────────
 
 function toggleSubBoard(pid) {
-  projects = projects.map(p => p.id === pid ? {...p, openSubBoard:!p.openSubBoard, openTab:null} : p);
+  const wasOpen = projects.find(p => p.id === pid)?.openSubBoard;
+  projects = projects.map(p => ({...p, openSubBoard: p.id === pid ? !p.openSubBoard : false}));
+  if (wasOpen) {
+    const overlay = document.getElementById('subboard-overlay');
+    if (overlay) { overlay.classList.remove('open'); overlay.innerHTML = ''; }
+  }
   render();
-  setTimeout(() => {
-    const el = document.getElementById('sub-' + pid);
-    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 50);
 }
 
 function toggleSubNote(pid, spid) {
