@@ -304,8 +304,10 @@ function addSubTk(pid, spid) {
       sp.id !== spid ? sp : {...sp, tickets:[...sp.tickets, {id:'ST-'+(tkSeq++), title:inp.value.trim(), status:'todo'}]}
     )};
   });
-  const p = projects.find(x => x.id === pid);
-  renderSubTickets(p, p.subProjects.find(x => x.id === spid));
+  inp.value = '';
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  renderSubTickets(updated, updated.subProjects.find(x => x.id === spid));
 }
 
 function moveSubTk(pid, spid, idx, status) {

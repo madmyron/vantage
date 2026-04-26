@@ -18,7 +18,10 @@ Rules:
 - Ask ONE question at a time. Never list multiple questions.
 - Keep responses concise — 2-4 sentences max, then your question.
 - Never be a yes-man. Challenge vague answers.
-- Reference specific project context when you have it.`;
+- Reference specific project context when you have it.
+
+You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append a JSON action block at the very end in this exact format (nothing after it):
+<action>{"type":"create_pip","projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description","stage":"first stage label"}</action>`;
 
 function getDaxKey() {
   return localStorage.getItem('vantage_dax_key') || '';
@@ -161,9 +164,38 @@ async function daxSend() {
 
     const reply = data.content?.[0]?.text;
     if (reply) {
-      daxAddMsg('dax', 'Dax', reply);
-      daxHistory.push({ role: 'assistant', content: reply });
-      await saveDaxMessage('assistant', reply);
+      // Check for action block
+      const actionMatch = reply.match(/<action>(.*?)<\/action>/s);
+      const displayText = reply.replace(/<action>.*?<\/action>/s, '').trim();
+
+      daxAddMsg('dax', 'Dax', displayText);
+      daxHistory.push({ role: 'assistant', content: displayText });
+      await saveDaxMessage('assistant', displayText);
+
+      if (actionMatch) {
+        try {
+          const action = JSON.parse(actionMatch[1]);
+          if (action.type === 'create_pip') {
+            const proj = projects.find(p => p.name.toLowerCase() === action.projectName.toLowerCase()
+              || p.name.toLowerCase().includes(action.projectName.toLowerCase()));
+            if (proj) {
+              const firstStage = proj.subStages[0]?.id || 'ss1';
+              const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
+              projects = projects.map(p => p.id === proj.id
+                ? {...p, subProjects:[...p.subProjects, newPip]}
+                : p);
+              const updated = projects.find(x => x.id === proj.id);
+              if (updated) saveProject(updated);
+              render();
+              daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
+            } else {
+              daxAddMsg('dax', 'Dax', `Couldn't find a project matching "${action.projectName}".`);
+            }
+          }
+        } catch(e) {
+          console.warn('Dax action parse error:', e);
+        }
+      }
     } else if (data.error) {
       daxAddMsg('dax', 'Dax', `Error: ${data.error.message}`);
     }
