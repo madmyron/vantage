@@ -40,9 +40,11 @@ function render() {
       <div style="margin-top:4px;cursor:pointer" onclick="openProjModal(${p.id})">
         <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
         ${p.desc ? `<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40 ? p.desc.slice(0,40)+'\u2026' : p.desc)}</div>` : ''}
-        <div style="font-size:9px;color:${c.tx};opacity:.55;margin-top:4px;font-family:var(--mono)">${tkTodo}T · ${tkIP}IP · ${tkDone}D</div>
-        <div class="pbar-wrap" style="margin-top:5px"><div class="pbar" style="width:${st.pct}%;background:${c.bar}"></div></div>
-        <div style="font-size:9px;color:${c.tx};opacity:.55;text-align:right;font-family:var(--mono)">${st.pct}%</div>
+        <div style="font-size:10px;color:${c.tx};opacity:.7;margin-top:5px;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center">
+          <span>📋${tkTodo} · ⚡${tkIP} · ✓${tkDone}</span>
+          <span style="font-weight:600">${st.pct}%</span>
+        </div>
+        <div class="pbar-wrap" style="margin-top:4px;height:3px"><div class="pbar" style="width:${st.pct}%;background:${c.bar}"></div></div>
       </div>
     </div>
     <div id="sub-${p.id}"></div>`;
