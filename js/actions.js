@@ -273,7 +273,9 @@ function moveSubProj(pid, spid, newStage) {
     return {...p, subProjects:p.subProjects.map(sp => sp.id === spid ? {...sp, stage:newStage} : sp)};
   });
   document.querySelectorAll('.sub-move-dd.open').forEach(m => m.classList.remove('open'));
-  renderSubBoard(projects.find(x => x.id === pid));
+  const p = projects.find(x => x.id === pid);
+  if (p) saveProject(p);
+  renderSubBoard(p);
 }
 
 function removeSubProj(pid, spid) {
@@ -281,7 +283,9 @@ function removeSubProj(pid, spid) {
     if (p.id !== pid) return p;
     return {...p, subProjects:p.subProjects.filter(sp => sp.id !== spid)};
   });
-  renderSubBoard(projects.find(x => x.id === pid));
+  const p = projects.find(x => x.id === pid);
+  if (p) saveProject(p);
+  renderSubBoard(p);
 }
 
 function toggleSubMove(e, pid, spid) {
@@ -398,8 +402,10 @@ function saveSubProj(pid) {
     if (p.id !== pid) return p;
     return {...p, subProjects:[...p.subProjects, mkSubP(name, desc, stage)]};
   });
+  const p = projects.find(x => x.id === pid);
+  if (p) saveProject(p);
   closeModal();
-  renderSubBoard(projects.find(x => x.id === pid));
+  renderSubBoard(p);
 }
 
 function openAddSubStage(pid) {
@@ -416,6 +422,8 @@ function saveSubStage(pid) {
     if (p.id !== pid) return p;
     return {...p, subStages:[...p.subStages, {id:'ss'+Date.now(), label}]};
   });
+  const p = projects.find(x => x.id === pid);
+  if (p) saveProject(p);
   closeModal();
-  renderSubBoard(projects.find(x => x.id === pid));
+  renderSubBoard(p);
 }
