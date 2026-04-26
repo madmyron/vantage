@@ -5,7 +5,7 @@ let modalTab = 'tickets';
 
 function openProjModal(pid) {
   modalProjectId = pid;
-  modalTab = 'tickets';
+  modalTab = 'pips';
   document.getElementById('proj-modal-overlay').classList.add('open');
   renderProjModal();
 }
@@ -86,24 +86,47 @@ function renderModalBody(p) {
         const moveOpts = otherSS.map(s =>
           `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProjModal(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
         ).join('');
-        return `<div class="sub-card" style="background:${sc.bg};border-color:${sc.bd};margin-bottom:8px;border-radius:10px;padding:10px 12px;border:1.5px solid ${sc.bd}">
-          <div style="font-size:12px;font-weight:700;color:${sc.tx};margin-bottom:4px">${esc(sp.name)}</div>
-          ${sp.desc ? `<div style="font-size:11px;color:${sc.tx};opacity:.65;margin-bottom:8px">${esc(sp.desc)}</div>` : ''}
-          <div style="display:flex;gap:4px;flex-wrap:wrap">
+        const taskTodo = sp.tickets.filter(t=>t.status==='todo').length;
+        const taskDone = sp.tickets.filter(t=>t.status==='done').length;
+        return `<div class="sub-card" draggable="true" data-spid="${sp.id}" data-pid="${p.id}" style="background:${sc.bg};border-color:${sc.bd};margin-bottom:8px;border-radius:10px;padding:10px 12px;border:1.5px solid ${sc.bd};cursor:pointer" onclick="togglePipExpand(event,${p.id},'${sp.id}')">
+          <div style="font-size:12px;font-weight:700;color:${sc.tx};margin-bottom:3px">${esc(sp.name)}</div>
+          ${sp.desc ? `<div style="font-size:11px;color:${sc.tx};opacity:.65;margin-bottom:6px">${esc(sp.desc)}</div>` : ''}
+          ${sp.tickets.length > 0 ? `<div style="font-size:10px;color:${sc.tx};opacity:.55;margin-bottom:6px;font-family:var(--mono)">${taskTodo} to do · ${taskDone} done</div>` : ''}
+          <div style="display:flex;gap:4px;flex-wrap:wrap" onclick="event.stopPropagation()">
             <div style="position:relative;display:inline-block">
-              <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button>
+              <button class="scbtn" style="color:${sc.tx}" onclick="event.stopPropagation();toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button>
               <div class="sub-move-dd" id="smv-${p.id}-${sp.id}">${moveOpts}</div>
             </div>
-            <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="removeSubProjModal(${p.id},'${sp.id}')">Delete</button>
+            <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="event.stopPropagation();removeSubProjModal(${p.id},'${sp.id}')">Delete</button>
+          </div>
+          <div id="pip-expand-${p.id}-${sp.id}" style="display:none;margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:10px">
+            <div style="margin-bottom:6px">
+              <div style="font-size:10px;font-weight:600;color:${sc.tx};opacity:.7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Notes</div>
+              <textarea style="width:100%;font-size:11px;padding:6px 8px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);resize:vertical;min-height:50px;outline:none" placeholder="Notes, ideas, links..." onchange="updateSubNote(${p.id},'${sp.id}',this.value)">${esc(sp.notes||'')}</textarea>
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:10px;font-weight:600;color:${sc.tx};opacity:.7;text-transform:uppercase;letter-spacing:.06em">Tasks</div>
+                <div style="display:flex;gap:4px">
+                  <input id="pip-tk-${p.id}-${sp.id}" style="font-size:10px;padding:2px 6px;border:1px solid rgba(0,0,0,.15);border-radius:4px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);width:140px;outline:none" placeholder="Add task..." onkeydown="if(event.key==='Enter')addPipTask(${p.id},'${sp.id}')"/>
+                  <button class="scbtn" style="color:${sc.tx}" onclick="addPipTask(${p.id},'${sp.id}')">+</button>
+                </div>
+              </div>
+              ${sp.tickets.map((t,ti) => `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)">
+                <input type="checkbox" ${t.status==='done'?'checked':''} onchange="togglePipTask(${p.id},'${sp.id}',${ti},this.checked)" style="cursor:pointer"/>
+                <span style="font-size:11px;color:${sc.tx};flex:1;${t.status==='done'?'text-decoration:line-through;opacity:.5':''}">${esc(t.title)}</span>
+                <button style="font-size:11px;color:${sc.tx};opacity:.4;background:none;border:none;cursor:pointer" onclick="rmPipTask(${p.id},'${sp.id}',${ti})">×</button>
+              </div>`).join('')}
+            </div>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
-      return `<div style="min-width:180px;flex-shrink:0">
+      return `<div class="modal-pip-col" data-pid="${p.id}" data-stage="${st.id}" style="min-width:200px;flex-shrink:0">
         <div style="text-align:center;padding:4px 6px 10px">
           <span style="font-size:10px;font-weight:600;padding:3px 12px;border-radius:20px;display:inline-block;text-transform:uppercase;letter-spacing:.06em;border:1px solid ${sc.bd};background:${sc.bg};color:${sc.tx}">${esc(st.label)}</span>
           <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
         </div>
-        <div>${cards}</div>
+        <div class="modal-pip-body" data-pid="${p.id}" data-stage="${st.id}">${cards}</div>
       </div>
       ${si < p.subStages.length - 1 ? '<div style="width:1px;background:var(--border);margin:0 8px;flex-shrink:0"></div>' : ''}`;
     }).join('');
@@ -116,6 +139,7 @@ function renderModalBody(p) {
         </div>
       </div>
       <div style="display:flex;overflow-x:auto;gap:0;padding-bottom:8px">${stagesHTML}</div>`;
+    wirePipDrag(p.id);
 
   } else if (modalTab === 'tickets') {
     const cols = ['todo','inprogress','done'];
@@ -437,4 +461,87 @@ function removeSubProjModal(pid, spid) {
   if (updated) saveProject(updated);
   render();
   renderProjModal();
+}
+
+function togglePipExpand(e, pid, spid) {
+  const el = document.getElementById('pip-expand-' + pid + '-' + spid);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function addPipTask(pid, spid) {
+  const inp = document.getElementById('pip-tk-' + pid + '-' + spid);
+  if (!inp || !inp.value.trim()) return;
+  const proj = projects.find(x => x.id === pid);
+  const pfx = proj ? projPrefix(proj.name) : 'TK';
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.map(sp =>
+      sp.id !== spid ? sp : {...sp, tickets:[...sp.tickets, {id:pfx+'-'+(tkSeq++), title:inp.value.trim(), status:'todo'}]}
+    )};
+  });
+  inp.value = '';
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  renderProjModal();
+  setTimeout(() => {
+    const el = document.getElementById('pip-expand-' + pid + '-' + spid);
+    if (el) el.style.display = 'block';
+  }, 50);
+}
+
+function togglePipTask(pid, spid, idx, checked) {
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.map(sp => {
+      if (sp.id !== spid) return sp;
+      const tks = [...sp.tickets];
+      tks[idx] = {...tks[idx], status: checked ? 'done' : 'todo'};
+      return {...sp, tickets:tks};
+    })};
+  });
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+}
+
+function rmPipTask(pid, spid, idx) {
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.map(sp =>
+      sp.id !== spid ? sp : {...sp, tickets:sp.tickets.filter((_,i)=>i!==idx)}
+    )};
+  });
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
+  renderProjModal();
+}
+
+function wirePipDrag(pid) {
+  let dragSpid = null;
+  document.querySelectorAll(`.sub-card[data-pid="${pid}"]`).forEach(card => {
+    card.addEventListener('dragstart', e => {
+      dragSpid = card.dataset.spid;
+      setTimeout(() => card.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.modal-pip-body').forEach(b => b.style.outline = '');
+      dragSpid = null;
+    });
+  });
+  document.querySelectorAll(`.modal-pip-body[data-pid="${pid}"]`).forEach(body => {
+    body.addEventListener('dragover', e => {
+      e.preventDefault();
+      document.querySelectorAll('.modal-pip-body').forEach(b => b.style.outline = '');
+      body.style.outline = '1.5px dashed var(--green)';
+    });
+    body.addEventListener('dragleave', () => body.style.outline = '');
+    body.addEventListener('drop', e => {
+      e.preventDefault();
+      body.style.outline = '';
+      const newStage = body.dataset.stage;
+      if (dragSpid && newStage) moveSubProjModal(pid, dragSpid, newStage);
+    });
+  });
 }
