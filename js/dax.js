@@ -186,6 +186,22 @@ function openDax(pid) {
       const nameEl = document.getElementById('dax-project-name');
       if (nameEl) nameEl.textContent = p.name;
       badge.style.display = 'block';
+      // Send project context silently into history for next message
+      const tkTodo = p.tickets.filter(t => t.status === 'todo').length;
+      const tkDone = p.tickets.filter(t => t.status === 'done').length;
+      const tkIP   = p.tickets.filter(t => t.status === 'inprogress').length;
+      const convoSummary = Object.entries(p.convo || {})
+        .filter(([k,v]) => v && v.trim())
+        .map(([k,v]) => `${k}: ${v.replace(/\[x\] /g,'').replace(/\n/g,', ')}`)
+        .join(' | ') || 'none';
+      // Inject context as a system-style user message (not displayed)
+      const ctx = `[User just opened project: "${p.name}" | Stage: ${sf(p.stage).label} | Goal: ${p.goal || 'not set'} | Tickets: ${tkTodo} todo, ${tkIP} in progress, ${tkDone} done | Notes: ${convoSummary}]`;
+      // Only add if not already the last context message
+      const last = daxHistory[daxHistory.length - 1];
+      if (!last || !last.content.startsWith('[User just opened project:')) {
+        daxHistory.push({ role: 'user', content: ctx });
+        daxHistory.push({ role: 'assistant', content: `Got it — I'm focused on **${p.name}** now. What do you want to work through?` });
+      }
     }
   } else if (badge) {
     badge.style.display = 'none';

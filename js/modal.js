@@ -52,7 +52,7 @@ function renderProjModal() {
       </div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="closeProjModal();openDax(${p.id})">✦ Dax</button>
+      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="openDax(${p.id})">✦ Dax</button>
       <button class="btn" onclick="closeProjModal();toggleSubBoard(${p.id})">⊞ Board</button>
       <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
     </div>`;
