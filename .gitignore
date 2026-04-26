@@ -1,2 +1,5 @@
 # Local Netlify folder
 .netlify
+
+# files/ has its own git repo, ignore it
+files/
