@@ -41,7 +41,7 @@ function render() {
         <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
         ${p.desc ? `<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40 ? p.desc.slice(0,40)+'\u2026' : p.desc)}</div>` : ''}
         <div style="font-size:11px;color:#222;margin-top:5px;font-family:var(--mono)">
-          <span style="font-size:10px">📋${tkTodo} · ⚡${tkIP} · ✓${tkDone}${p.subProjects.length > 0 ? ` · 🗂${p.subProjects.length}` : ''}</span>
+          <span style="font-size:10px;font-family:var(--mono)">${tkTodo} to do · ${tkIP} in prog · ${tkDone} done${(()=>{const lastStage=p.subStages[p.subStages.length-1]?.id;const activePips=p.subProjects.filter(sp=>sp.stage!==lastStage).length;return activePips>0?` · ${activePips} pips`:'';})()} </span>
         </div>
         <div style="margin-top:5px;position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.12)">
           <div style="height:100%;border-radius:3px;background:${c.bar};width:${st.pct}%"></div>
@@ -134,6 +134,8 @@ function renderSubBoard(p) {
       <div class="subboard-header-btns">
         <button class="btn" style="font-size:11px;padding:5px 12px" onclick="openAddSubStage(${p.id})">+ Stage</button>
         <button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="openAddSubProj(${p.id})">+ Sub-project</button>
+        <button class="btn" style="font-size:11px;padding:5px 12px;color:#3d2fa8;border-color:rgba(91,77,224,.4)" onclick="closeSubBoardOpenDax(${p.id})">✦ Dax</button>
+        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="closeSubBoardOpenModal(${p.id})">← Back</button>
         <button class="btn" style="font-size:11px;padding:5px 12px" onclick="toggleSubBoard(${p.id})">✕ Close</button>
       </div>
     </div>

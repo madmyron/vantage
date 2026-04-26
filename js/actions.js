@@ -235,6 +235,21 @@ function addPerson(id) {
 
 // ── SUB-BOARD ACTIONS ─────────────────────────────────────────
 
+function closeSubBoardOpenModal(pid) {
+  const overlay = document.getElementById('subboard-overlay');
+  if (overlay) { overlay.classList.remove('open'); overlay.innerHTML = ''; }
+  projects = projects.map(p => ({...p, openSubBoard: false}));
+  openProjModal(pid);
+}
+
+function closeSubBoardOpenDax(pid) {
+  const overlay = document.getElementById('subboard-overlay');
+  if (overlay) { overlay.classList.remove('open'); overlay.innerHTML = ''; }
+  projects = projects.map(p => ({...p, openSubBoard: false}));
+  render();
+  openDax(pid);
+}
+
 function toggleSubBoard(pid) {
   const wasOpen = projects.find(p => p.id === pid)?.openSubBoard;
   projects = projects.map(p => ({...p, openSubBoard: p.id === pid ? !p.openSubBoard : false}));
