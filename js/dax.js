@@ -61,9 +61,6 @@ async function saveDaxMessage(role, content) {
 // ── INIT ──────────────────────────────────────────────────────
 
 async function initDax() {
-  // Show panel immediately
-  document.getElementById('dax-panel').classList.add('open');
-
   // Load history from Supabase
   const history = await loadDaxHistory();
   daxHistory = history.map(m => ({ role: m.role, content: m.content }));
@@ -182,16 +179,19 @@ async function daxSend() {
 
 function openDax(pid) {
   daxProjectId = pid;
-  if (pid) {
+  const badge = document.getElementById('dax-project-badge');
+  if (pid && badge) {
     const p = projects.find(x => x.id === pid);
     if (p) {
-      document.getElementById('dax-project-name').textContent = p.name;
-      document.getElementById('dax-project-badge').style.display = 'block';
+      const nameEl = document.getElementById('dax-project-name');
+      if (nameEl) nameEl.textContent = p.name;
+      badge.style.display = 'block';
     }
-  } else {
-    document.getElementById('dax-project-badge').style.display = 'none';
+  } else if (badge) {
+    badge.style.display = 'none';
   }
-  document.getElementById('dax-input').focus();
+  const inp = document.getElementById('dax-input');
+  if (inp) inp.focus();
 }
 
 function closeDax() {
@@ -208,5 +208,6 @@ function daxKeydown(e) {
   inp.style.height = Math.min(inp.scrollHeight, 80) + 'px';
 }
 
-// Dummy for compatibility
-document.getElementById('dax-overlay').addEventListener('click', function() {});
+// Input compatibility
+const daxOverlay = document.getElementById('dax-overlay');
+if (daxOverlay) daxOverlay.addEventListener('click', function() {});
