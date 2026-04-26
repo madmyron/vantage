@@ -238,6 +238,10 @@ function addPerson(id) {
 function toggleSubBoard(pid) {
   projects = projects.map(p => p.id === pid ? {...p, openSubBoard:!p.openSubBoard, openTab:null} : p);
   render();
+  setTimeout(() => {
+    const el = document.getElementById('sub-' + pid);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 50);
 }
 
 function toggleSubNote(pid, spid) {
