@@ -37,7 +37,8 @@ function promptDaxKey() {
 
 function openDax(pid) {
   daxProjectId = pid;
-  document.getElementById('dax-overlay').classList.add('open');
+  document.getElementById('dax-panel').classList.add('open');
+  document.querySelector('.dax-fab').classList.add('hidden');
   document.getElementById('dax-messages').innerHTML = '';
   daxHistory = [];
 
@@ -218,7 +219,8 @@ function daxKeydown(e) {
 }
 
 function closeDax() {
-  document.getElementById('dax-overlay').classList.remove('open');
+  document.getElementById('dax-panel').classList.remove('open');
+  document.querySelector('.dax-fab').classList.remove('hidden');
   daxProjectId = null;
 }
 
