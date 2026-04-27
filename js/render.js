@@ -32,6 +32,7 @@ function render() {
     const moveOpts = otherStages.map(s =>
       `<div class="move-opt" onclick="moveProj(${p.id},'${s.id}')"><span class="mdot" style="background:${s.sf}"></span>${s.label}</div>`
     ).join('');
+    const pipCount = Array.isArray(p.subProjects) ? p.subProjects.length : 0;
     const tkTodo = p.tickets.filter(t => t.status === 'todo').length;
     const tkIP   = p.tickets.filter(t => t.status === 'inprogress').length;
     const tkDone = p.tickets.filter(t => t.status === 'done').length;
@@ -41,7 +42,7 @@ function render() {
         <div class="pcard-name" style="color:${c.tx}">${esc(p.name)}</div>
         ${p.desc ? `<div class="pcard-goal" style="color:${c.tx}">${esc(p.desc.length>40 ? p.desc.slice(0,40)+'\u2026' : p.desc)}</div>` : ''}
         <div style="font-size:11px;color:#222;margin-top:5px;font-family:var(--mono)">
-          <span style="font-size:10px;font-family:var(--mono)">${tkTodo} to do · ${tkIP} in prog</span>
+          <span style="font-size:10px;font-family:var(--mono)">${pipCount} PIP${pipCount === 1 ? '' : 's'}</span>
         </div>
         <div style="margin-top:5px;position:relative;height:6px;border-radius:3px;background:rgba(0,0,0,.12)">
           <div style="height:100%;border-radius:3px;background:${c.bar};width:${st.pct}%"></div>
