@@ -6,6 +6,13 @@ let daxHistory = [];
 const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
 const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
+const DAX_CHAT_HEADERS = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'x-client-info': 'vantage-web-dax/1.0',
+};
 let daxOrchestration = loadDaxOrchestration();
 
 function loadDaxOrchestration() {
@@ -163,6 +170,11 @@ function extractReviewTarget(text) {
   return match ? match[1].trim() : '';
 }
 
+function isReviewOrchestrationTrigger(text) {
+  const trimmed = String(text || '').trim();
+  return /^review\s+\S/i.test(trimmed);
+}
+
 function stashPendingReview(plan, project) {
   daxOrchestration = {
     pendingReview: {
@@ -205,16 +217,62 @@ async function saveDaxMessage(role, content) {
 }
 
 async function callDaxChat(messages, context, system) {
-  const res = await fetch(DAX_CHAT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, context, system }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Dax chat request failed (${res.status})`);
+  try {
+    if (sb?.functions?.invoke) {
+      const { data, error } = await sb.functions.invoke('dax-chat', {
+        body: { messages, context, system },
+        headers: {
+          'x-client-info': 'vantage-web-dax/1.0',
+        },
+      });
+
+      if (error) {
+        const detail = error.message || error.error || JSON.stringify(error);
+        throw new Error(`Supabase dax-chat invoke failed: ${detail}`);
+      }
+
+      return data?.reply || '';
+    }
+
+    const controller = new AbortController();
+    const timeoutMs = 30000;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(DAX_CHAT_URL, {
+        method: 'POST',
+        headers: DAX_CHAT_HEADERS,
+        body: JSON.stringify({ messages, context, system }),
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+
+      const raw = await res.text();
+      let data = {};
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch (_) {
+          data = { raw };
+        }
+      }
+
+      if (!res.ok) {
+        const detail = data.error || data.message || data.raw || raw || `HTTP ${res.status}`;
+        throw new Error(`Supabase dax-chat returned ${res.status}: ${detail}`);
+      }
+
+      return data.reply || '';
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      throw new Error('Supabase dax-chat request timed out after 30000ms.');
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Supabase dax-chat request failed. URL: ${DAX_CHAT_URL}. Details: ${message}`);
   }
-  return data.reply || '';
 }
 
 async function initDax() {
@@ -318,7 +376,7 @@ async function daxSend() {
   inp.style.height = 'auto';
 
   const reviewTarget = extractReviewTarget(text);
-  if (reviewTarget) {
+  if (isReviewOrchestrationTrigger(text) && reviewTarget) {
     daxAddMsg('user', 'You', text);
     daxHistory.push({ role: 'user', content: text });
     await saveDaxMessage('user', text);
