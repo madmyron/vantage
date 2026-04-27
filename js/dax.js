@@ -152,7 +152,7 @@ function formatReviewPlan(plan) {
   lines.push("Here's what I recommend:");
   lines.push('');
 
-  const pips = Array.isArray(plan.proposedPips) ? plan.proposedPips.slice() : [];
+  const pips = getReviewPips(plan);
   pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
   if (pips.length) {
@@ -169,6 +169,14 @@ function formatReviewPlan(plan) {
   lines.push('');
   lines.push('Should I proceed with these?');
   return lines.join('\n');
+}
+
+function getReviewPips(plan) {
+  const candidates = [plan?.proposedPips, plan?.pips, plan?.proposed_pips];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate.slice();
+  }
+  return [];
 }
 
 function parseReviewPlan(reply, project) {
@@ -417,6 +425,7 @@ async function handleReviewCommand(projectName) {
     console.log('Dax review raw response:', reply);
 
     const plan = parseReviewPlan(reply, project);
+    console.log('parsed plan:', plan, 'proposedPips:', plan?.proposedPips);
     stashPendingReview(plan, project);
     const rendered = formatReviewPlan(plan);
     daxAddMsg('dax', 'Dax', rendered);
