@@ -113,8 +113,11 @@ function buildReviewSystem(project) {
 The user asked to review the project. Analyze the project's goals, current state, and existing PIPs.
 Draft a proposed list of NEW PIPs in recommended execution order.
 Keep it concise and non-technical.
-Each proposed PIP should be no more than 2-3 lines: the title, one plain-English sentence on what it does, and why it matters.
-No file names, no technical jargon, no long explanations. Write like you're talking to a busy founder, not a developer.
+Each proposed PIP must include two descriptions:
+- displayDescription: one plain sentence for the founder
+- technicalDescription: the full build details for Claude Code later
+The response should stay concise. In chat, the founder-facing description is the only one that should be shown.
+No file names in the founder-facing line, no technical jargon there, no long explanations. Write like you're talking to a busy founder, not a developer.
 
 Project context:
 ${fullProjectContext}
@@ -128,9 +131,9 @@ Return ONLY valid JSON using this shape:
     {
       "pipId": "string",
       "title": "string",
-      "description": "string",
+      "displayDescription": "string",
+      "technicalDescription": "string",
       "files": ["string"],
-      "reason": "string",
       "order": 1
     }
   ]
@@ -154,7 +157,7 @@ function formatReviewPlan(plan) {
 
   if (pips.length) {
     pips.forEach(pip => {
-      const description = pip.description || pip.reason || 'No description provided.';
+      const description = pip.displayDescription || pip.description || pip.reason || 'No description provided.';
       lines.push(`${pip.title || 'Untitled PIP'} - ${description}`);
     });
   } else if (plan.summary) {
@@ -176,7 +179,13 @@ function parseReviewPlan(reply, project) {
       projectName: parsed.projectName || project?.name || 'Project',
       summary: parsed.summary || '',
       recommendation: parsed.recommendation || 'Should I proceed with these?',
-      proposedPips: Array.isArray(parsed.proposedPips) ? parsed.proposedPips : [],
+      proposedPips: Array.isArray(parsed.proposedPips)
+        ? parsed.proposedPips.map(pip => ({
+            ...pip,
+            displayDescription: pip.displayDescription || pip.description || pip.reason || '',
+            technicalDescription: pip.technicalDescription || pip.description || pip.reason || '',
+          }))
+        : [],
     };
   } catch (_) {
     const text = raw || 'I could not generate a review plan.';
@@ -408,11 +417,6 @@ async function handleReviewCommand(projectName) {
     daxAddMsg('dax', 'Dax', rendered);
     daxHistory.push({ role: 'assistant', content: rendered });
     await saveDaxMessage('assistant', rendered);
-
-    const gate = 'Should I proceed with these?';
-    daxAddMsg('dax', 'Dax', gate);
-    daxHistory.push({ role: 'assistant', content: gate });
-    await saveDaxMessage('assistant', gate);
   } catch (err) {
     daxRemoveTyping();
     daxTyping = false;

@@ -101,9 +101,10 @@ function buildSystem(ctx?: {
     lines.push(JSON.stringify(ctx.pendingReview, null, 2));
     lines.push("");
     lines.push("Review mode instructions:");
-    lines.push("Keep each proposed PIP concise and non-technical.");
-    lines.push("Each proposed PIP should be no more than 2-3 lines: the title, one plain-English sentence on what it does, and why it matters.");
-    lines.push("No file names, no technical jargon, no long explanations. Write like you're talking to a busy founder, not a developer.");
+    lines.push("Each proposed PIP must include displayDescription and technicalDescription.");
+    lines.push("displayDescription is for the founder: one plain sentence, concise and non-technical.");
+    lines.push("technicalDescription is for the Claude Code handoff: full implementation detail, including what to build and which files to touch.");
+    lines.push("In the chat-facing response, keep it concise and only present the founder-facing content.");
   }
 
   return lines.join("\n");
