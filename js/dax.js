@@ -1,4 +1,4 @@
-// DAX AI ADVISOR v3
+ï»¿// DAX AI ADVISOR v3
 
 let daxProjectId = null;
 let daxTyping = false;
@@ -7,6 +7,7 @@ const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
 const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
 const CLAUDE_QUEUE_URL = '/.netlify/functions/claude-code-trigger';
+const DAX_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const DAX_CHAT_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
@@ -15,6 +16,19 @@ const DAX_CHAT_HEADERS = {
   'x-client-info': 'vantage-web-dax/1.0',
 };
 let daxOrchestration = loadDaxOrchestration();
+
+function getDaxAnthropicKey() {
+  return localStorage.getItem('vantage_dax_key') || '';
+}
+
+function promptDaxAnthropicKey() {
+  const key = prompt('Enter your Anthropic API key to enable Dax review mode:');
+  if (key && key.trim()) {
+    localStorage.setItem('vantage_dax_key', key.trim());
+    return key.trim();
+  }
+  return '';
+}
 
 function loadDaxOrchestration() {
   try {
@@ -147,19 +161,65 @@ Rules:
 `;
 }
 
+function buildReviewAnthropicPayload(project, messages) {
+  return {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    system: buildReviewSystem(project),
+    messages,
+    tools: [proposeReviewPlanTool()],
+    tool_choice: { type: 'tool', name: 'propose_review_plan' },
+  };
+}
+
+function proposeReviewPlanTool() {
+  return {
+    name: 'propose_review_plan',
+    description: 'Return a structured review plan for the current project.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        projectName: { type: 'string' },
+        recommendation: { type: 'string' },
+        proposedPips: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              pipId: { type: 'string' },
+              title: { type: 'string' },
+              displayDescription: { type: 'string' },
+              technicalDescription: { type: 'string' },
+              files: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              order: { type: 'number' },
+            },
+            required: ['pipId', 'title', 'displayDescription', 'technicalDescription', 'files', 'order'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['projectName', 'recommendation', 'proposedPips'],
+      additionalProperties: false,
+    },
+  };
+}
+
 function formatReviewPlan(plan) {
   const title = `${plan?.projectName || 'Project'} Review Plan`;
   const pips = getReviewPips(plan);
 
   if (!pips.length) {
-    return "I couldn't generate a plan — please try again";
+    return "I couldn't generate a plan â€” please try again";
   }
 
   const lines = [title, "Here's what I recommend:", ''];
   pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
   pips.forEach((pip, idx) => {
     const description = pip.displayDescription || 'No description provided.';
-    lines.push(`${idx + 1}. ${pip.title || 'Untitled PIP'} — ${description}`);
+    lines.push(`${idx + 1}. ${pip.title || 'Untitled PIP'} â€” ${description}`);
   });
   lines.push('');
   lines.push('Should I proceed with these?');
@@ -172,6 +232,18 @@ function getReviewPips(plan) {
     if (Array.isArray(candidate)) return candidate.slice();
   }
   return [];
+}
+
+function extractReviewPlanFromToolUseBlocks(content) {
+  const toolUse = Array.isArray(content)
+    ? content.find(block => block && block.type === 'tool_use' && block.name === 'propose_review_plan')
+    : null;
+
+  if (!toolUse) {
+    throw new Error('Review mode did not return a propose_review_plan tool call.');
+  }
+
+  return JSON.stringify(toolUse.input || {});
 }
 
 function normalizeReviewPayload(parsed) {
@@ -553,7 +625,37 @@ async function handleReviewCommand(projectName) {
   daxShowTyping();
 
   try {
-    const reply = await callDaxChat(messages, context, system);
+    const apiKey = getDaxAnthropicKey() || promptDaxAnthropicKey();
+    if (!apiKey) {
+      daxRemoveTyping();
+      daxTyping = false;
+      const msg = 'Anthropic API key is required for review mode.';
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+      return;
+    }
+
+    const reviewPayload = buildReviewAnthropicPayload(project, messages);
+    console.log('review anthropic payload:', reviewPayload);
+
+    const res = await fetch(DAX_ANTHROPIC_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify(reviewPayload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error?.message || data.error || `Anthropic review request failed (${res.status})`);
+    }
+
+    const reply = extractReviewPlanFromToolUseBlocks(data.content);
     daxRemoveTyping();
     daxTyping = false;
 
@@ -793,4 +895,5 @@ function daxKeydown(e) {
 
 const daxOverlay = document.getElementById('dax-overlay');
 if (daxOverlay) daxOverlay.addEventListener('click', function() {});
+
 
