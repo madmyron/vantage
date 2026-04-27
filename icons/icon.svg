@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vantage">
+  <rect width="512" height="512" rx="112" fill="#5b4de0"/>
+  <rect x="84" y="84" width="344" height="344" rx="84" fill="#4a3cc8"/>
+  <path d="M156 148h82l34 128 34-128h82l-83 216h-66z" fill="#ffffff"/>
+  <circle cx="376" cy="136" r="16" fill="#7c6af7" opacity=".65"/>
+</svg>

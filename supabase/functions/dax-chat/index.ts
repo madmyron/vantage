@@ -12,7 +12,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { messages, context } = await req.json() as {
+    const { messages, context, system } = await req.json() as {
       messages: Array<{ role: "user" | "assistant"; content: string }>;
       context?: {
         projects?: unknown[];
@@ -20,6 +20,7 @@ Deno.serve(async (req: Request) => {
         finances?: unknown[];
         team?: unknown[];
       };
+      system?: string;
     };
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -32,7 +33,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const systemPrompt = buildSystem(context);
+    const systemPrompt = system?.trim() ? system : buildSystem(context);
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

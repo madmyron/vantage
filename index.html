@@ -3,11 +3,18 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Vantage — Entrepreneurial OS</title>
+<title>Vantage â€” Entrepreneurial OS</title>
+<meta name="theme-color" content="#5b4de0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="icons/icon-192.png" type="image/png"/>
+<link rel="shortcut icon" href="icons/icon-192.png" type="image/png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/styles.css"/>
+<link rel="apple-touch-icon" href="icons/icon-180.png"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -22,7 +29,7 @@
     <div class="logo-mark">V</div>
     <div>
       <span class="logo-name">Vantage</span>
-      <span class="logo-sub">— entrepreneurial OS</span>
+      <span class="logo-sub">â€” entrepreneurial OS</span>
     </div>
   </div>
   <div class="topbar-right">
@@ -32,14 +39,12 @@
 </div>
 
 <div class="main">
-  <!-- Pipeline side -->
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
-    <div class="drag-hint">Drag cards between stages &nbsp;·&nbsp; click a card for details &nbsp;·&nbsp; use Move ▾ to jump stages</div>
+    <div class="drag-hint">Drag cards between stages &nbsp;Â·&nbsp; click a card for details &nbsp;Â·&nbsp; use Move â–¾ to jump stages</div>
     <div class="pipe-wrap"><div class="pipeline" id="pipeline"></div></div>
     <div id="detail-area"></div>
   </div>
 
-  <!-- Dax panel — always visible right side -->
   <div class="dax-panel" id="dax-panel">
     <div class="dax-header">
       <div class="dax-avatar">D</div>
@@ -48,7 +53,7 @@
         <div class="dax-status">ready</div>
       </div>
     </div>
-    <div class="dax-project-badge" id="dax-project-badge" style="display:none">Project: <span id="dax-project-name">—</span></div>
+    <div class="dax-project-badge" id="dax-project-badge" style="display:none">Project: <span id="dax-project-name">â€”</span></div>
     <div class="dax-messages" id="dax-messages"></div>
     <div class="dax-footer">
       <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
@@ -57,22 +62,17 @@
   </div>
 </div>
 
-<!-- dax-overlay kept as empty div for JS compatibility -->
 <div id="dax-overlay"></div>
-
-<!-- Sub-board overlay -->
 <div id="subboard-overlay"></div>
 
-<!-- Project detail modal -->
 <div class="proj-modal-overlay" id="proj-modal-overlay">
   <div class="proj-modal" id="proj-modal">
     <div class="proj-modal-header" id="proj-modal-header"></div>
-    <div class="proj-modal-body"   id="proj-modal-body"></div>
+    <div class="proj-modal-body" id="proj-modal-body"></div>
     <div class="proj-modal-footer" id="proj-modal-footer"></div>
   </div>
 </div>
 
-<!-- Generic modal -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal-inner"></div>
 </div>

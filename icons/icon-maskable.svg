@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vantage maskable">
+  <rect width="512" height="512" fill="#f5f4f0"/>
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="#5b4de0"/>
+  <rect x="110" y="110" width="292" height="292" rx="74" fill="#4a3cc8"/>
+  <path d="M166 170h76l20 92 28-92h60l28 92 20-92h76l-68 172h-62l-24-76-24 76h-62z" fill="#ffffff"/>
+</svg>

@@ -14,6 +14,11 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 async function init() {
   await loadProjects();
   await initDax();
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW register failed:', err));
+    });
+  }
 }
 
 init();

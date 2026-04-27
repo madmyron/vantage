@@ -1,50 +1,193 @@
-// ── DAX AI ADVISOR v2 ───────────────────────────────────────
+// DAX AI ADVISOR v3
 
 let daxProjectId = null;
-let daxTyping    = false;
-let daxHistory   = []; // in-memory for current API calls
+let daxTyping = false;
+let daxHistory = [];
+const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
+const DAX_HISTORY_TABLE = 'dax_history';
+const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
+let daxOrchestration = loadDaxOrchestration();
 
-const DAX_SYSTEM = `You are Dax, the built-in AI advisor for Vantage — an entrepreneurial operating system built by Michael D'Asaro. Your job is to have sharp, productive conversations with entrepreneurs about their projects.
+function loadDaxOrchestration() {
+  try {
+    const raw = localStorage.getItem(DAX_ORCHESTRATION_KEY);
+    return raw ? JSON.parse(raw) : { pendingReview: null };
+  } catch (err) {
+    console.warn('Could not load Dax orchestration state:', err);
+    return { pendingReview: null };
+  }
+}
 
-Your personality: direct, curious, intellectually honest, a little relentless. You ask one pointed question at a time. You don't flatter or pad responses. You push people toward clarity. Think sharp co-founder meets seasoned mentor.
+function saveDaxOrchestration() {
+  try {
+    localStorage.setItem(DAX_ORCHESTRATION_KEY, JSON.stringify(daxOrchestration || { pendingReview: null }));
+  } catch (err) {
+    console.warn('Could not save Dax orchestration state:', err);
+  }
+}
 
-Your goals:
-1. Understand what the project really is and why they're building it
-2. Surface blind spots, assumptions, and risks they haven't addressed
-3. Help them define what success actually looks like
-4. Identify the single most important next action
+function getProjectContextSummary() {
+  return projects.map(p => {
+    const openPips = (p.subProjects || []).length;
+    const financeTotal = (p.finances || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return {
+      id: p.id,
+      name: p.name,
+      stage: sf(p.stage).label,
+      goal: p.goal || '',
+      openPips,
+      financeTotal,
+      pips: (p.subProjects || []).map(sp => ({
+        id: sp.id,
+        name: sp.name,
+        stage: pipSf(normalizePipStage(sp.stage, p)).label,
+        assignee: sp.assignee || 'Dax',
+        assigner: sp.assigner || 'Dax',
+        desc: sp.desc || '',
+      })),
+    };
+  });
+}
+
+function findProjectByName(name) {
+  const query = String(name || '').trim().toLowerCase();
+  if (!query) return null;
+  return projects.find(p => {
+    const projectName = String(p.name || '').toLowerCase();
+    return projectName === query || projectName.includes(query) || query.includes(projectName);
+  }) || null;
+}
+
+function buildDaxContext(project) {
+  return {
+    activeProject: project ? {
+      id: project.id,
+      name: project.name,
+      stage: sf(project.stage).label,
+      goal: project.goal || '',
+      desc: project.desc || '',
+      pips: (project.subProjects || []).map(sp => ({
+        id: sp.id,
+        name: sp.name,
+        stage: pipSf(normalizePipStage(sp.stage, project)).label,
+        desc: sp.desc || '',
+        assignee: sp.assignee || 'Dax',
+        assigner: sp.assigner || 'Dax',
+        notes: sp.notes || '',
+      })),
+      finances: project.finances || [],
+      people: project.people || [],
+    } : null,
+    portfolio: getProjectContextSummary(),
+    team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
+    pendingReview: daxOrchestration?.pendingReview || null,
+  };
+}
+
+function buildNormalDaxSystem(project) {
+  const projectName = project ? project.name : 'the current portfolio';
+  return `You are Dax, the built-in AI advisor for Vantage, an entrepreneurial operating system.
+
+Be direct, curious, and concise. Ask one pointed question at a time. Push the founder toward clarity.
+Use the provided context to avoid asking for things already known.
+
+If the user asks you to create PIPs, append one JSON block per PIP at the very end using this exact format:
+[PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]
+
+Current focus: ${projectName}`;
+}
+
+function buildReviewSystem(project) {
+  return `You are Dax acting as a project manager inside Vantage.
+
+The user asked to review the project. Analyze the project's goals, current state, and existing PIPs.
+Draft a proposed list of NEW PIPs in recommended execution order.
+
+Return ONLY valid JSON using this shape:
+{
+  "projectName": "string",
+  "summary": "string",
+  "recommendation": "string",
+  "proposedPips": [
+    {
+      "pipId": "string",
+      "title": "string",
+      "description": "string",
+      "files": ["string"],
+      "reason": "string",
+      "order": 1
+    }
+  ]
+}
 
 Rules:
-- Ask ONE question at a time. Never list multiple questions.
-- Keep responses concise — 2-4 sentences max, then your question.
-- Never be a yes-man. Challenge vague answers.
-- Reference specific project context when you have it.
-
-You can also CREATE PIPS (sub-projects) for any project. When the user asks you to create a pip/sub-project, respond with your normal text AND append one JSON block per pip at the very end, using this exact format:
-[PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]`;
-
-function getDaxKey() {
-  return localStorage.getItem('vantage_dax_key') || '';
+- Include only new PIPs, not existing ones.
+- Keep the file lists realistic and non-overlapping where possible.
+- If overlap exists, order sequentially and mention that in the recommendation.
+- End with a concise approval prompt in the recommendation field: "Should I proceed with these?"`;
 }
 
-function promptDaxKey() {
-  const key = prompt('Enter your Anthropic API key to enable Dax:');
-  if (key && key.trim()) {
-    localStorage.setItem('vantage_dax_key', key.trim());
-    return key.trim();
+function formatReviewPlan(plan) {
+  const lines = [];
+  lines.push(`${plan.projectName || 'Project'} review complete.`);
+  if (plan.summary) lines.push(plan.summary);
+  if (Array.isArray(plan.proposedPips) && plan.proposedPips.length) {
+    lines.push('');
+    lines.push('Proposed PIPs:');
+    plan.proposedPips
+      .slice()
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .forEach((pip, idx) => {
+        const files = Array.isArray(pip.files) && pip.files.length ? pip.files.join(', ') : 'no files listed';
+        lines.push(`${idx + 1}. ${pip.title}${pip.description ? ` - ${pip.description}` : ''}`);
+        lines.push(`   Files: ${files}`);
+        if (pip.reason) lines.push(`   Why: ${pip.reason}`);
+      });
   }
-  return '';
+  lines.push('');
+  lines.push(plan.recommendation || 'Should I proceed with these?');
+  return lines.join('\n');
 }
 
-// ── SUPABASE PERSISTENCE ──────────────────────────────────────
+function parseReviewPlan(reply) {
+  const raw = String(reply || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+  return JSON.parse(raw);
+}
+
+function isApprovalReply(text) {
+  return /^(yes|y|yep|yeah|proceed|approve|do it|go ahead)\b/i.test(String(text || '').trim());
+}
+
+function extractReviewTarget(text) {
+  const match = String(text || '').trim().match(/^review\s+(.+)$/i);
+  return match ? match[1].trim() : '';
+}
+
+function stashPendingReview(plan, project) {
+  daxOrchestration = {
+    pendingReview: {
+      ...plan,
+      projectId: project ? project.id : null,
+      projectName: project ? project.name : plan.projectName,
+      status: 'pending-approval',
+      createdAt: new Date().toISOString(),
+    },
+  };
+  saveDaxOrchestration();
+}
+
+function clearPendingReview() {
+  daxOrchestration = { pendingReview: null };
+  saveDaxOrchestration();
+}
 
 async function loadDaxHistory() {
   try {
     const { data, error } = await sb
-      .from('dax_messages')
+      .from(DAX_HISTORY_TABLE)
       .select('role, content, created_at')
       .order('created_at', { ascending: true })
-      .limit(100);
+      .limit(200);
     if (error) throw error;
     return data || [];
   } catch (e) {
@@ -55,40 +198,47 @@ async function loadDaxHistory() {
 
 async function saveDaxMessage(role, content) {
   try {
-    await sb.from('dax_messages').insert({ role, content });
+    await sb.from(DAX_HISTORY_TABLE).insert({ role, content });
   } catch (e) {
     console.warn('Could not save Dax message:', e.message);
   }
 }
 
-// ── INIT ──────────────────────────────────────────────────────
+async function callDaxChat(messages, context, system) {
+  const res = await fetch(DAX_CHAT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, context, system }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Dax chat request failed (${res.status})`);
+  }
+  return data.reply || '';
+}
 
 async function initDax() {
-  // Load history from Supabase
   const history = await loadDaxHistory();
   daxHistory = history.map(m => ({ role: m.role, content: m.content }));
 
   if (history.length === 0) {
-    // First time — greet
-    const opener = "Hey Michael — I'm Dax, your AI advisor. What project or idea is on your mind right now?";
+    const opener = "Hey Michael - I'm Dax, your AI advisor. What project or idea is on your mind right now?";
     daxAddMsg('dax', 'Dax', opener);
     daxHistory.push({ role: 'assistant', content: opener });
     await saveDaxMessage('assistant', opener);
   } else {
-    // Render existing history
-    history.forEach(m => daxAddMsg(m.role === 'assistant' ? 'dax' : 'user',
-      m.role === 'assistant' ? 'Dax' : 'You', m.content));
-    // Scroll to bottom
+    history.forEach(m => daxAddMsg(m.role === 'assistant' ? 'dax' : 'user', m.role === 'assistant' ? 'Dax' : 'You', m.content));
     const msgs = document.getElementById('dax-messages');
     msgs.scrollTop = msgs.scrollHeight;
   }
-}
 
-// ── RENDER ────────────────────────────────────────────────────
+  if (daxOrchestration?.pendingReview?.projectName) {
+    daxAddMsg('dax', 'Dax', `I still have a pending review plan for ${daxOrchestration.pendingReview.projectName}. Say "yes" when you're ready to continue.`);
+  }
+}
 
 function daxAddMsg(role, label, text) {
   const msgs = document.getElementById('dax-messages');
-  // Remove empty state if present
   const empty = document.getElementById('dax-empty');
   if (empty) empty.remove();
 
@@ -114,11 +264,54 @@ function daxRemoveTyping() {
   document.getElementById('dax-typing-indicator')?.remove();
 }
 
-// ── SEND ──────────────────────────────────────────────────────
+async function handleReviewCommand(projectName) {
+  const project = findProjectByName(projectName) || (daxProjectId ? projects.find(p => p.id === daxProjectId) : null);
+  if (!project) {
+    daxAddMsg('dax', 'Dax', `I couldn't find a project named "${projectName}".`);
+    return;
+  }
+
+  const context = buildDaxContext(project);
+  const system = buildReviewSystem(project);
+  const messages = [
+    { role: 'user', content: `Review this project: ${project.name}. Draft the next PIPs, ordered by execution priority.` },
+  ];
+
+  daxTyping = true;
+  daxShowTyping();
+
+  try {
+    const reply = await callDaxChat(messages, context, system);
+    daxRemoveTyping();
+    daxTyping = false;
+
+    let plan = null;
+    try {
+      plan = parseReviewPlan(reply);
+    } catch (err) {
+      throw new Error('Dax returned an invalid review plan.');
+    }
+
+    stashPendingReview(plan, project);
+    const rendered = formatReviewPlan(plan);
+    daxAddMsg('dax', 'Dax', rendered);
+    daxHistory.push({ role: 'assistant', content: rendered });
+    await saveDaxMessage('assistant', rendered);
+
+    const gate = 'Should I proceed with these?';
+    daxAddMsg('dax', 'Dax', gate);
+    daxHistory.push({ role: 'assistant', content: gate });
+    await saveDaxMessage('assistant', gate);
+  } catch (err) {
+    daxRemoveTyping();
+    daxTyping = false;
+    daxAddMsg('dax', 'Dax', err instanceof Error ? err.message : 'Could not build the review plan.');
+  }
+}
 
 async function daxSend() {
   if (daxTyping) return;
-  const inp  = document.getElementById('dax-input');
+  const inp = document.getElementById('dax-input');
   const text = inp.value.trim();
   if (!text) return;
   inp.value = '';
@@ -128,42 +321,36 @@ async function daxSend() {
   daxHistory.push({ role: 'user', content: text });
   await saveDaxMessage('user', text);
 
+  const reviewTarget = extractReviewTarget(text);
+  if (reviewTarget) {
+    await handleReviewCommand(reviewTarget);
+    return;
+  }
+
+  if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
+    const pending = daxOrchestration.pendingReview;
+    pending.status = 'approved';
+    pending.approvedAt = new Date().toISOString();
+    daxOrchestration.pendingReview = pending;
+    saveDaxOrchestration();
+    const msg = `Approved. I have locked the review plan for ${pending.projectName}. The execution handoff comes in the next stage.`;
+    daxAddMsg('dax', 'Dax', msg);
+    daxHistory.push({ role: 'assistant', content: msg });
+    await saveDaxMessage('assistant', msg);
+    return;
+  }
+
   daxTyping = true;
   daxShowTyping();
 
-  // Build context from current projects
-  const contextLines = projects.map(p => {
-    const tkTodo = p.tickets.filter(t => t.status === 'todo').length;
-    const tkDone = p.tickets.filter(t => t.status === 'done').length;
-    return `- ${p.name} (${sf(p.stage).label}): ${p.goal || 'no goal set'} | ${tkTodo} open tickets, ${tkDone} done`;
-  }).join('\n');
-  const systemWithContext = DAX_SYSTEM + `\n\nCurrent projects:\n${contextLines}`;
-
   try {
-    const key = getDaxKey() || promptDaxKey();
-    if (!key) { daxRemoveTyping(); daxTyping = false; return; }
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemWithContext,
-        messages: daxHistory.slice(-20), // last 20 msgs for context window
-      }),
-    });
-
-    const data = await res.json();
+    const activeProject = daxProjectId ? projects.find(p => p.id === daxProjectId) : null;
+    const context = buildDaxContext(activeProject);
+    const system = buildNormalDaxSystem(activeProject);
+    const reply = await callDaxChat(daxHistory.slice(-30), context, system);
     daxRemoveTyping();
     daxTyping = false;
 
-    const reply = data.content?.[0]?.text;
     if (reply) {
       const actionMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
       const cleanText = reply.replace(/\[PIP:.*?\]/gs, '').trim();
@@ -172,6 +359,7 @@ async function daxSend() {
         daxHistory.push({ role: 'assistant', content: cleanText });
         await saveDaxMessage('assistant', cleanText);
       }
+
       for (const match of actionMatches) {
         try {
           const action = JSON.parse(match[1]);
@@ -179,23 +367,24 @@ async function daxSend() {
           if (proj) {
             const firstStage = proj.subStages[0]?.id || 'ss1';
             const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
-            projects = projects.map(p => p.id === proj.id ? {...p, subProjects:[...p.subProjects, newPip]} : p);
+            projects = projects.map(p => p.id === proj.id ? { ...p, subProjects: [...p.subProjects, newPip] } : p);
             const updated = projects.find(x => x.id === proj.id);
             if (updated) await saveProject(updated);
             render();
-            daxAddMsg('dax', 'Dax', `✓ Created pip "${action.pipName}" in ${proj.name}.`);
+            daxAddMsg('dax', 'Dax', `Created pip "${action.pipName}" in ${proj.name}.`);
           } else {
             daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}".`);
           }
-        } catch(e) { console.warn('Dax pip error:', e, match[1]); }
+        } catch (e) {
+          console.warn('Dax pip error:', e, match[1]);
+        }
       }
+
       if (!cleanText && actionMatches.length === 0) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
       }
-    } else if (data.error) {
-      daxAddMsg('dax', 'Dax', `Error: ${data.error.message}`);
     }
   } catch (err) {
     daxRemoveTyping();
@@ -204,8 +393,6 @@ async function daxSend() {
     console.error('Dax error:', err);
   }
 }
-
-// ── SET PROJECT CONTEXT ───────────────────────────────────────
 
 function openDax(pid) {
   daxProjectId = pid;
@@ -216,22 +403,6 @@ function openDax(pid) {
       const nameEl = document.getElementById('dax-project-name');
       if (nameEl) nameEl.textContent = p.name;
       badge.style.display = 'block';
-      // Send project context silently into history for next message
-      const tkTodo = p.tickets.filter(t => t.status === 'todo').length;
-      const tkDone = p.tickets.filter(t => t.status === 'done').length;
-      const tkIP   = p.tickets.filter(t => t.status === 'inprogress').length;
-      const convoSummary = Object.entries(p.convo || {})
-        .filter(([k,v]) => v && v.trim())
-        .map(([k,v]) => `${k}: ${v.replace(/\[x\] /g,'').replace(/\n/g,', ')}`)
-        .join(' | ') || 'none';
-      // Inject context as a system-style user message (not displayed)
-      const ctx = `[User just opened project: "${p.name}" | Stage: ${sf(p.stage).label} | Goal: ${p.goal || 'not set'} | Tickets: ${tkTodo} todo, ${tkIP} in progress, ${tkDone} done | Notes: ${convoSummary}]`;
-      // Only add if not already the last context message
-      const last = daxHistory[daxHistory.length - 1];
-      if (!last || !last.content.startsWith('[User just opened project:')) {
-        daxHistory.push({ role: 'user', content: ctx });
-        daxHistory.push({ role: 'assistant', content: `Got it — I'm focused on **${p.name}** now. What do you want to work through?` });
-      }
     }
   } else if (badge) {
     badge.style.display = 'none';
@@ -241,19 +412,20 @@ function openDax(pid) {
 }
 
 function closeDax() {
-  // Dax doesn't close — it's always open
-  // This is kept for compatibility with modal.js calling closeProjModal();openDax()
+  const badge = document.getElementById('dax-project-badge');
+  if (badge) badge.style.display = 'none';
+  daxProjectId = null;
 }
 
-// ── INPUT HANDLING ────────────────────────────────────────────
-
 function daxKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); daxSend(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    daxSend();
+  }
   const inp = e.target;
   inp.style.height = 'auto';
   inp.style.height = Math.min(inp.scrollHeight, 80) + 'px';
 }
 
-// Input compatibility
 const daxOverlay = document.getElementById('dax-overlay');
 if (daxOverlay) daxOverlay.addEventListener('click', function() {});

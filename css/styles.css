@@ -351,3 +351,66 @@ select.fi option{background:var(--bg3)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+@media (max-width: 768px) {
+  html,body{height:auto;min-height:100%;overflow:auto}
+  body{font-size:15px;line-height:1.55}
+  .topbar{padding:12px 14px;gap:10px;flex-wrap:wrap}
+  .logo{gap:8px}
+  .logo-name{font-size:14px}
+  .logo-sub{font-size:10px}
+  .topbar-right{width:100%;justify-content:space-between;flex-wrap:wrap}
+  .btn,.dax-send,.tk-mbtn,.add-tk button,.add-item button,.add-fin button,.add-pr button,.add-contact button,.scbtn,.sub-tk-btn,.proj-modal-tab,.move-opt,.add-sub-tk button,.rm,.dax-close,.tog,.cswatch{min-height:44px}
+  .btn{padding:11px 14px;font-size:13px}
+  .main{flex-direction:column;overflow:auto}
+  .pipe-wrap{padding:0 10px 14px;overflow:auto}
+  .pipeline{grid-template-columns:repeat(8,minmax(140px,1fr));gap:8px;min-width:100%;overflow-x:auto}
+  .stage-head{padding:6px 2px 8px}
+  .stage-pill{font-size:8px}
+  .pcard{padding:10px 10px}
+  .pcard-name{font-size:15px}
+  .pcard-goal{font-size:12px}
+  .dax-panel{width:100%;min-width:0;height:38vh;border-left:none;border-top:1px solid var(--border2);order:2}
+  .dax-header{padding:12px 14px}
+  .dax-messages{padding:12px}
+  .dax-footer{padding:10px 12px}
+  .dax-input{font-size:16px;min-height:44px;padding:10px 12px}
+  .proj-modal-overlay{padding:0;align-items:stretch;justify-content:stretch}
+  .proj-modal{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
+  .proj-modal-header{padding:12px 14px 0}
+  .proj-modal-body{padding:14px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .proj-modal-footer{padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .proj-modal-top{gap:8px;margin-bottom:10px}
+  .proj-modal-title{font-size:18px}
+  .proj-modal-desc{font-size:11px}
+  .proj-modal-tab{padding:12px 12px;font-size:12px}
+  .pm-field{flex-direction:column;align-items:stretch}
+  .pm-field-label{width:auto}
+  .tk-board-modal{grid-template-columns:1fr}
+  .fin-summary{grid-template-columns:1fr}
+  .add-fin{grid-template-columns:1fr}
+  .add-contact{grid-template-columns:1fr}
+  .add-pr{flex-direction:column}
+  .subboard-wrap{height:72vh}
+  .sub-pipeline{grid-template-columns:repeat(5,minmax(220px,1fr));overflow-x:auto;overflow-y:hidden;display:flex;padding:10px 12px}
+  .sub-stage-col{min-width:220px;max-height:none;overflow:visible}
+  .sub-stage-head{position:sticky;top:0;background:var(--bg);z-index:3}
+  .sub-stage-body{overflow:visible}
+  .sub-card{padding:10px}
+  .sub-card-name{font-size:12px}
+  .sub-card-desc,.sub-card-meta{font-size:10px}
+  .subboard-header{padding:12px 12px 10px;gap:8px}
+  .subboard-header-btns{width:100%;flex-wrap:wrap}
+  .subboard-header-btns .btn{flex:1 1 120px}
+  .cswatch{width:30px;height:30px}
+  .tog{width:44px;height:24px}
+  .tog::after{width:16px;height:16px;top:4px}
+  .tog-on::after{left:24px}.tog-off::after{left:4px}
+}
+
+@media (max-width: 430px) {
+  .pipeline{grid-template-columns:repeat(8,minmax(126px,1fr))}
+  .sub-stage-col{min-width:200px}
+  .proj-modal-tabs{overflow-x:auto;white-space:nowrap}
+  .move-dd,.sub-move-dd{max-width:calc(100vw - 32px)}
+}
