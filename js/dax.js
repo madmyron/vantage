@@ -148,25 +148,19 @@ Rules:
 }
 
 function formatReviewPlan(plan) {
-  const title = `${plan.projectName || 'Project'} Review Plan`;
-  const lines = [title];
-  lines.push("Here's what I recommend:");
-  lines.push('');
-
+  const title = `${plan?.projectName || 'Project'} Review Plan`;
   const pips = getReviewPips(plan);
-  pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
-  if (pips.length) {
-    pips.forEach((pip, idx) => {
-      const description = pip.displayDescription || pip.description || pip.reason || 'No description provided.';
-      lines.push(`${idx + 1}. ${pip.title || 'Untitled PIP'} â€” ${description}`);
-    });
-  } else if (plan.summary) {
-    lines.push(plan.summary);
-  } else {
-    lines.push('No proposed PIPs were returned.');
+  if (!pips.length) {
+    return "I couldn't generate a plan — please try again";
   }
 
+  const lines = [title, "Here's what I recommend:", ''];
+  pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  pips.forEach((pip, idx) => {
+    const description = pip.displayDescription || 'No description provided.';
+    lines.push(`${idx + 1}. ${pip.title || 'Untitled PIP'} — ${description}`);
+  });
   lines.push('');
   lines.push('Should I proceed with these?');
   return lines.join('\n');
@@ -799,3 +793,4 @@ function daxKeydown(e) {
 
 const daxOverlay = document.getElementById('dax-overlay');
 if (daxOverlay) daxOverlay.addEventListener('click', function() {});
+
