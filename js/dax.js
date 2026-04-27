@@ -158,7 +158,11 @@ function formatReviewPlan(plan) {
 
 function parseReviewPlan(reply) {
   const raw = String(reply || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
-  return JSON.parse(raw);
+  try {
+    return { kind: 'json', value: JSON.parse(raw) };
+  } catch (_) {
+    return { kind: 'text', value: raw };
+  }
 }
 
 function isApprovalReply(text) {
@@ -203,7 +207,9 @@ async function loadDaxHistory() {
     if (error) throw error;
     return data || [];
   } catch (e) {
-    console.warn('Could not load Dax history:', e.message);
+    if (!isMissingDaxHistoryError(e)) {
+      console.warn('Could not load Dax history:', e.message);
+    }
     return [];
   }
 }
@@ -212,8 +218,21 @@ async function saveDaxMessage(role, content) {
   try {
     await sb.from(DAX_HISTORY_TABLE).insert({ role, content });
   } catch (e) {
-    console.warn('Could not save Dax message:', e.message);
+    if (!isMissingDaxHistoryError(e)) {
+      console.warn('Could not save Dax message:', e.message);
+    }
   }
+}
+
+function isMissingDaxHistoryError(err) {
+  const code = err?.code || err?.status || err?.statusCode;
+  const message = String(err?.message || err?.details || err || '').toLowerCase();
+  return code === '42P01' || code === 404 || code === 400 || message.includes('dax_history') && (
+    message.includes('does not exist') ||
+    message.includes('not found') ||
+    message.includes('relation "public.dax_history" does not exist') ||
+    message.includes('relation does not exist')
+  );
 }
 
 async function callDaxChat(messages, context, system) {
@@ -343,13 +362,22 @@ async function handleReviewCommand(projectName) {
     daxRemoveTyping();
     daxTyping = false;
 
-    let plan = null;
-    try {
-      plan = parseReviewPlan(reply);
-    } catch (err) {
-      throw new Error('Dax returned an invalid review plan.');
+    console.log('Dax review raw response:', reply);
+
+    const parsed = parseReviewPlan(reply);
+    if (parsed.kind === 'text') {
+      const rendered = parsed.value || 'I could not generate a review plan.';
+      daxAddMsg('dax', 'Dax', rendered);
+      daxHistory.push({ role: 'assistant', content: rendered });
+      await saveDaxMessage('assistant', rendered);
+      const gateText = 'Should I proceed with these?';
+      daxAddMsg('dax', 'Dax', gateText);
+      daxHistory.push({ role: 'assistant', content: gateText });
+      await saveDaxMessage('assistant', gateText);
+      return;
     }
 
+    const plan = parsed.value;
     stashPendingReview(plan, project);
     const rendered = formatReviewPlan(plan);
     daxAddMsg('dax', 'Dax', rendered);

@@ -43,6 +43,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const reply = response.content[0].type === "text" ? response.content[0].text : "";
+    console.log("dax-chat raw reply:", reply);
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
