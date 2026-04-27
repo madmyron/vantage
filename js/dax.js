@@ -143,7 +143,7 @@ Rules:
 - Include only new PIPs, not existing ones.
 - Keep the file lists realistic and non-overlapping where possible.
 - If overlap exists, order sequentially and mention that in the recommendation.
-- End with a concise approval prompt in the recommendation field: "Should I proceed with these?"`;
+`;
 }
 
 function formatReviewPlan(plan) {
@@ -156,9 +156,9 @@ function formatReviewPlan(plan) {
   pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
   if (pips.length) {
-    pips.forEach(pip => {
+    pips.forEach((pip, idx) => {
       const description = pip.displayDescription || pip.description || pip.reason || 'No description provided.';
-      lines.push(`${pip.title || 'Untitled PIP'} - ${description}`);
+      lines.push(`${idx + 1}. ${pip.title || 'Untitled PIP'} — ${description}`);
     });
   } else if (plan.summary) {
     lines.push(plan.summary);
@@ -178,7 +178,7 @@ function parseReviewPlan(reply, project) {
     return {
       projectName: parsed.projectName || project?.name || 'Project',
       summary: parsed.summary || '',
-      recommendation: parsed.recommendation || 'Should I proceed with these?',
+      recommendation: parsed.recommendation || '',
       proposedPips: Array.isArray(parsed.proposedPips)
         ? parsed.proposedPips.map(pip => ({
             ...pip,
@@ -192,7 +192,7 @@ function parseReviewPlan(reply, project) {
     return {
       projectName: project?.name || 'Project',
       summary: text,
-      recommendation: 'Should I proceed with these?',
+      recommendation: '',
       proposedPips: [],
     };
   }
