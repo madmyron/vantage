@@ -268,21 +268,11 @@ function toggleSubBoard(pid) {
 function toggleSubNote(pid, spid) {
   projects = projects.map(p => {
     if (p.id !== pid) return p;
-    return {...p, subProjects:p.subProjects.map(sp => sp.id === spid ? {...sp, _openNote:!sp._openNote, _openTickets:false} : sp)};
+    return {...p, subProjects:p.subProjects.map(sp => sp.id === spid ? {...sp, _openNote:!sp._openNote} : sp)};
   });
   const p = projects.find(x => x.id === pid);
   const sp = p.subProjects.find(x => x.id === spid);
   renderSubNote(p, sp);
-}
-
-function toggleSubTickets(pid, spid) {
-  projects = projects.map(p => {
-    if (p.id !== pid) return p;
-    return {...p, subProjects:p.subProjects.map(sp => sp.id === spid ? {...sp, _openTickets:!sp._openTickets, _openNote:false} : sp)};
-  });
-  const p = projects.find(x => x.id === pid);
-  const sp = p.subProjects.find(x => x.id === spid);
-  renderSubTickets(p, sp);
 }
 
 function updateSubNote(pid, spid, val) {
@@ -318,47 +308,6 @@ function toggleSubMove(e, pid, spid) {
   const dd = document.getElementById('smv-' + pid + '-' + spid);
   document.querySelectorAll('.sub-move-dd.open').forEach(m => { if (m !== dd) m.classList.remove('open'); });
   dd.classList.toggle('open');
-}
-
-function addSubTk(pid, spid) {
-  const inp = document.getElementById('sti-' + pid + '-' + spid);
-  if (!inp || !inp.value.trim()) return;
-  const proj = projects.find(x => x.id === pid);
-  const pfx = proj ? projPrefix(proj.name) : 'TK';
-  projects = projects.map(p => {
-    if (p.id !== pid) return p;
-    return {...p, subProjects:p.subProjects.map(sp =>
-      sp.id !== spid ? sp : {...sp, tickets:[...sp.tickets, {id:pfx+'-'+(tkSeq++), title:inp.value.trim(), status:'todo'}]}
-    )};
-  });
-  inp.value = '';
-  const updated = projects.find(x => x.id === pid);
-  if (updated) saveProject(updated);
-  renderSubTickets(updated, updated.subProjects.find(x => x.id === spid));
-}
-
-function moveSubTk(pid, spid, idx, status) {
-  projects = projects.map(p => {
-    if (p.id !== pid) return p;
-    return {...p, subProjects:p.subProjects.map(sp => {
-      if (sp.id !== spid) return sp;
-      const tks = [...sp.tickets]; tks[idx] = {...tks[idx], status};
-      return {...sp, tickets:tks};
-    })};
-  });
-  const p = projects.find(x => x.id === pid);
-  renderSubTickets(p, p.subProjects.find(x => x.id === spid));
-}
-
-function rmSubTk(pid, spid, idx) {
-  projects = projects.map(p => {
-    if (p.id !== pid) return p;
-    return {...p, subProjects:p.subProjects.map(sp =>
-      sp.id !== spid ? sp : {...sp, tickets:sp.tickets.filter((_,i) => i !== idx)}
-    )};
-  });
-  const p = projects.find(x => x.id === pid);
-  renderSubTickets(p, p.subProjects.find(x => x.id === spid));
 }
 
 // ── NEW PROJECT MODAL ─────────────────────────────────────────

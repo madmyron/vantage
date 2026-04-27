@@ -1,7 +1,7 @@
 // ── PROJECT MODAL ─────────────────────────────────────────────
 
 let modalProjectId = null;
-let modalTab = 'tickets';
+let modalTab = 'pips';
 
 function openProjModal(pid) {
   modalProjectId = pid;
@@ -24,7 +24,7 @@ function renderProjModal() {
   if (!p) return;
   const c = pc(p.color);
   const st = sf(p.stage);
-  const TABS = ['tickets','pips','convo','contacts','finances','info'];
+  const TABS = ['pips','convo','contacts','finances','info'];
   const tabHTML = TABS.map(t =>
     `<button class="proj-modal-tab${modalTab===t?' on':''}" onclick="switchModalTab('${t}')">${t === 'pips' ? 'PIPs' : t.charAt(0).toUpperCase()+t.slice(1)}</button>`
   ).join('');
@@ -86,12 +86,12 @@ function renderModalBody(p) {
         const moveOpts = otherSS.map(s =>
           `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProjModal(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
         ).join('');
-        const taskTodo = sp.tickets.filter(t=>t.status==='todo').length;
-        const taskDone = sp.tickets.filter(t=>t.status==='done').length;
         return `<div class="sub-card" draggable="true" data-spid="${sp.id}" data-pid="${p.id}" style="background:${sc.bg};border-color:${sc.bd};margin-bottom:8px;border-radius:10px;padding:10px 12px;border:1.5px solid ${sc.bd};cursor:pointer" onclick="togglePipExpand(event,${p.id},'${sp.id}')">
           <div style="font-size:12px;font-weight:700;color:${sc.tx};margin-bottom:3px">${esc(sp.name)}</div>
-          ${sp.desc ? `<div style="font-size:11px;color:${sc.tx};opacity:.65;margin-bottom:6px">${esc(sp.desc)}</div>` : ''}
-          ${sp.tickets.length > 0 ? `<div style="font-size:10px;color:${sc.tx};opacity:.55;margin-bottom:6px;font-family:var(--mono)">${taskTodo} to do · ${taskDone} done</div>` : ''}
+          ${sp.desc ? `<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc)}</div>` : ''}
+          <div style="font-size:10px;color:${sc.tx};opacity:.75;margin-bottom:7px;line-height:1.4;font-family:var(--mono)">
+            Assignee: ${esc(sp.assignee || 'Dax')} · Assigner: ${esc(sp.assigner || 'Dax')}
+          </div>
           <div style="display:flex;gap:4px;flex-wrap:wrap" onclick="event.stopPropagation()">
             <div style="position:relative;display:inline-block">
               <button class="scbtn" style="color:${sc.tx}" onclick="event.stopPropagation();toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button>
@@ -99,29 +99,33 @@ function renderModalBody(p) {
             </div>
             <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="event.stopPropagation();removeSubProjModal(${p.id},'${sp.id}')">Delete</button>
           </div>
-          <div id="pip-expand-${p.id}-${sp.id}" style="display:none;margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:10px">
-            <div style="margin-bottom:6px">
-              <div style="font-size:10px;font-weight:600;color:${sc.tx};opacity:.7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Notes</div>
-              <textarea style="width:100%;font-size:11px;padding:6px 8px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);resize:vertical;min-height:50px;outline:none" placeholder="Notes, ideas, links..." onchange="updateSubNote(${p.id},'${sp.id}',this.value)">${esc(sp.notes||'')}</textarea>
-            </div>
-            <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                <div style="font-size:10px;font-weight:600;color:${sc.tx};opacity:.7;text-transform:uppercase;letter-spacing:.06em">Tasks</div>
-                <div style="display:flex;gap:4px">
-                  <input id="pip-tk-${p.id}-${sp.id}" style="font-size:10px;padding:2px 6px;border:1px solid rgba(0,0,0,.15);border-radius:4px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);width:140px;outline:none" placeholder="Add task..." onkeydown="if(event.key==='Enter')addPipTask(${p.id},'${sp.id}')"/>
-                  <button class="scbtn" style="color:${sc.tx}" onclick="addPipTask(${p.id},'${sp.id}')">+</button>
-                </div>
+          <div id="pip-expand-${p.id}-${sp.id}" style="display:none;margin-top:10px;border-top:1px solid rgba(0,0,0,.1);padding-top:10px" onclick="event.stopPropagation()">
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
+              <div>
+                <div style="font-size:9px;font-weight:600;color:${sc.tx};opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Assignee</div>
+                <select style="width:100%;font-size:11px;padding:4px 7px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);outline:none" onchange="updatePipField(${p.id},'${sp.id}','assignee',this.value)">
+                  ${PIP_USERS.map(u => `<option value="${u}"${(sp.assignee||'Dax')===u?' selected':''}>${u}</option>`).join('')}
+                </select>
               </div>
-              ${sp.tickets.map((t,ti) => `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)">
-                <input type="checkbox" ${t.status==='done'?'checked':''} onchange="togglePipTask(${p.id},'${sp.id}',${ti},this.checked)" style="cursor:pointer"/>
-                <span style="font-size:11px;color:${sc.tx};flex:1;${t.status==='done'?'text-decoration:line-through;opacity:.5':''}">${esc(t.title)}</span>
-                <button style="font-size:11px;color:${sc.tx};opacity:.4;background:none;border:none;cursor:pointer" onclick="rmPipTask(${p.id},'${sp.id}',${ti})">×</button>
-              </div>`).join('')}
+              <div>
+                <div style="font-size:9px;font-weight:600;color:${sc.tx};opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Assigner</div>
+                <select style="width:100%;font-size:11px;padding:4px 7px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);outline:none" onchange="updatePipField(${p.id},'${sp.id}','assigner',this.value)">
+                  ${PIP_USERS.map(u => `<option value="${u}"${(sp.assigner||'Dax')===u?' selected':''}>${u}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <div style="font-size:9px;font-weight:600;color:${sc.tx};opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Due date</div>
+                <input type="date" style="width:100%;font-size:11px;padding:4px 7px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);outline:none" value="${esc(sp.dueDate||'')}" onchange="updatePipField(${p.id},'${sp.id}','dueDate',this.value)"/>
+              </div>
+            </div>
+            <div style="margin-bottom:8px">
+              <div style="font-size:9px;font-weight:600;color:${sc.tx};opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Notes</div>
+              <textarea style="width:100%;font-size:11px;padding:6px 8px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);resize:vertical;min-height:50px;outline:none" placeholder="Notes, links, ideas..." onchange="updatePipField(${p.id},'${sp.id}','notes',this.value)">${esc(sp.notes||'')}</textarea>
             </div>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
-      return `<div class="modal-pip-col" data-pid="${p.id}" data-stage="${st.id}" style="min-width:200px;flex-shrink:0">
+      return `<div class="modal-pip-col" data-pid="${p.id}" data-stage="${st.id}" style="min-width:0;flex:1;flex-shrink:0">
         <div style="text-align:center;padding:4px 6px 10px">
           <span style="font-size:10px;font-weight:600;padding:3px 12px;border-radius:20px;display:inline-block;text-transform:uppercase;letter-spacing:.06em;border:1px solid ${sc.bd};background:${sc.bg};color:${sc.tx}">${esc(st.label)}</span>
           <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
@@ -138,38 +142,8 @@ function renderModalBody(p) {
           <button class="btn btn-accent" style="font-size:11px" onclick="openAddSubProjModal(${p.id})">+ Sub-project</button>
         </div>
       </div>
-      <div style="display:flex;overflow-x:auto;gap:0;padding-bottom:8px">${stagesHTML}</div>`;
+      <div style="display:grid;grid-template-columns:repeat(${p.subStages.length}, minmax(0, 1fr));gap:8px">${stagesHTML}</div>`;
     wirePipDrag(p.id);
-
-  } else if (modalTab === 'tickets') {
-    const cols = ['todo','inprogress','done'];
-    const cL = {todo:'To do', inprogress:'In progress', done:'Done'};
-    const stats = cols.map(s => p.tickets.filter(t => t.status === s).length);
-    const board = cols.map(status => {
-      const tks = p.tickets.filter(t => t.status === status);
-      const tkHTML = tks.map(t => {
-        const ri = p.tickets.indexOf(t);
-        const canL = status !== 'todo', canR = status !== 'done';
-        const lS = status === 'inprogress' ? 'todo' : 'inprogress';
-        const rS = status === 'todo' ? 'inprogress' : 'done';
-        return `<div class="ticket">
-          <div class="tk-id">${esc(t.id)}</div>
-          <div class="tk-title">${esc(t.title)}</div>
-          <div class="tk-meta"><span class="tk-pri pri-${t.priority}">${t.priority}</span></div>
-          <div class="tk-move-btns">
-            ${canL ? `<button class="tk-mbtn" onclick="moveTkModal(${p.id},${ri},'${lS}')">← ${cL[lS]}</button>` : ''}
-            ${canR ? `<button class="tk-mbtn" onclick="moveTkModal(${p.id},${ri},'${rS}')">→ ${cL[rS]}</button>` : ''}
-            <button class="tk-mbtn" style="color:var(--red)" onclick="rmTkModal(${p.id},${ri})">×</button>
-          </div>
-        </div>`;
-      }).join('') || `<div style="font-size:11px;color:var(--text3);padding:6px 0">Empty</div>`;
-      return `<div class="tk-col">
-        <div class="tk-col-head">${cL[status]}<span style="font-weight:400;color:var(--text3);font-family:var(--mono);text-transform:none;letter-spacing:0">${tks.length}</span></div>
-        ${tkHTML}
-        ${status === 'todo' ? `<div class="add-tk"><div class="add-tk-row"><input id="mtki-${p.id}" placeholder="New ticket..." onkeydown="if(event.key==='Enter')addTkModal(${p.id})"/><select id="mtkp-${p.id}"><option value="high">High</option><option value="med" selected>Med</option><option value="low">Low</option></select></div><button onclick="addTkModal(${p.id})">+ Add</button></div>` : ''}
-      </div>`;
-    }).join('');
-    body.innerHTML = `<div class="tk-stats">${cols.map((s,i)=>`<div class="tk-stat"><div class="tk-stat-n">${stats[i]}</div><div class="tk-stat-l">${cL[s]}</div></div>`).join('')}</div><div class="tk-board-modal">${board}</div>`;
 
   } else if (modalTab === 'convo') {
     const goalBox = `<div class="pm-goal-box">
@@ -461,6 +435,17 @@ function removeSubProjModal(pid, spid) {
   if (updated) saveProject(updated);
   render();
   renderProjModal();
+}
+
+function updatePipField(pid, spid, field, val) {
+  projects = projects.map(p => {
+    if (p.id !== pid) return p;
+    return {...p, subProjects:p.subProjects.map(sp =>
+      sp.id !== spid ? sp : {...sp, [field]:val}
+    )};
+  });
+  const updated = projects.find(x => x.id === pid);
+  if (updated) saveProject(updated);
 }
 
 function togglePipExpand(e, pid, spid) {

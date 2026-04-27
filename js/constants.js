@@ -42,6 +42,7 @@ const AC = [
 const CTOPICS       = ['Goal','Ideas','Financing','Marketing','Team','Timeline','Risks','Action items'];
 const CONTACT_TYPES = ['team','investor','partner','client','vendor','press'];
 const FIN_TYPES     = ['revenue','expense','investment','grant'];
+const PIP_USERS     = ['Dax'];
 
 let amap = {}, aidx = 0;
 
@@ -80,5 +81,15 @@ function projPrefix(name) {
 }
 
 function mkSubP(name, desc, stageId) {
-  return {id:'SP-'+(spSeq++), name, desc:desc||'', stage:stageId, notes:'', tickets:[], _openNote:false, _openTickets:false};
+  return {
+    id:'SP-'+(spSeq++),
+    name,
+    desc:desc||'',
+    stage:stageId,
+    notes:'',
+    assignee:'Dax',
+    assigner:'Dax',
+    tickets:[],
+    _openNote:false,
+  };
 }

@@ -102,10 +102,13 @@ function renderSubBoard(p) {
       ).join('');
       return `<div class="sub-card" style="background:${sc.bg};border-color:${sc.bd}">
         <div class="sub-card-name" style="color:${sc.tx}">${esc(sp.name)}</div>
-        ${sp.desc ? `<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc.length>50 ? sp.desc.slice(0,50)+'…' : sp.desc)}</div>` : ''}
+        ${sp.desc ? `<div class="sub-card-desc" style="color:${sc.tx}">${esc(sp.desc.length>46 ? sp.desc.slice(0,46)+'…' : sp.desc)}</div>` : ''}
+        <div class="sub-card-meta" style="color:${sc.tx}">
+          <span>Assignee: ${esc(sp.assignee || 'Dax')}</span>
+          <span>Assigner: ${esc(sp.assigner || 'Dax')}</span>
+        </div>
         <div class="sub-card-btns">
           <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubNote(${p.id},'${sp.id}')">Notes</button>
-          <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubTickets(${p.id},'${sp.id}')">Tasks</button>
           <div class="sub-move-wrap">
             <button class="scbtn" style="color:${sc.tx}" onclick="toggleSubMove(event,${p.id},'${sp.id}')">Move ▾</button>
             <div class="sub-move-dd" id="smv-${p.id}-${sp.id}">${moveOpts}</div>
@@ -121,7 +124,7 @@ function renderSubBoard(p) {
         <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
       </div>
       <div class="sub-stage-body" id="ssb-${p.id}-${st.id}" data-pid="${p.id}" data-stage="${st.id}">${cards}</div>
-    </div>${si < p.subStages.length - 1 ? '<div class="sub-sdiv"></div>' : ''}`;
+    </div>`;
   }).join('');
 
   el.innerHTML = `<div class="subboard-wrap" style="border-top:3px solid ${c.bar}">
@@ -139,14 +142,13 @@ function renderSubBoard(p) {
         <button class="btn" style="font-size:11px;padding:5px 12px" onclick="toggleSubBoard(${p.id})">✕ Close</button>
       </div>
     </div>
-    <div class="sub-pipeline">${stagesHTML}</div>
+    <div class="sub-pipeline" style="grid-template-columns:repeat(${p.subStages.length}, minmax(0, 1fr))">${stagesHTML}</div>
   </div>`;
   el.classList.add('open');
 
   wireSubDrag(p.id);
   p.subProjects.forEach(sp => {
     if (sp._openNote)    renderSubNote(p, sp);
-    if (sp._openTickets) renderSubTickets(p, sp);
   });
 }
 
@@ -226,7 +228,7 @@ function renderSubTickets(p, sp) {
 function renderDetail(p) {
   const el = document.getElementById('det-' + p.id);
   if (!el) return;
-  const TABS = ['tickets','contacts','finances','convo','info'];
+  const TABS = ['contacts','finances','convo','info'];
   const tabBar = TABS.map(t =>
     `<button class="ptab${p.openTab===t?' on':''}" onclick="setTab(${p.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
   ).join('');
