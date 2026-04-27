@@ -2,24 +2,24 @@
 
 let modalProjectId = null;
 let modalTab = 'pips';
-let modalPipScrollState = null;
+let modalScrollTop = 0;
 
-function captureModalPipScrollState() {
-  const cols = document.querySelectorAll('.modal-pip-col');
-  if (!cols.length) return null;
-  return Array.from(cols).map(col => ({
-    pid: col.dataset.pid || '',
-    stage: col.dataset.stage || '',
-    scrollTop: col.scrollTop || 0,
-  }));
+function getModalScrollContainer() {
+  return document.querySelector('.proj-modal-body') || document.getElementById('proj-modal-body');
 }
 
-function restoreModalPipScrollState(state) {
-  if (!Array.isArray(state) || !state.length) return;
+function captureModalScrollTop() {
+  const container = getModalScrollContainer();
+  return container ? container.scrollTop || 0 : 0;
+}
+
+function restoreModalScrollTop(scrollTop) {
+  const container = getModalScrollContainer();
+  if (!container) return;
   requestAnimationFrame(() => {
-    state.forEach(entry => {
-      const col = document.querySelector(`.modal-pip-col[data-pid="${entry.pid}"][data-stage="${entry.stage}"]`);
-      if (col) col.scrollTop = entry.scrollTop || 0;
+    requestAnimationFrame(() => {
+      const target = getModalScrollContainer();
+      if (target) target.scrollTop = scrollTop || 0;
     });
   });
 }
@@ -447,7 +447,7 @@ function moveSubProjModal(pid, spid, newStage) {
 }
 
 function removeSubProjModal(pid, spid) {
-  modalPipScrollState = captureModalPipScrollState();
+  modalScrollTop = captureModalScrollTop();
   projects = projects.map(p => {
     if (p.id !== pid) return p;
     return {...p, subProjects:p.subProjects.filter(sp => sp.id !== spid)};
@@ -456,8 +456,7 @@ function removeSubProjModal(pid, spid) {
   if (updated) saveProject(updated);
   render();
   renderProjModal();
-  restoreModalPipScrollState(modalPipScrollState);
-  modalPipScrollState = null;
+  restoreModalScrollTop(modalScrollTop);
 }
 
 function updatePipField(pid, spid, field, val) {
