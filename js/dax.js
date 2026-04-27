@@ -180,6 +180,48 @@ function getReviewPips(plan) {
   return [];
 }
 
+function normalizeReviewPayload(parsed) {
+  if (!parsed || typeof parsed !== 'object') return parsed;
+  const queue = [parsed];
+  const seen = new Set();
+  const preferredKeys = ['proposedPips', 'pips', 'proposed_pips'];
+  const wrapperKeys = ['data', 'result', 'response', 'reviewPlan', 'plan', 'payload', 'review_plan'];
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object' || seen.has(current)) continue;
+    seen.add(current);
+
+    if (preferredKeys.some(key => Array.isArray(current[key]))) {
+      return current;
+    }
+
+    for (const key of wrapperKeys) {
+      if (current[key] && typeof current[key] === 'object') {
+        queue.push(current[key]);
+      }
+    }
+
+    for (const value of Object.values(current)) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        queue.push(value);
+      }
+    }
+  }
+
+  return parsed;
+}
+
+function extractProposedPipsArray(raw) {
+  const match = String(raw || '').match(/"proposedPips"\s*:\s*(\[[\s\S]*?\])(?=\s*,\s*"(?:projectName|summary|recommendation|pips|proposed_pips)"|\s*}\s*$|\s*$)/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch (_) {
+    return null;
+  }
+}
+
 function buildClaudeQueueJobs(plan) {
   const pips = getReviewPips(plan);
   return pips.map((pip, index) => {
@@ -273,20 +315,33 @@ function parseReviewPlan(reply, project) {
     raw = raw.slice(firstBrace, lastBrace + 1);
   }
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = normalizeReviewPayload(JSON.parse(raw));
+    const pips = getReviewPips(parsed).map(pip => ({
+      ...pip,
+      displayDescription: pip.displayDescription || pip.description || pip.reason || '',
+      technicalDescription: pip.technicalDescription || pip.description || pip.reason || '',
+    }));
     return {
-      projectName: parsed.projectName || project?.name || 'Project',
-      summary: parsed.summary || '',
-      recommendation: parsed.recommendation || '',
-      proposedPips: Array.isArray(parsed.proposedPips)
-        ? parsed.proposedPips.map(pip => ({
-            ...pip,
-            displayDescription: pip.displayDescription || pip.description || pip.reason || '',
-            technicalDescription: pip.technicalDescription || pip.description || pip.reason || '',
-          }))
-        : [],
+      projectName: parsed?.projectName || project?.name || 'Project',
+      summary: parsed?.summary || '',
+      recommendation: parsed?.recommendation || '',
+      proposedPips: pips,
     };
   } catch (_) {
+    const extractedPips = extractProposedPipsArray(raw);
+    if (Array.isArray(extractedPips)) {
+      return {
+        projectName: project?.name || 'Project',
+        summary: '',
+        recommendation: '',
+        proposedPips: extractedPips.map(pip => ({
+          ...pip,
+          displayDescription: pip.displayDescription || pip.description || pip.reason || '',
+          technicalDescription: pip.technicalDescription || pip.description || pip.reason || '',
+        })),
+      };
+    }
+
     const text = raw || 'I could not generate a review plan.';
     return {
       projectName: project?.name || 'Project',
