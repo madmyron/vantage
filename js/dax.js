@@ -6,6 +6,7 @@ let daxHistory = [];
 const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
 const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
+const CLAUDE_QUEUE_URL = '/.netlify/functions/claude-code-trigger';
 const DAX_CHAT_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
@@ -177,6 +178,91 @@ function getReviewPips(plan) {
     if (Array.isArray(candidate)) return candidate.slice();
   }
   return [];
+}
+
+function buildClaudeQueueJobs(plan) {
+  const pips = getReviewPips(plan);
+  return pips.map((pip, index) => {
+    const pipId = String(pip?.pipId || pip?.id || `PIP-${Date.now()}-${index + 1}`);
+    const title = String(pip?.title || `PIP ${index + 1}`).trim();
+    const displayDescription = String(pip?.displayDescription || pip?.description || pip?.reason || '').trim();
+    const technicalDescription = String(pip?.technicalDescription || pip?.description || pip?.reason || displayDescription || '').trim();
+    const files = Array.isArray(pip?.files) ? pip.files.map(f => String(f).trim()).filter(Boolean) : [];
+    return {
+      pipId,
+      title,
+      displayDescription,
+      technicalDescription,
+      files,
+      status: 'queued',
+      order: Number(pip?.order || index + 1),
+    };
+  });
+}
+
+function addQueuedPipsToProject(project, jobs) {
+  if (!project || !Array.isArray(jobs) || !jobs.length) return project;
+  const existing = Array.isArray(project.subProjects) ? project.subProjects : [];
+  const byId = new Map(existing.map(sp => [String(sp.id || sp.pipId || sp.name || ''), sp]));
+  jobs.forEach(job => {
+    const subProject = {
+      id: job.pipId,
+      pipId: job.pipId,
+      name: job.title,
+      title: job.title,
+      desc: job.displayDescription,
+      displayDescription: job.displayDescription,
+      technicalDescription: job.technicalDescription,
+      files: job.files,
+      status: 'queued',
+      stage: 'idea',
+      assignee: 'Dax',
+      assigner: 'Dax',
+      notes: '',
+      _openNote: false,
+    };
+    byId.set(String(subProject.id), subProject);
+  });
+  return { ...project, subProjects: Array.from(byId.values()) };
+}
+
+function applyQueueJobStatuses(project, jobs) {
+  if (!project || !Array.isArray(jobs) || !jobs.length) return project;
+  const statusById = new Map(jobs.map(job => [String(job.pipId), job.status]));
+  const updatedSubProjects = (project.subProjects || []).map(sp => {
+    const key = String(sp.id || sp.pipId || '');
+    if (!statusById.has(key)) return sp;
+    const status = statusById.get(key);
+    return { ...sp, status: status === 'running' ? 'in progress' : status };
+  });
+  return { ...project, subProjects: updatedSubProjects };
+}
+
+async function startClaudeCodeQueue(plan, project) {
+  const jobs = Array.isArray(plan?.jobs) && plan.jobs.length ? plan.jobs.map(job => ({ ...job })) : buildClaudeQueueJobs(plan);
+  if (!jobs.length) {
+    throw new Error('No proposed PIPs were returned to queue.');
+  }
+
+  const response = await fetch(CLAUDE_QUEUE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: project?.id || null,
+      projectName: project?.name || plan?.projectName || '',
+      jobs,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || `Claude queue request failed (${response.status})`);
+  }
+
+  return {
+    ...data,
+    jobs: Array.isArray(data.jobs) ? data.jobs : jobs,
+  };
 }
 
 function parseReviewPlan(reply, project) {
@@ -461,14 +547,111 @@ async function daxSend() {
 
   if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
     const pending = daxOrchestration.pendingReview;
-    pending.status = 'approved';
-    pending.approvedAt = new Date().toISOString();
-    daxOrchestration.pendingReview = pending;
+    const project = projects.find(p => p.id === pending.projectId) || findProjectByName(pending.projectName);
+    const jobs = buildClaudeQueueJobs(pending);
+
+    if (!project) {
+      const msg = `I couldn't find the project for the pending review plan.`;
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+      return;
+    }
+
+    if (!jobs.length) {
+      const msg = `There aren't any queued PIPs to run for ${project.name}.`;
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+      return;
+    }
+
+    const queuedPlan = {
+      ...pending,
+      status: 'queued',
+      approvedAt: new Date().toISOString(),
+      jobs,
+    };
+    daxOrchestration.pendingReview = queuedPlan;
     saveDaxOrchestration();
-    const msg = `Approved. I have locked the review plan for ${pending.projectName}. The execution handoff comes in the next stage.`;
-    daxAddMsg('dax', 'Dax', msg);
-    daxHistory.push({ role: 'assistant', content: msg });
-    await saveDaxMessage('assistant', msg);
+
+    const projectWithQueuedPips = addQueuedPipsToProject(project, jobs);
+    const projectWithRunningPip = jobs.length
+      ? applyQueueJobStatuses(projectWithQueuedPips, [{ pipId: jobs[0].pipId, status: 'in progress' }])
+      : projectWithQueuedPips;
+    projects = projects.map(p => p.id === projectWithRunningPip.id ? projectWithRunningPip : p);
+    await saveProject(projectWithRunningPip);
+    render();
+
+    const startMsg = `Queued ${jobs.length} PIP${jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`;
+    daxAddMsg('dax', 'Dax', startMsg);
+    daxHistory.push({ role: 'assistant', content: startMsg });
+    await saveDaxMessage('assistant', startMsg);
+
+    daxTyping = true;
+    daxShowTyping();
+
+    try {
+      const result = await startClaudeCodeQueue(queuedPlan, projectWithRunningPip);
+      daxRemoveTyping();
+      daxTyping = false;
+
+      const finalJobs = Array.isArray(result.jobs) ? result.jobs : jobs;
+      const finalProject = applyQueueJobStatuses(projectWithRunningPip, finalJobs);
+      projects = projects.map(p => p.id === finalProject.id ? finalProject : p);
+      await saveProject(finalProject);
+      render();
+
+      const events = Array.isArray(result.events) ? result.events : [];
+      const displayEvents = events.filter((event, idx) => !(idx === 0 && event === startMsg));
+      if (displayEvents.length) {
+        for (const event of displayEvents) {
+          daxAddMsg('dax', 'Dax', event);
+          daxHistory.push({ role: 'assistant', content: event });
+          await saveDaxMessage('assistant', event);
+        }
+      }
+
+      if (result.status === 'paused' && result.message) {
+        daxOrchestration.pendingReview = {
+          ...queuedPlan,
+          status: 'paused',
+          message: result.message,
+          jobs: finalJobs,
+        };
+        saveDaxOrchestration();
+        daxAddMsg('dax', 'Dax', result.message);
+        daxHistory.push({ role: 'assistant', content: result.message });
+        await saveDaxMessage('assistant', result.message);
+      } else if (result.status === 'failed' && result.message) {
+        daxOrchestration.pendingReview = {
+          ...queuedPlan,
+          status: 'failed',
+          message: result.message,
+          jobs: finalJobs,
+        };
+        saveDaxOrchestration();
+        daxAddMsg('dax', 'Dax', result.message);
+        daxHistory.push({ role: 'assistant', content: result.message });
+        await saveDaxMessage('assistant', result.message);
+      } else {
+        const doneMsg = `Claude Code queue finished for ${project.name}.`;
+        daxAddMsg('dax', 'Dax', doneMsg);
+        daxHistory.push({ role: 'assistant', content: doneMsg });
+        await saveDaxMessage('assistant', doneMsg);
+        clearPendingReview();
+      }
+    } catch (err) {
+      daxRemoveTyping();
+      daxTyping = false;
+      projects = projects.map(p => p.id === projectWithQueuedPips.id ? projectWithQueuedPips : p);
+      await saveProject(projectWithQueuedPips);
+      render();
+      const msg = err instanceof Error ? err.message : 'Claude Code queue failed.';
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+    }
     return;
   }
 
