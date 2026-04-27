@@ -317,15 +317,18 @@ async function daxSend() {
   inp.value = '';
   inp.style.height = 'auto';
 
-  daxAddMsg('user', 'You', text);
-  daxHistory.push({ role: 'user', content: text });
-  await saveDaxMessage('user', text);
-
   const reviewTarget = extractReviewTarget(text);
   if (reviewTarget) {
+    daxAddMsg('user', 'You', text);
+    daxHistory.push({ role: 'user', content: text });
+    await saveDaxMessage('user', text);
     await handleReviewCommand(reviewTarget);
     return;
   }
+
+  daxAddMsg('user', 'You', text);
+  daxHistory.push({ role: 'user', content: text });
+  await saveDaxMessage('user', text);
 
   if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
     const pending = daxOrchestration.pendingReview;
