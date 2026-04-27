@@ -24,6 +24,7 @@ Deno.serve(async (req: Request) => {
       };
       system?: string;
     };
+    const isReviewMode = Boolean(context?.pendingReview);
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
@@ -35,16 +36,19 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const systemPrompt = system?.trim() ? system : buildSystem(context);
+    const systemPrompt = isReviewMode ? buildReviewSystem(context) : (system?.trim() ? system : buildSystem(context));
+    const tools = isReviewMode ? [proposeReviewPlanTool()] : undefined;
+    const toolChoice = isReviewMode ? { type: "tool" as const, name: "propose_review_plan" } : undefined;
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
       system: systemPrompt,
       messages,
+      ...(tools ? { tools, tool_choice: toolChoice } : {}),
     });
 
-    const reply = response.content[0].type === "text" ? response.content[0].text : "";
+    const reply = isReviewMode ? extractReviewPlanFromToolUse(response.content) : (response.content[0].type === "text" ? response.content[0].text : "");
     console.log("dax-chat raw reply:", reply);
 
     return new Response(JSON.stringify({ reply }), {
@@ -124,4 +128,96 @@ function buildSystem(ctx?: {
   }
 
   return lines.join("\n");
+}
+
+function buildReviewSystem(ctx?: {
+  projects?: unknown[];
+  pips?: unknown[];
+  finances?: unknown[];
+  team?: unknown[];
+  activeProject?: unknown;
+  pendingReview?: unknown;
+}): string {
+  const lines: string[] = [
+    "You are Dax acting as a project manager inside Vantage.",
+    "Your job is to propose a review plan for the active project and return it only through the propose_review_plan tool.",
+    "Do not output normal text. Use the tool once and only once.",
+    "The tool output must be concise, founder-friendly, and ready for Claude Code handoff.",
+  ];
+
+  if (ctx?.activeProject) {
+    lines.push("\n## Active Project Context");
+    lines.push(JSON.stringify(ctx.activeProject, null, 2));
+  }
+  if (ctx?.pendingReview) {
+    lines.push("\n## Pending Review");
+    lines.push(JSON.stringify(ctx.pendingReview, null, 2));
+  }
+
+  lines.push("");
+  lines.push("Return ONLY this exact JSON structure with no other text:");
+  lines.push('{');
+  lines.push('  "projectName": "string",');
+  lines.push('  "recommendation": "string",');
+  lines.push('  "proposedPips": [');
+  lines.push('    {');
+  lines.push('      "pipId": "string",');
+  lines.push('      "title": "string",');
+  lines.push('      "displayDescription": "string",');
+  lines.push('      "technicalDescription": "string",');
+  lines.push('      "files": ["string"],');
+  lines.push('      "order": number');
+  lines.push('    }');
+  lines.push('  ]');
+  lines.push('}');
+  lines.push('Do not include a summary field. Do not wrap in markdown. Do not add any text outside the JSON.');
+
+  return lines.join("\n");
+}
+
+function proposeReviewPlanTool() {
+  return {
+    name: "propose_review_plan",
+    description: "Return a structured review plan for the current project.",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectName: { type: "string" },
+        recommendation: { type: "string" },
+        proposedPips: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              pipId: { type: "string" },
+              title: { type: "string" },
+              displayDescription: { type: "string" },
+              technicalDescription: { type: "string" },
+              files: {
+                type: "array",
+                items: { type: "string" },
+              },
+              order: { type: "number" },
+            },
+            required: ["pipId", "title", "displayDescription", "technicalDescription", "files", "order"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["projectName", "recommendation", "proposedPips"],
+      additionalProperties: false,
+    },
+  };
+}
+
+function extractReviewPlanFromToolUse(content: Array<{ type: string; [key: string]: unknown }>): string {
+  const toolUse = content.find(block => block.type === "tool_use" && block.name === "propose_review_plan") as
+    | { type: "tool_use"; name: string; input?: Record<string, unknown> }
+    | undefined;
+
+  if (!toolUse) {
+    throw new Error("Review mode did not return a propose_review_plan tool call");
+  }
+
+  return JSON.stringify(toolUse.input || {});
 }
