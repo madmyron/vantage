@@ -2,6 +2,27 @@
 
 let modalProjectId = null;
 let modalTab = 'pips';
+let modalPipScrollState = null;
+
+function captureModalPipScrollState() {
+  const cols = document.querySelectorAll('.modal-pip-col');
+  if (!cols.length) return null;
+  return Array.from(cols).map(col => ({
+    pid: col.dataset.pid || '',
+    stage: col.dataset.stage || '',
+    scrollTop: col.scrollTop || 0,
+  }));
+}
+
+function restoreModalPipScrollState(state) {
+  if (!Array.isArray(state) || !state.length) return;
+  requestAnimationFrame(() => {
+    state.forEach(entry => {
+      const col = document.querySelector(`.modal-pip-col[data-pid="${entry.pid}"][data-stage="${entry.stage}"]`);
+      if (col) col.scrollTop = entry.scrollTop || 0;
+    });
+  });
+}
 
 function openProjModal(pid) {
   modalProjectId = pid;
@@ -426,6 +447,7 @@ function moveSubProjModal(pid, spid, newStage) {
 }
 
 function removeSubProjModal(pid, spid) {
+  modalPipScrollState = captureModalPipScrollState();
   projects = projects.map(p => {
     if (p.id !== pid) return p;
     return {...p, subProjects:p.subProjects.filter(sp => sp.id !== spid)};
@@ -434,6 +456,8 @@ function removeSubProjModal(pid, spid) {
   if (updated) saveProject(updated);
   render();
   renderProjModal();
+  restoreModalPipScrollState(modalPipScrollState);
+  modalPipScrollState = null;
 }
 
 function updatePipField(pid, spid, field, val) {
