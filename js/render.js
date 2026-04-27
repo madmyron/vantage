@@ -92,11 +92,11 @@ function renderSubBoard(p) {
   const el = document.getElementById('subboard-overlay');
   if (!el) return;
   const c = pc(p.color);
-  const stagesHTML = p.subStages.map((st, si) => {
-    const subs = p.subProjects.filter(sp => sp.stage === st.id);
+  const stagesHTML = PIP_STAGES.map((st, si) => {
+    const subs = p.subProjects.filter(sp => normalizePipStage(sp.stage, p) === st.id);
     const sc = SUB_COLORS[si % SUB_COLORS.length];
     const cards = subs.map(sp => {
-      const otherSS = p.subStages.filter(s => s.id !== st.id);
+      const otherSS = PIP_STAGES.filter(s => s.id !== st.id);
       const moveOpts = otherSS.map(s =>
         `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProj(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
       ).join('');
@@ -116,6 +116,7 @@ function renderSubBoard(p) {
           <button class="scbtn" style="color:${sc.tx};border-color:rgba(240,96,96,.3)" onclick="removeSubProj(${p.id},'${sp.id}')">×</button>
         </div>
         <div id="snp-${p.id}-${sp.id}"></div>
+        <div style="margin-top:8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${sc.tx};opacity:.65">${st.label}</div>
       </div>`;
     }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
     return `<div class="sub-stage-col">
@@ -135,14 +136,13 @@ function renderSubBoard(p) {
         <span style="font-size:11px;font-weight:400;color:var(--text3)">${p.subProjects.length} pip${p.subProjects.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="subboard-header-btns">
-        <button class="btn" style="font-size:11px;padding:5px 12px" onclick="openAddSubStage(${p.id})">+ Stage</button>
         <button class="btn btn-accent" style="font-size:11px;padding:5px 12px" onclick="openAddSubProj(${p.id})">+ Sub-project</button>
         <button class="btn" style="font-size:11px;padding:5px 12px;color:#3d2fa8;border-color:rgba(91,77,224,.4)" onclick="closeSubBoardOpenDax(${p.id})">✦ Dax</button>
         <button class="btn" style="font-size:11px;padding:5px 12px" onclick="closeSubBoardOpenModal(${p.id})">← Back</button>
         <button class="btn" style="font-size:11px;padding:5px 12px" onclick="toggleSubBoard(${p.id})">✕ Close</button>
       </div>
     </div>
-    <div class="sub-pipeline" style="grid-template-columns:repeat(${p.subStages.length}, minmax(0, 1fr))">${stagesHTML}</div>
+    <div class="sub-pipeline" style="grid-template-columns:repeat(5, minmax(0, 1fr))">${stagesHTML}</div>
   </div>`;
   el.classList.add('open');
 
@@ -184,46 +184,6 @@ function renderSubNote(p, sp) {
     el.innerHTML = '';
   }
 }
-
-function renderSubTickets(p, sp) {
-  const el = document.getElementById('snp-' + p.id + '-' + sp.id);
-  if (!el) return;
-  if (sp._openTickets) {
-    const cols = ['todo','done'];
-    const cL = {todo:'To do', done:'Done'};
-    const board = cols.map(status => {
-      const tks = sp.tickets.filter(t => t.status === status);
-      const rows = tks.map((t, i) => {
-        const ri = sp.tickets.indexOf(t);
-        return `<div class="sub-ticket">
-          <div class="sub-tk-title">${esc(t.title)}</div>
-          <div class="sub-tk-btns">
-            ${status === 'todo'
-              ? `<button class="sub-tk-btn" onclick="moveSubTk(${p.id},'${sp.id}',${ri},'done')">→ Done</button>`
-              : `<button class="sub-tk-btn" onclick="moveSubTk(${p.id},'${sp.id}',${ri},'todo')">← To do</button>`}
-            <button class="sub-tk-btn" style="color:var(--red)" onclick="rmSubTk(${p.id},'${sp.id}',${ri})">×</button>
-          </div>
-        </div>`;
-      }).join('') || `<div style="font-size:9px;color:var(--text3);padding:2px 0">Empty</div>`;
-      return `<div class="sub-tk-col">
-        <div class="sub-tk-col-head">${cL[status]}<span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0;font-family:var(--mono)">${tks.length}</span></div>
-        ${rows}
-        ${status === 'todo' ? `<div class="add-sub-tk"><input id="sti-${p.id}-${sp.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addSubTk(${p.id},'${sp.id}')"/><button onclick="addSubTk(${p.id},'${sp.id}')">+</button></div>` : ''}
-      </div>`;
-    }).join('');
-    el.innerHTML = `<div class="sub-note-panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Tasks</span>
-        <button class="rm" onclick="toggleSubTickets(${p.id},'${sp.id}')">✕</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${board}</div>
-    </div>`;
-  } else {
-    el.innerHTML = '';
-  }
-}
-
-// ── DETAIL PANEL RENDER (inline tabs, legacy) ─────────────────
 
 function renderDetail(p) {
   const el = document.getElementById('det-' + p.id);
@@ -301,3 +261,5 @@ function renderDetail(p) {
     el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" value="${esc(p.name)}" onchange="updateField(${p.id},'name',this.value)"/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" onchange="updateField(${p.id},'stage',this.value)">${stOpts}</select></div><div class="fl"><span class="fl-lbl">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateField(${p.id},'desc',this.value)"/></div><div class="fl"><span class="fl-lbl">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateField(${p.id},'goal',this.value)"/></div><div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div><div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px"><div class="sec-title">Team access</div>${prows||'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">No team members.</div>'}<div class="add-pr"><input id="ni-${p.id}" placeholder="Name or email..." onkeydown="if(event.key==='Enter')addPerson(${p.id})"/><select id="np-${p.id}"><option value="viewer">Viewer</option><option value="editor">Editor</option></select><button onclick="addPerson(${p.id})">+ Invite</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" style="color:var(--red);border-color:rgba(240,96,96,.3)" onclick="deleteProject(${p.id})">Delete</button><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
   }
 }
+
+

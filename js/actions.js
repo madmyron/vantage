@@ -346,7 +346,7 @@ function saveNew() {
     stage: document.getElementById('m-stage').value,
     desc:  document.getElementById('m-desc').value.trim() || 'No description',
     goal:  document.getElementById('m-goal').value.trim(),
-    subStages:    [{id:'ss1',label:'Idea'},{id:'ss2',label:'In progress'},{id:'ss3',label:'Done'}],
+    subStages:    PIP_STAGES.map(s => ({id:s.id, label:s.label})),
     subProjects:  [], openSubBoard:false,
     convo: {Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
     tickets:[], contacts:[], finances:[], people:[], openTab:null,
@@ -362,7 +362,7 @@ function saveNew() {
 
 function openAddSubProj(pid) {
   const p = projects.find(x => x.id === pid);
-  const stageOpts = p.subStages.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  const stageOpts = PIP_STAGES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
   document.getElementById('modal-inner').innerHTML = `<div class="modal-title">New sub-project — ${esc(p.name)}</div>
     <div class="fl"><span class="fl-lbl">Name</span><input class="fi" id="sp-name" placeholder="Sub-project name..."/></div>
     <div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="sp-stage">${stageOpts}</select></div>
@@ -384,24 +384,4 @@ function saveSubProj(pid) {
   if (updated) saveProject(updated);
   closeModal();
   renderSubBoard(updated);
-}
-
-function openAddSubStage(pid) {
-  document.getElementById('modal-inner').innerHTML = `<div class="modal-title">Add stage to sub-board</div>
-    <div class="fl"><span class="fl-lbl">Label</span><input class="fi" id="ss-label" placeholder="e.g. In review, Blocked, Testing..."/></div>
-    <div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveSubStage(${pid})">Add stage</button></div>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('ss-label').focus(), 50);
-}
-
-function saveSubStage(pid) {
-  const label = document.getElementById('ss-label').value.trim(); if (!label) return;
-  projects = projects.map(p => {
-    if (p.id !== pid) return p;
-    return {...p, subStages:[...p.subStages, {id:'ss'+Date.now(), label}]};
-  });
-  const p = projects.find(x => x.id === pid);
-  if (p) saveProject(p);
-  closeModal();
-  renderSubBoard(p);
 }

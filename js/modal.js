@@ -78,11 +78,11 @@ function renderModalBody(p) {
   const body = document.getElementById('proj-modal-body');
 
   if (modalTab === 'pips') {
-    const stagesHTML = p.subStages.map((st, si) => {
-      const subs = p.subProjects.filter(sp => sp.stage === st.id);
+    const stagesHTML = PIP_STAGES.map((st, si) => {
+      const subs = p.subProjects.filter(sp => normalizePipStage(sp.stage, p) === st.id);
       const sc = SUB_COLORS[si % SUB_COLORS.length];
       const cards = subs.map(sp => {
-        const otherSS = p.subStages.filter(s => s.id !== st.id);
+        const otherSS = PIP_STAGES.filter(s => s.id !== st.id);
         const moveOpts = otherSS.map(s =>
           `<div class="move-opt" style="font-size:10px;padding:4px 8px" onclick="moveSubProjModal(${p.id},'${sp.id}','${s.id}')"><span class="mdot" style="background:${sc.bd}"></span>${esc(s.label)}</div>`
         ).join('');
@@ -118,31 +118,30 @@ function renderModalBody(p) {
                 <input type="date" style="width:100%;font-size:11px;padding:4px 7px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);outline:none" value="${esc(sp.dueDate||'')}" onchange="updatePipField(${p.id},'${sp.id}','dueDate',this.value)"/>
               </div>
             </div>
-            <div style="margin-bottom:8px">
+          <div style="margin-bottom:8px">
               <div style="font-size:9px;font-weight:600;color:${sc.tx};opacity:.6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Notes</div>
               <textarea style="width:100%;font-size:11px;padding:6px 8px;border:1px solid rgba(0,0,0,.15);border-radius:5px;background:rgba(255,255,255,.4);color:${sc.tx};font-family:var(--font);resize:vertical;min-height:50px;outline:none" placeholder="Notes, links, ideas..." onchange="updatePipField(${p.id},'${sp.id}','notes',this.value)">${esc(sp.notes||'')}</textarea>
             </div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${sc.tx};opacity:.65">${st.label}</div>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:11px;color:var(--text3);padding:8px 4px">Empty</div>`;
-      return `<div class="modal-pip-col" data-pid="${p.id}" data-stage="${st.id}" style="min-width:0;flex:1;flex-shrink:0">
-        <div style="text-align:center;padding:4px 6px 10px">
+      return `<div class="modal-pip-col" data-pid="${p.id}" data-stage="${st.id}" style="min-width:0;flex:1;flex-shrink:0;max-height:calc(90vh - 200px);overflow-y:auto;overflow-x:hidden;padding-right:2px">
+        <div style="position:sticky;top:0;z-index:3;text-align:center;padding:4px 6px 10px;background:var(--bg2)">
           <span style="font-size:10px;font-weight:600;padding:3px 12px;border-radius:20px;display:inline-block;text-transform:uppercase;letter-spacing:.06em;border:1px solid ${sc.bd};background:${sc.bg};color:${sc.tx}">${esc(st.label)}</span>
           <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)">${subs.length}</div>
         </div>
         <div class="modal-pip-body" data-pid="${p.id}" data-stage="${st.id}">${cards}</div>
-      </div>
-      ${si < p.subStages.length - 1 ? '<div style="width:1px;background:var(--border);margin:0 8px;flex-shrink:0"></div>' : ''}`;
+      </div>`;
     }).join('');
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-size:12px;color:var(--text3)">${p.subProjects.length} pip${p.subProjects.length!==1?'s':''}</div>
         <div style="display:flex;gap:6px">
-          <button class="btn" style="font-size:11px" onclick="openAddSubStage(${p.id})">+ Stage</button>
           <button class="btn btn-accent" style="font-size:11px" onclick="openAddSubProjModal(${p.id})">+ Sub-project</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(${p.subStages.length}, minmax(0, 1fr));gap:8px">${stagesHTML}</div>`;
+      <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:8px">${stagesHTML}</div>`;
     wirePipDrag(p.id);
 
   } else if (modalTab === 'convo') {
@@ -389,7 +388,7 @@ function addPersonModal(id) {
 
 function openAddSubProjModal(pid) {
   const p = projects.find(x => x.id === pid);
-  const stageOpts = p.subStages.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  const stageOpts = PIP_STAGES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
   document.getElementById('modal-inner').innerHTML = `<div class="modal-title">New sub-project — ${esc(p.name)}</div>
     <div class="fl"><span class="fl-lbl">Name</span><input class="fi" id="sp-name" placeholder="Sub-project name..."/></div>
     <div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="sp-stage">${stageOpts}</select></div>

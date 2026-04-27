@@ -43,6 +43,13 @@ const CTOPICS       = ['Goal','Ideas','Financing','Marketing','Team','Timeline',
 const CONTACT_TYPES = ['team','investor','partner','client','vendor','press'];
 const FIN_TYPES     = ['revenue','expense','investment','grant'];
 const PIP_USERS     = ['Dax'];
+const PIP_STAGES    = [
+  {id:'idea',       label:'IDEA'},
+  {id:'todo',       label:'TO DO'},
+  {id:'inprogress', label:'IN PROGRESS'},
+  {id:'review',     label:'REVIEW'},
+  {id:'done',       label:'DONE'},
+];
 
 let amap = {}, aidx = 0;
 
@@ -57,6 +64,13 @@ function ini(n) {
 
 function sf(id)  { return STAGES.find(s => s.id === id) || STAGES[0]; }
 function pc(c)   { return PC[c % PC.length]; }
+function pipSf(id) { return PIP_STAGES.find(s => s.id === id) || PIP_STAGES[0]; }
+function normalizePipStage(stage, project) {
+  if (PIP_STAGES.some(s => s.id === stage)) return stage;
+  if (!project || !Array.isArray(project.subStages)) return 'idea';
+  const idx = project.subStages.findIndex(s => s.id === stage || s.label === stage);
+  return PIP_STAGES[Math.max(0, Math.min(idx, PIP_STAGES.length - 1))]?.id || 'idea';
+}
 
 function esc(s) {
   return String(s || '')
