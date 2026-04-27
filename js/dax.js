@@ -243,9 +243,17 @@ function isMissingDaxHistoryError(err) {
 
 async function callDaxChat(messages, context, system) {
   try {
+    const payload = { messages, context, system };
+    console.log('dax request payload:', {
+      hasActiveProject: !!context?.activeProject,
+      activeProjectName: context?.activeProject?.name || null,
+      hasPendingReview: !!context?.pendingReview,
+      payload,
+    });
+
     if (sb?.functions?.invoke) {
       const { data, error } = await sb.functions.invoke('dax-chat', {
-        body: { messages, context, system },
+        body: payload,
         headers: {
           'x-client-info': 'vantage-web-dax/1.0',
         },
@@ -267,7 +275,7 @@ async function callDaxChat(messages, context, system) {
       const res = await fetch(DAX_CHAT_URL, {
         method: 'POST',
         headers: DAX_CHAT_HEADERS,
-        body: JSON.stringify({ messages, context, system }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
         cache: 'no-store',
       });
@@ -354,11 +362,17 @@ async function handleReviewCommand(projectName) {
     return;
   }
 
+  console.log('review project data:', project);
   const context = buildDaxContext(project);
   const system = buildReviewSystem(project);
   const messages = [
     { role: 'user', content: `Review this project: ${project.name}. Draft the next PIPs, ordered by execution priority.` },
   ];
+  console.log('review request body:', {
+    messages,
+    context,
+    system,
+  });
 
   daxTyping = true;
   daxShowTyping();
