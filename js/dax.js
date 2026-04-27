@@ -172,7 +172,12 @@ function formatReviewPlan(plan) {
 }
 
 function parseReviewPlan(reply, project) {
-  const raw = String(reply || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+  let raw = String(reply || '').trim();
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    raw = raw.slice(firstBrace, lastBrace + 1);
+  }
   try {
     const parsed = JSON.parse(raw);
     return {

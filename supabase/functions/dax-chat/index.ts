@@ -105,6 +105,7 @@ function buildSystem(ctx?: {
     lines.push("displayDescription is for the founder: one plain sentence, concise and non-technical.");
     lines.push("technicalDescription is for the Claude Code handoff: full implementation detail, including what to build and which files to touch.");
     lines.push("In the chat-facing response, keep it concise and only present the founder-facing content.");
+    lines.push("You must respond with ONLY a valid JSON object. No text before or after it. No markdown. No explanation. Start your response with { and end with }.");
   }
 
   return lines.join("\n");
