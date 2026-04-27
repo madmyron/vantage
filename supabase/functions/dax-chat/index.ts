@@ -105,7 +105,22 @@ function buildSystem(ctx?: {
     lines.push("displayDescription is for the founder: one plain sentence, concise and non-technical.");
     lines.push("technicalDescription is for the Claude Code handoff: full implementation detail, including what to build and which files to touch.");
     lines.push("In the chat-facing response, keep it concise and only present the founder-facing content.");
-    lines.push("You must respond with ONLY a valid JSON object. No text before or after it. No markdown. No explanation. Start your response with { and end with }.");
+    lines.push("Return ONLY this exact JSON structure with no other text:");
+    lines.push('{');
+    lines.push('  "projectName": "string",');
+    lines.push('  "recommendation": "string (2 sentences max)",');
+    lines.push('  "proposedPips": [');
+    lines.push('    {');
+    lines.push('      "pipId": "string",');
+    lines.push('      "title": "string",');
+    lines.push('      "displayDescription": "string (one sentence)",');
+    lines.push('      "technicalDescription": "string",');
+    lines.push('      "files": ["string"],');
+    lines.push('      "order": number');
+    lines.push('    }');
+    lines.push('  ]');
+    lines.push('}');
+    lines.push('Do not include a summary field. Do not wrap in markdown. Do not add any text outside the JSON.');
   }
 
   return lines.join("\n");
