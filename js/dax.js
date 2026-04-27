@@ -68,22 +68,14 @@ function findProjectByName(name) {
 function buildDaxContext(project) {
   return {
     activeProject: project ? {
-      id: project.id,
-      name: project.name,
-      stage: sf(project.stage).label,
-      goal: project.goal || '',
-      desc: project.desc || '',
-      pips: (project.subProjects || []).map(sp => ({
-        id: sp.id,
-        name: sp.name,
-        stage: pipSf(normalizePipStage(sp.stage, project)).label,
-        desc: sp.desc || '',
+      ...project,
+      stageLabel: sf(project.stage).label,
+      subProjects: (project.subProjects || []).map(sp => ({
+        ...sp,
+        stageLabel: pipSf(normalizePipStage(sp.stage, project)).label,
         assignee: sp.assignee || 'Dax',
         assigner: sp.assigner || 'Dax',
-        notes: sp.notes || '',
       })),
-      finances: project.finances || [],
-      people: project.people || [],
     } : null,
     portfolio: getProjectContextSummary(),
     team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
@@ -105,10 +97,24 @@ Current focus: ${projectName}`;
 }
 
 function buildReviewSystem(project) {
+  const fullProjectContext = project ? JSON.stringify({
+    ...project,
+    stageLabel: sf(project.stage).label,
+    subProjects: (project.subProjects || []).map(sp => ({
+      ...sp,
+      stageLabel: pipSf(normalizePipStage(sp.stage, project)).label,
+      assignee: sp.assignee || 'Dax',
+      assigner: sp.assigner || 'Dax',
+    })),
+  }, null, 2) : 'null';
+
   return `You are Dax acting as a project manager inside Vantage.
 
 The user asked to review the project. Analyze the project's goals, current state, and existing PIPs.
 Draft a proposed list of NEW PIPs in recommended execution order.
+
+Project context:
+${fullProjectContext}
 
 Return ONLY valid JSON using this shape:
 {

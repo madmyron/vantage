@@ -19,6 +19,8 @@ Deno.serve(async (req: Request) => {
         pips?: unknown[];
         finances?: unknown[];
         team?: unknown[];
+        activeProject?: unknown;
+        pendingReview?: unknown;
       };
       system?: string;
     };
@@ -62,6 +64,8 @@ function buildSystem(ctx?: {
   pips?: unknown[];
   finances?: unknown[];
   team?: unknown[];
+  activeProject?: unknown;
+  pendingReview?: unknown;
 }): string {
   const lines: string[] = [
     "You are Dax, a sharp and concise AI advisor built into Vantage — an entrepreneurial operating system.",
@@ -87,6 +91,14 @@ function buildSystem(ctx?: {
   if (ctx?.team?.length) {
     lines.push("\n## Team");
     lines.push(JSON.stringify(ctx.team, null, 2));
+  }
+  if (ctx?.activeProject) {
+    lines.push("\n## Active Project Context");
+    lines.push(JSON.stringify(ctx.activeProject, null, 2));
+  }
+  if (ctx?.pendingReview) {
+    lines.push("\n## Pending Review");
+    lines.push(JSON.stringify(ctx.pendingReview, null, 2));
   }
 
   return lines.join("\n");
