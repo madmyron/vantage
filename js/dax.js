@@ -141,24 +141,28 @@ Rules:
 }
 
 function formatReviewPlan(plan) {
-  const lines = [];
-  lines.push(`${plan.projectName || 'Project'} review complete.`);
-  if (plan.summary) lines.push(plan.summary);
-  if (Array.isArray(plan.proposedPips) && plan.proposedPips.length) {
-    lines.push('');
-    lines.push('Proposed PIPs:');
-    plan.proposedPips
-      .slice()
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
-      .forEach((pip, idx) => {
-        const files = Array.isArray(pip.files) && pip.files.length ? pip.files.join(', ') : 'no files listed';
-        lines.push(`${idx + 1}. ${pip.title}${pip.description ? ` - ${pip.description}` : ''}`);
-        lines.push(`   Files: ${files}`);
-        if (pip.reason) lines.push(`   Why: ${pip.reason}`);
-      });
-  }
+  const title = `${plan.projectName || 'Project'} Review Plan`;
+  const lines = [title];
+  lines.push("Here's what I recommend:");
   lines.push('');
-  lines.push(plan.recommendation || 'Should I proceed with these?');
+
+  const pips = Array.isArray(plan.proposedPips) ? plan.proposedPips.slice() : [];
+  pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+
+  if (pips.length) {
+    pips.forEach(pip => {
+      const files = Array.isArray(pip.files) && pip.files.length ? pip.files.join(', ') : 'no files listed';
+      const description = pip.description || pip.reason || 'No description provided.';
+      lines.push(`${pip.title || 'Untitled PIP'} - ${description} (files: ${files})`);
+    });
+  } else if (plan.summary) {
+    lines.push(plan.summary);
+  } else {
+    lines.push('No proposed PIPs were returned.');
+  }
+
+  lines.push('');
+  lines.push('Should I proceed with these?');
   return lines.join('\n');
 }
 
