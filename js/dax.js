@@ -154,9 +154,8 @@ function formatReviewPlan(plan) {
 
   if (pips.length) {
     pips.forEach(pip => {
-      const files = Array.isArray(pip.files) && pip.files.length ? pip.files.join(', ') : 'no files listed';
       const description = pip.description || pip.reason || 'No description provided.';
-      lines.push(`${pip.title || 'Untitled PIP'} - ${description} (files: ${files})`);
+      lines.push(`${pip.title || 'Untitled PIP'} - ${description}`);
     });
   } else if (plan.summary) {
     lines.push(plan.summary);
@@ -169,12 +168,24 @@ function formatReviewPlan(plan) {
   return lines.join('\n');
 }
 
-function parseReviewPlan(reply) {
+function parseReviewPlan(reply, project) {
   const raw = String(reply || '').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
   try {
-    return { kind: 'json', value: JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      projectName: parsed.projectName || project?.name || 'Project',
+      summary: parsed.summary || '',
+      recommendation: parsed.recommendation || 'Should I proceed with these?',
+      proposedPips: Array.isArray(parsed.proposedPips) ? parsed.proposedPips : [],
+    };
   } catch (_) {
-    return { kind: 'text', value: raw };
+    const text = raw || 'I could not generate a review plan.';
+    return {
+      projectName: project?.name || 'Project',
+      summary: text,
+      recommendation: 'Should I proceed with these?',
+      proposedPips: [],
+    };
   }
 }
 
@@ -391,20 +402,7 @@ async function handleReviewCommand(projectName) {
 
     console.log('Dax review raw response:', reply);
 
-    const parsed = parseReviewPlan(reply);
-    if (parsed.kind === 'text') {
-      const rendered = parsed.value || 'I could not generate a review plan.';
-      daxAddMsg('dax', 'Dax', rendered);
-      daxHistory.push({ role: 'assistant', content: rendered });
-      await saveDaxMessage('assistant', rendered);
-      const gateText = 'Should I proceed with these?';
-      daxAddMsg('dax', 'Dax', gateText);
-      daxHistory.push({ role: 'assistant', content: gateText });
-      await saveDaxMessage('assistant', gateText);
-      return;
-    }
-
-    const plan = parsed.value;
+    const plan = parseReviewPlan(reply, project);
     stashPendingReview(plan, project);
     const rendered = formatReviewPlan(plan);
     daxAddMsg('dax', 'Dax', rendered);
