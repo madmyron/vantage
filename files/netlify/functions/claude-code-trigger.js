@@ -14,6 +14,10 @@ export default async (req) => {
     });
   }
 
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405);
+  }
+
   try {
     const body = await req.json();
     const jobs = normalizeJobs(body);
