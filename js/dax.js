@@ -180,7 +180,7 @@ function getReviewPips(plan) {
 }
 
 function parseReviewPlan(reply, project) {
-  let raw = String(reply || '').trim();
+  let raw = String(reply || '').replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
   const firstBrace = raw.indexOf('{');
   const lastBrace = raw.lastIndexOf('}');
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
