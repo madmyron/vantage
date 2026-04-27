@@ -308,6 +308,67 @@ function buildClaudeQueueJobs(plan) {
   });
 }
 
+function normalizePipTitle(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleSimilarity(a, b) {
+  const left = normalizePipTitle(a);
+  const right = normalizePipTitle(b);
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.95;
+
+  const leftTokens = new Set(left.split(' ').filter(Boolean));
+  const rightTokens = new Set(right.split(' ').filter(Boolean));
+  if (!leftTokens.size || !rightTokens.size) return 0;
+
+  let shared = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) shared += 1;
+  }
+
+  const union = new Set([...leftTokens, ...rightTokens]).size;
+  return union ? shared / union : 0;
+}
+
+function getProjectPipTitle(sp) {
+  return String(sp?.title || sp?.name || sp?.desc || sp?.displayDescription || '').trim();
+}
+
+function getReviewPlanDuplicates(project, jobs) {
+  const existingPips = Array.isArray(project?.subProjects) ? project.subProjects : [];
+  const duplicateJobs = [];
+  const keptJobs = [];
+
+  jobs.forEach(job => {
+    const jobTitle = String(job?.title || '').trim();
+    const isDuplicate = existingPips.some(sp => titleSimilarity(jobTitle, getProjectPipTitle(sp)) >= 0.8);
+    if (isDuplicate) {
+      duplicateJobs.push(job);
+    } else {
+      keptJobs.push(job);
+    }
+  });
+
+  return { duplicateJobs, keptJobs };
+}
+
+function getExtraneousExistingPips(project, jobs) {
+  const existingPips = Array.isArray(project?.subProjects) ? project.subProjects : [];
+  if (!existingPips.length || !jobs.length) return [];
+
+  return existingPips.filter(sp => {
+    const title = getProjectPipTitle(sp);
+    if (!title) return false;
+    return !jobs.some(job => titleSimilarity(title, job?.title) >= 0.7);
+  });
+}
+
 function addQueuedPipsToProject(project, jobs) {
   if (!project || !Array.isArray(jobs) || !jobs.length) return project;
   const existing = Array.isArray(project.subProjects) ? project.subProjects : [];
@@ -709,6 +770,37 @@ async function daxSend() {
       return;
     }
 
+    const { duplicateJobs, keptJobs } = getReviewPlanDuplicates(project, jobs);
+    const extraneousExisting = getExtraneousExistingPips(project, jobs);
+
+    for (const duplicate of duplicateJobs) {
+      const msg = `Skipped duplicate: ${duplicate.title}`;
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+    }
+
+    if (extraneousExisting.length) {
+      const names = extraneousExisting
+        .map(sp => getProjectPipTitle(sp))
+        .filter(Boolean)
+        .join(', ');
+      const msg = `These existing PIPs may no longer be needed: ${names}. Should I delete them?`;
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+    }
+
+    if (!keptJobs.length) {
+      const msg = duplicateJobs.length
+        ? `I skipped the duplicate PIPs, and there aren't any new ones left to run for ${project.name}.`
+        : `There aren't any queued PIPs to run for ${project.name}.`;
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+      return;
+    }
+
     if (!jobs.length) {
       const msg = `There aren't any queued PIPs to run for ${project.name}.`;
       daxAddMsg('dax', 'Dax', msg);
@@ -721,20 +813,20 @@ async function daxSend() {
       ...pending,
       status: 'queued',
       approvedAt: new Date().toISOString(),
-      jobs,
+      jobs: keptJobs,
     };
     daxOrchestration.pendingReview = queuedPlan;
     saveDaxOrchestration();
 
-    const projectWithQueuedPips = addQueuedPipsToProject(project, jobs);
-    const projectWithRunningPip = jobs.length
-      ? applyQueueJobStatuses(projectWithQueuedPips, [{ pipId: jobs[0].pipId, status: 'in progress' }])
+    const projectWithQueuedPips = addQueuedPipsToProject(project, keptJobs);
+    const projectWithRunningPip = keptJobs.length
+      ? applyQueueJobStatuses(projectWithQueuedPips, [{ pipId: keptJobs[0].pipId, status: 'in progress' }])
       : projectWithQueuedPips;
     projects = projects.map(p => p.id === projectWithRunningPip.id ? projectWithRunningPip : p);
     await saveProject(projectWithRunningPip);
     render();
 
-    const startMsg = `Queued ${jobs.length} PIP${jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`;
+    const startMsg = `Queued ${keptJobs.length} PIP${keptJobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`;
     daxAddMsg('dax', 'Dax', startMsg);
     daxHistory.push({ role: 'assistant', content: startMsg });
     await saveDaxMessage('assistant', startMsg);
@@ -747,7 +839,7 @@ async function daxSend() {
       daxRemoveTyping();
       daxTyping = false;
 
-      const finalJobs = Array.isArray(result.jobs) ? result.jobs : jobs;
+      const finalJobs = Array.isArray(result.jobs) ? result.jobs : keptJobs;
       const finalProject = applyQueueJobStatuses(projectWithRunningPip, finalJobs);
       projects = projects.map(p => p.id === finalProject.id ? finalProject : p);
       await saveProject(finalProject);
