@@ -99,6 +99,11 @@ function buildSystem(ctx?: {
   if (ctx?.pendingReview) {
     lines.push("\n## Pending Review");
     lines.push(JSON.stringify(ctx.pendingReview, null, 2));
+    lines.push("");
+    lines.push("Review mode instructions:");
+    lines.push("Keep each proposed PIP concise and non-technical.");
+    lines.push("Each proposed PIP should be no more than 2-3 lines: the title, one plain-English sentence on what it does, and why it matters.");
+    lines.push("No file names, no technical jargon, no long explanations. Write like you're talking to a busy founder, not a developer.");
   }
 
   return lines.join("\n");

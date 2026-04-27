@@ -112,6 +112,9 @@ function buildReviewSystem(project) {
 
 The user asked to review the project. Analyze the project's goals, current state, and existing PIPs.
 Draft a proposed list of NEW PIPs in recommended execution order.
+Keep it concise and non-technical.
+Each proposed PIP should be no more than 2-3 lines: the title, one plain-English sentence on what it does, and why it matters.
+No file names, no technical jargon, no long explanations. Write like you're talking to a busy founder, not a developer.
 
 Project context:
 ${fullProjectContext}
