@@ -792,6 +792,15 @@ function buildNormalDaxSystem(project, codeContext) {
     } else {
       pipBlock = `\n\nExisting PIPs in ${projectName}: none yet.`;
     }
+  } else if (Array.isArray(projects) && projects.length) {
+    const portfolioLines = projects.map(p => {
+      const pips = (p.subProjects || []);
+      const pipLines = pips.length
+        ? pips.map(sp => `  - ${sp.name} [${sp.stage || 'unknown'}]`).join('\n')
+        : '  (no PIPs yet)';
+      return `${p.name} (${(p.stage || 'unknown stage')}):\n${pipLines}`;
+    }).join('\n\n');
+    pipBlock = `\n\nAll projects and their PIPs:\n${portfolioLines}`;
   }
 
   const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Be direct and specific about what works and what doesn't.` : '';
