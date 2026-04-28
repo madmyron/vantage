@@ -803,7 +803,16 @@ function buildNormalDaxSystem(project, codeContext) {
     pipBlock = `\n\nAll projects and their PIPs:\n${portfolioLines}`;
   }
 
-  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Be direct and specific about what works and what doesn't.` : '';
+  const codeContextBlock = codeContext ? (() => {
+    const slim = {
+      repo: codeContext.repoFullName,
+      branch: codeContext.branch,
+      files: (codeContext.fileTree || []).map(f => f.path).slice(0, 80),
+      keyFiles: (codeContext.keyFiles || []).map(f => ({ path: f.path, content: f.content?.slice(0, 1500) })),
+      summary: codeContext.summary,
+    };
+    return `\n\nGitHub code context:\n${JSON.stringify(slim, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Be direct and specific about what works and what doesn't.`;
+  })() : '';
 
   return `You are Dax, the AI orchestrator inside Vantage. Your job is to understand the project, figure out what needs to be built, and send jobs to Claude to actually write the code. You are the decision-maker and quality checker — Claude is the one who writes code.
 
@@ -836,7 +845,15 @@ Current focus: ${projectName}${pipBlock}${codeContextBlock}`;
 
 function buildReviewSystem(project, codeContext) {
   const fullProjectContext = project ? project.name : 'null';
-  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nUse this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.` : '';
+  const codeContextBlock = codeContext ? (() => {
+    const slim = {
+      repo: codeContext.repoFullName,
+      files: (codeContext.fileTree || []).map(f => f.path).slice(0, 80),
+      keyFiles: (codeContext.keyFiles || []).map(f => ({ path: f.path, content: f.content?.slice(0, 1500) })),
+      summary: codeContext.summary,
+    };
+    return `\n\nGitHub code context:\n${JSON.stringify(slim, null, 2)}\n\nUse this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.`;
+  })() : '';
 
   return `You are Dax acting as a project manager inside Vantage.
 
