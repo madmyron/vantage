@@ -236,7 +236,7 @@ function renderDaxHistoryMenu() {
 async function refreshDaxConversationSummaries(projectId = daxProjectId) {
   const scopeKey = getDaxScopeKey(projectId);
   try {
-    const query = sb
+    let query = sb
       .from(DAX_HISTORY_TABLE)
       .select('role, content, created_at, project_id, conversation_id, conversation_title')
       .order('created_at', { ascending: true })
@@ -290,7 +290,9 @@ async function loadDaxConversationById(projectId, conversationId) {
     const { data, error } = await query;
     if (error) throw error;
     const rows = Array.isArray(data) ? data : [];
-    daxHistory = rows.map(row => ({ role: row.role, content: row.content }));
+    daxHistory = rows
+      .filter(row => row.content && !looksLikeJson(row.content))
+      .map(row => ({ role: row.role, content: row.content }));
     daxConversationTitle = rows[0]?.conversation_title || getDaxConversationTitle(projectId, rows);
     renderDaxConversationMessages(daxHistory);
     await refreshDaxConversationSummaries(projectId);
@@ -1367,15 +1369,20 @@ async function saveDaxMessage(role, content) {
   }
 }
 
+function looksLikeJson(text) {
+  const t = (text || '').trim();
+  return (t.startsWith('{') || t.startsWith('[')) && (t.includes('"pipId"') || t.includes('"files"') || t.includes('"technicalDescription"'));
+}
+
 function isMissingDaxHistoryError(err) {
   const code = err?.code || err?.status || err?.statusCode;
   const message = String(err?.message || err?.details || err || '').toLowerCase();
-  return code === '42P01' || code === 404 || code === 400 || message.includes('dax_history') && (
+  return code === '42P01' || (message.includes('dax_history') && (
     message.includes('does not exist') ||
     message.includes('not found') ||
     message.includes('relation "public.dax_history" does not exist') ||
     message.includes('relation does not exist')
-  );
+  ));
 }
 
 async function callDaxChat(messages, context, system) {
