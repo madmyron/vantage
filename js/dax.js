@@ -207,9 +207,8 @@ function renderDaxConversationMessages(messages) {
 function renderDaxHistoryMenu() {
   const menu = document.getElementById('dax-history-menu');
   if (!menu) return;
-  const summaries = daxConversationSummaries || [];
+  const summaries = (daxConversationSummaries || []).filter(s => !looksLikeJson(s.title));
   menu.innerHTML = '';
-  menu.style.display = summaries.length ? 'block' : 'none';
 
   if (!summaries.length) {
     const empty = document.createElement('div');
