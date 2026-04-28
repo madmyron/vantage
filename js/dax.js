@@ -1187,11 +1187,12 @@ async function handleReviewCommand(projectName) {
     return;
   }
 
-  console.log('review project data:', project);
+  const reviewProject = { name: project.name };
+  console.log('review project data:', reviewProject);
   const repo = getProjectRepo(project);
   const codeContext = repo ? await fetchProjectCode(repo) : null;
-  const context = buildDaxContext(project, codeContext);
-  const system = buildReviewSystem(project, codeContext);
+  const context = buildDaxContext(reviewProject, codeContext);
+  const system = buildReviewSystem(reviewProject, codeContext);
   const messages = [
     { role: 'user', content: `Review this project: ${project.name}. Draft the next PIPs, ordered by execution priority.` },
   ];
@@ -1216,7 +1217,7 @@ async function handleReviewCommand(projectName) {
       return;
     }
 
-    const reviewPayload = buildReviewAnthropicPayload(project, messages, codeContext);
+    const reviewPayload = buildReviewAnthropicPayload(reviewProject, messages, codeContext);
     console.log('review anthropic payload:', reviewPayload);
 
     const res = await fetch(DAX_ANTHROPIC_URL, {
