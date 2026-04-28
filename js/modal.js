@@ -33,12 +33,15 @@ function restoreModalScrollTop(scrollTop) {
 function openProjModal(pid) {
   modalProjectId = pid;
   modalTab = 'info';
-  document.getElementById('proj-modal-overlay').classList.add('open');
+  const overlay = document.getElementById('proj-modal-overlay');
+  if (overlay) overlay.style.zIndex = '240';
+  overlay?.classList.add('open');
   renderProjModal();
 }
 
 function closeProjModal() {
-  document.getElementById('proj-modal-overlay').classList.remove('open');
+  const overlay = document.getElementById('proj-modal-overlay');
+  if (overlay) overlay.classList.remove('open');
   modalProjectId = null;
 }
 

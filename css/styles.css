@@ -280,7 +280,7 @@ select.fi option{background:var(--bg3)}
 
 /* DAX PANEL — right side, full height */
 .dax-overlay{display:none}
-.dax-panel{width:300px;min-width:300px;height:100%;background:var(--bg2);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.dax-panel{width:300px;min-width:300px;height:100%;background:var(--bg2);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;z-index:260;position:relative}
 .dax-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:move;user-select:none}
 .dax-avatar{width:32px;height:32px;border-radius:50%;background:#5b4de0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
 .dax-header-info{flex:1}
@@ -314,7 +314,7 @@ select.fi option{background:var(--bg3)}
 .dax-sync-btn:hover{background:rgba(26,138,82,.15)}
 
 /* PROJECT MODAL */
-.proj-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;align-items:center;justify-content:center;padding:20px}
+.proj-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:240;align-items:center;justify-content:center;padding:20px}
 .proj-modal-overlay.open{display:flex}
 .proj-modal{background:var(--bg2);border-radius:14px;border:1px solid var(--border2);width:95vw;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.3);overflow:hidden}
 .proj-modal.proj-modal-narrow{width:min(600px,95vw);max-width:min(600px,95vw)}
