@@ -85,14 +85,34 @@ Change to apply: ${pip.technicalDescription}
 
 Return only the complete modified file content.`;
 
-      const response = await client.messages.create({
+      let response = await client.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 16000,
+        max_tokens: 32000,
         messages: [{ role: "user", content: prompt }],
       });
 
+      // If output was cut off by token limit, retry with a continuation prompt
+      if (response.stop_reason === "max_tokens") {
+        const partial = response.content[0].type === "text" ? response.content[0].text : "";
+        const continuation = await client.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 32000,
+          messages: [
+            { role: "user", content: prompt },
+            { role: "assistant", content: partial },
+            { role: "user", content: "Continue exactly where you left off. Do not repeat any code. Output only the remaining file content." },
+          ],
+        });
+        const cont = continuation.content[0].type === "text" ? continuation.content[0].text : "";
+        // Merge: replace response with combined text so cleaning below works on full output
+        response = { ...response, content: [{ type: "text", text: partial + cont }], stop_reason: continuation.stop_reason } as typeof response;
+      }
+
       const raw = response.content[0].type === "text" ? response.content[0].text : "";
-      const cleaned = raw.replace(/^```[\w]*\r?\n/, "").replace(/\r?\n```$/, "").trim();
+      const cleaned = raw
+        .replace(/^```[\w]*[ \t]*\r?\n/, "")
+        .replace(/\r?\n```[ \t]*$/, "")
+        .trim();
 
       const ok = await commitFile(repo, filePath, cleaned, fileData?.sha ?? "", `dax: ${pip.title}`, githubToken);
       results.push({ file: filePath, success: ok, error: ok ? undefined : "GitHub commit failed" });
