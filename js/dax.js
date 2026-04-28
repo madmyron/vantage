@@ -1071,7 +1071,7 @@ async function callDaxChat(messages, context, system) {
     const payload = { messages, context, codeContext: context?.codeContext || null, system };
     console.log('dax request payload:', {
       hasActiveProject: !!context?.activeProject,
-      activeProjectName: context?.activeProject?.name || null,
+      activeProjectName: typeof context?.activeProject === 'string' ? context.activeProject : context?.activeProject?.name || null,
       hasPendingReview: !!context?.pendingReview,
       hasCodeContext: !!context?.codeContext,
       payload,

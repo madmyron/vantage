@@ -107,8 +107,15 @@ function buildSystem(ctx?: {
     lines.push(JSON.stringify(ctx.team, null, 2));
   }
   if (ctx?.activeProject) {
-    lines.push("\n## Active Project Context");
-    lines.push(JSON.stringify(ctx.activeProject, null, 2));
+    const projectName = typeof ctx.activeProject === "string"
+      ? ctx.activeProject
+      : typeof ctx.activeProject === "object" && ctx.activeProject
+      ? (ctx.activeProject as { name?: unknown }).name
+      : null;
+    if (projectName) {
+      lines.push("\n## Active Project");
+      lines.push(String(projectName));
+    }
   }
   if (ctx?.codeContext) {
     lines.push("\n## GitHub Code Context");
@@ -165,8 +172,15 @@ function buildReviewSystem(ctx?: {
   ];
 
   if (ctx?.activeProject) {
-    lines.push("\n## Active Project Context");
-    lines.push(JSON.stringify(ctx.activeProject, null, 2));
+    const projectName = typeof ctx.activeProject === "string"
+      ? ctx.activeProject
+      : typeof ctx.activeProject === "object" && ctx.activeProject
+      ? (ctx.activeProject as { name?: unknown }).name
+      : null;
+    if (projectName) {
+      lines.push("\n## Active Project");
+      lines.push(String(projectName));
+    }
   }
   if (ctx?.pendingReview) {
     lines.push("\n## Pending Review");

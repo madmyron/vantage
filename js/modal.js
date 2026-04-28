@@ -34,14 +34,17 @@ function openProjModal(pid) {
   modalProjectId = pid;
   modalTab = 'info';
   const overlay = document.getElementById('proj-modal-overlay');
-  if (overlay) overlay.style.zIndex = '240';
+  if (overlay) overlay.classList.add('proj-modal-overlay-z200');
   overlay?.classList.add('open');
   renderProjModal();
 }
 
 function closeProjModal() {
   const overlay = document.getElementById('proj-modal-overlay');
-  if (overlay) overlay.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('open');
+    overlay.classList.remove('proj-modal-overlay-z200');
+  }
   modalProjectId = null;
 }
 
