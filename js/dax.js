@@ -1094,31 +1094,52 @@ function applyQueueJobStatuses(project, jobs) {
   return { ...project, subProjects: updatedSubProjects };
 }
 
+async function executePip(repo, pip) {
+  const { data, error } = await sb.functions.invoke('dax-execute', {
+    body: { repo, pip },
+  });
+  if (error) throw new Error(error.message || 'dax-execute failed');
+  return data;
+}
+
+async function verifyPip(repo, pip, vercelUrl) {
+  const { data, error } = await sb.functions.invoke('dax-verify', {
+    body: { repo, pip, vercelUrl: vercelUrl || null },
+  });
+  if (error) throw new Error(error.message || 'dax-verify failed');
+  return data;
+}
+
 async function startClaudeCodeQueue(plan, project) {
   const jobs = Array.isArray(plan?.jobs) && plan.jobs.length ? plan.jobs.map(job => ({ ...job })) : buildClaudeQueueJobs(plan);
-  if (!jobs.length) {
-    throw new Error('No proposed PIPs were returned to queue.');
+  if (!jobs.length) throw new Error('No proposed PIPs were returned to queue.');
+  const repo = getProjectRepo(project);
+  if (!repo) throw new Error(`No GitHub repo found for ${project.name}. Add it to the project's Info tab.`);
+  const vercelUrl = project?.metadata?.websiteUrl || null;
+
+  const resultJobs = [];
+  for (const job of jobs) {
+    const execResult = await executePip(repo, job);
+    if (!execResult?.success) {
+      const failedFiles = (execResult?.results || []).filter(r => !r.success).map(r => r.file).join(', ');
+      resultJobs.push({ ...job, status: 'failed', error: failedFiles || 'execution failed' });
+      continue;
+    }
+
+    // Wait briefly for GitHub to settle before verifying
+    await new Promise(r => setTimeout(r, 2000));
+
+    const verifyResult = await verifyPip(repo, job, vercelUrl);
+    if (verifyResult?.passed) {
+      resultJobs.push({ ...job, status: 'done' });
+    } else {
+      resultJobs.push({ ...job, status: 'failed', verifyIssues: verifyResult?.issues || [] });
+    }
   }
 
-  const response = await fetch(CLAUDE_QUEUE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      projectId: project?.id || null,
-      projectName: project?.name || plan?.projectName || '',
-      jobs,
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || data.message || `Claude queue request failed (${response.status})`);
-  }
-
-  return {
-    ...data,
-    jobs: Array.isArray(data.jobs) ? data.jobs : jobs,
-  };
+  const done = resultJobs.filter(j => j.status === 'done');
+  const failed = resultJobs.filter(j => j.status === 'failed');
+  return { jobs: resultJobs, done, failed, status: failed.length ? 'partial' : 'complete' };
 }
 
 function parseReviewPlan(reply, project) {
@@ -1262,43 +1283,27 @@ async function startQueuedClaudeExecution(queuedPlan, project, jobs, startMsgOve
     await saveProject(finalProject);
     render();
 
-    const events = Array.isArray(result.events) ? result.events : [];
-    const displayEvents = events.filter((event, idx) => !(idx === 0 && event === startMsg));
-    if (displayEvents.length) {
-      for (const event of displayEvents) {
-        daxAddMsg('dax', 'Dax', event);
-        daxHistory.push({ role: 'assistant', content: event });
-        await saveDaxMessage('assistant', event);
-      }
-    }
+    const done = Array.isArray(result.done) ? result.done : [];
+    const failed = Array.isArray(result.failed) ? result.failed : [];
 
-    if (result.status === 'paused' && result.message) {
-      daxOrchestration.pendingReview = {
-        ...queuedPlan,
-        status: 'paused',
-        message: result.message,
-        jobs: finalJobs,
-      };
-      saveDaxOrchestration();
-      daxAddMsg('dax', 'Dax', result.message);
-      daxHistory.push({ role: 'assistant', content: result.message });
-      await saveDaxMessage('assistant', result.message);
-    } else if (result.status === 'failed' && result.message) {
-      daxOrchestration.pendingReview = {
-        ...queuedPlan,
-        status: 'failed',
-        message: result.message,
-        jobs: finalJobs,
-      };
-      saveDaxOrchestration();
-      daxAddMsg('dax', 'Dax', result.message);
-      daxHistory.push({ role: 'assistant', content: result.message });
-      await saveDaxMessage('assistant', result.message);
-    } else {
-      const doneMsg = `Claude Code queue finished for ${project.name}.`;
+    if (done.length) {
+      const doneMsg = `Done: ${done.map(j => j.title).join(', ')} — changes committed to GitHub and verified.`;
       daxAddMsg('dax', 'Dax', doneMsg);
       daxHistory.push({ role: 'assistant', content: doneMsg });
       await saveDaxMessage('assistant', doneMsg);
+    }
+
+    if (failed.length) {
+      for (const job of failed) {
+        const issues = (job.verifyIssues || []).join('; ') || job.error || 'unknown error';
+        const failMsg = `"${job.title}" didn't land correctly — ${issues}. Want me to try again?`;
+        daxAddMsg('dax', 'Dax', failMsg);
+        daxHistory.push({ role: 'assistant', content: failMsg });
+        await saveDaxMessage('assistant', failMsg);
+      }
+      daxOrchestration.pendingReview = { ...queuedPlan, status: 'partial', jobs: finalJobs };
+      saveDaxOrchestration();
+    } else {
       clearPendingReview();
     }
   } catch (err) {
