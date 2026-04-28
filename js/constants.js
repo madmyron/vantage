@@ -130,5 +130,9 @@ function applyKnownGithubRepo(project) {
   return {
     ...project,
     githubRepo: project.githubRepo || knownGithubRepoForName(project.name) || '',
+    startedAt: project.startedAt || '',
+    updatedAt: project.updatedAt || '',
+    assignee: project.assignee || (project.people && project.people[0] && project.people[0].name) || 'Dax',
+    assigner: project.assigner || 'Dax',
   };
 }

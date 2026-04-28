@@ -1493,7 +1493,7 @@ async function daxSend() {
   }
 }
 
-function openDax(pid) {
+function openDax(pid, starterMessage = '') {
   daxProjectId = pid;
   const badge = document.getElementById('dax-project-badge');
   if (pid && badge) {
@@ -1506,9 +1506,24 @@ function openDax(pid) {
   } else if (badge) {
     badge.style.display = 'none';
   }
+  const panel = document.getElementById('dax-panel');
+  if (panel && typeof panel.scrollIntoView === 'function') {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }
   const inp = document.getElementById('dax-input');
   if (inp) inp.focus();
   scrollDaxToBottomDelayed();
+  if (starterMessage && starterMessage.trim()) {
+    const msg = starterMessage.trim();
+    if (inp) inp.value = msg;
+    setTimeout(() => {
+      const current = document.getElementById('dax-input');
+      if (current) {
+        current.value = msg;
+        daxSend();
+      }
+    }, 50);
+  }
 }
 
 function closeDax() {

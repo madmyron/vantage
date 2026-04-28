@@ -189,12 +189,13 @@ function renderSubNote(p, sp) {
 function renderDetail(p) {
   const el = document.getElementById('det-' + p.id);
   if (!el) return;
-  const TABS = ['contacts','finances','convo','info'];
+  const tab = p.openTab || 'info';
+  const TABS = ['info','contacts','finances','convo'];
   const tabBar = TABS.map(t =>
-    `<button class="ptab${p.openTab===t?' on':''}" onclick="setTab(${p.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
+    `<button class="ptab${tab===t?' on':''}" onclick="setTab(${p.id},'${t}')">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`
   ).join('');
 
-  if (p.openTab === 'tickets') {
+  if (tab === 'tickets') {
     const cols = ['todo','inprogress','done'];
     const cL = {todo:'To do', inprogress:'In progress', done:'Done'};
     const stats = cols.map(s => p.tickets.filter(t => t.status === s).length);
@@ -224,14 +225,14 @@ function renderDetail(p) {
     }).join('');
     el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div><div class="tk-stats">${cols.map((s,i)=>`<div class="tk-stat"><div class="tk-stat-n">${stats[i]}</div><div class="tk-stat-l">${cL[s]}</div></div>`).join('')}</div><div class="tickets-board">${board}</div><div style="display:flex;justify-content:flex-end"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
 
-  } else if (p.openTab === 'contacts') {
+  } else if (tab === 'contacts') {
     const cards = p.contacts.map((ct, i) => {
       const a = ac(ct.name);
       return `<div class="contact-card"><div class="contact-av" style="background:${a.bg};color:${a.tc}">${ini(ct.name)}</div><div class="contact-info"><div class="contact-name">${esc(ct.name)}</div><div class="contact-role">${esc(ct.role)}</div>${ct.notes?`<div style="font-size:10px;color:var(--text3);margin-top:2px;font-style:italic">${esc(ct.notes)}</div>`:''}<span class="contact-tag tag-${ct.type}">${ct.type}</span></div><button class="rm" onclick="rmContact(${p.id},${i})">×</button></div>`;
     }).join('') || `<div style="font-size:12px;color:var(--text3);margin-bottom:10px">No contacts yet.</div>`;
     el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div>${cards}<div class="add-contact"><input id="cn-${p.id}" class="add-contact-full" placeholder="Name..." onkeydown="if(event.key==='Enter')addContact(${p.id})"/><input id="cr-${p.id}" placeholder="Role / title..."/><input id="ce-${p.id}" placeholder="Email..."/><select id="ct-${p.id}">${CONTACT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="cno-${p.id}" placeholder="Notes..."/><button class="add-contact-full btn" onclick="addContact(${p.id})" style="padding:6px">+ Add contact</button></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
 
-  } else if (p.openTab === 'finances') {
+  } else if (tab === 'finances') {
     const revenue  = p.finances.filter(f => f.type==='revenue'||f.type==='investment').reduce((s,f)=>s+Number(f.amount||0),0);
     const expenses = p.finances.filter(f => f.type==='expense').reduce((s,f)=>s+Number(f.amount||0),0);
     const net = revenue - expenses;
@@ -240,7 +241,7 @@ function renderDetail(p) {
     ).join('') || `<tr><td colspan="5" style="color:var(--text3);padding:10px 0">No entries yet.</td></tr>`;
     el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div><div class="fin-summary"><div class="fin-card"><div class="fin-lbl">Revenue / funding</div><div class="fin-val green">${fmt$(revenue)}</div></div><div class="fin-card"><div class="fin-lbl">Expenses</div><div class="fin-val red">${fmt$(expenses)}</div></div><div class="fin-card"><div class="fin-lbl">Net</div><div class="fin-val ${net>=0?'green':'red'}">${fmt$(net)}</div></div></div><table class="fin-table"><thead><tr><th>Description</th><th>Type</th><th style="text-align:right">Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="add-fin"><input id="fd-${p.id}" placeholder="Description..."/><select id="ft-${p.id}">${FIN_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select><input id="fa-${p.id}" type="number" placeholder="Amount" min="0"/><button onclick="addFin(${p.id})">+ Add</button></div><div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
 
-  } else if (p.openTab === 'convo') {
+  } else if (tab === 'convo') {
     const goalBox = `<div class="goal-box"><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Project goal</div><input class="fi" style="font-size:12px" value="${esc(p.goal||'')}" placeholder="Define success clearly..." onchange="updateField(${p.id},'goal',this.value)"/></div>`;
     const sections = CTOPICS.map(topic => {
       const items = (p.convo[topic]||'').split('\n').filter(x=>x.trim());
@@ -253,13 +254,19 @@ function renderDetail(p) {
     }).join('');
     el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div>${goalBox}${sections}<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
 
-  } else if (p.openTab === 'info') {
+  } else if (tab === 'info') {
     const stOpts = STAGES.map(s=>`<option value="${s.id}"${s.id===p.stage?' selected':''}>${s.label}</option>`).join('');
     const swatches = PC.map((col,i)=>`<div class="cswatch${p.color===i?' sel':''}" style="background:${col.bg};outline:1.5px solid ${col.bd};border-color:${p.color===i?'rgba(255,255,255,.6)':'transparent'}" onclick="updateField(${p.id},'color',${i})"></div>`).join('');
+    const fmtDate = value => {
+      const raw = String(value || '').trim();
+      if (!raw) return '—';
+      const dt = new Date(raw);
+      return Number.isNaN(dt.getTime()) ? raw : dt.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
     const prows = p.people.map((per,i)=>
       `<div class="person-row"><div class="av" style="background:${ac(per.name).bg};color:${ac(per.name).tc};width:22px;height:22px;font-size:9px">${ini(per.name)}</div><span class="pname">${esc(per.name)}</span><select class="psel" onchange="setPerm(${p.id},${i},this.value)"><option value="viewer"${per.perm==='viewer'?' selected':''}>Viewer</option><option value="editor"${per.perm==='editor'?' selected':''}>Editor</option></select><span class="ptag ${per.perm==='editor'?'te':'tv'}">${per.perm}</span><button class="tog ${per.visible?'tog-on':'tog-off'}" onclick="toggleVis(${p.id},${i})"></button><span class="ptag ${per.visible?'tvis':'th'}">${per.visible?'vis':'hidden'}</span><button class="rm" onclick="rmPerson(${p.id},${i})">×</button></div>`
     ).join('');
-    el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" value="${esc(p.name)}" onchange="updateField(${p.id},'name',this.value)"/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" onchange="updateField(${p.id},'stage',this.value)">${stOpts}</select></div><div class="fl"><span class="fl-lbl">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateField(${p.id},'desc',this.value)"/></div><div class="fl"><span class="fl-lbl">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateField(${p.id},'goal',this.value)"/></div><div class="fl"><span class="fl-lbl">GitHub repo</span><input class="fi" value="${esc(p.githubRepo||'')}" placeholder="owner/repo" onchange="updateField(${p.id},'githubRepo',this.value)"/></div><div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div><div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px"><div class="sec-title">Team access</div>${prows||'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">No team members.</div>'}<div class="add-pr"><input id="ni-${p.id}" placeholder="Name or email..." onkeydown="if(event.key==='Enter')addPerson(${p.id})"/><select id="np-${p.id}"><option value="viewer">Viewer</option><option value="editor">Editor</option></select><button onclick="addPerson(${p.id})">+ Invite</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" style="color:var(--red);border-color:rgba(240,96,96,.3)" onclick="deleteProject(${p.id})">Delete</button><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
+    el.innerHTML = `<div class="panel"><div class="ptabs">${tabBar}</div><div class="fl"><span class="fl-lbl">Name</span><input class="fi" value="${esc(p.name)}" onchange="updateField(${p.id},'name',this.value)"/></div><div class="fl"><span class="fl-lbl">Stage</span><select class="fi" onchange="updateField(${p.id},'stage',this.value)">${stOpts}</select></div><div class="fl"><span class="fl-lbl">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateField(${p.id},'desc',this.value)"/></div><div class="fl"><span class="fl-lbl">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateField(${p.id},'goal',this.value)"/></div><div class="fl"><span class="fl-lbl">GitHub repo</span><input class="fi" value="${esc(p.githubRepo||'')}" placeholder="owner/repo" onchange="updateField(${p.id},'githubRepo',this.value)"/></div><div class="fl"><span class="fl-lbl">Date started</span><input class="fi" value="${esc(fmtDate(p.startedAt))}" readonly/></div><div class="fl"><span class="fl-lbl">Date updated</span><input class="fi" value="${esc(fmtDate(p.updatedAt))}" readonly/></div><div class="fl"><span class="fl-lbl">Assignee</span><input class="fi" value="${esc(p.assignee||'Dax')}" onchange="updateField(${p.id},'assignee',this.value)"/></div><div class="fl"><span class="fl-lbl">Assigner</span><input class="fi" value="${esc(p.assigner||'Dax')}" onchange="updateField(${p.id},'assigner',this.value)"/></div><div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div><div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px"><div class="sec-title">Team access</div>${prows||'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">No team members.</div>'}<div class="add-pr"><input id="ni-${p.id}" placeholder="Name or email..." onkeydown="if(event.key==='Enter')addPerson(${p.id})"/><select id="np-${p.id}"><option value="viewer">Viewer</option><option value="editor">Editor</option></select><button onclick="addPerson(${p.id})">+ Invite</button></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" style="color:var(--red);border-color:rgba(240,96,96,.3)" onclick="deleteProject(${p.id})">Delete</button><button class="btn" onclick="closeDetail(${p.id})">Close</button></div></div>`;
   }
 }
 

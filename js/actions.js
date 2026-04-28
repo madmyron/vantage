@@ -247,7 +247,8 @@ function closeSubBoardOpenDax(pid) {
   if (overlay) { overlay.classList.remove('open'); overlay.innerHTML = ''; }
   projects = projects.map(p => ({...p, openSubBoard: false}));
   render();
-  openDax(pid);
+  const p = projects.find(x => x.id === pid);
+  openDax(pid, p ? `I want to talk about ${p.name}.` : '');
 }
 
 function toggleSubBoard(pid) {

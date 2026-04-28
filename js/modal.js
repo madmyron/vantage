@@ -1,7 +1,7 @@
 // ── PROJECT MODAL ─────────────────────────────────────────────
 
 let modalProjectId = null;
-let modalTab = 'pips';
+let modalTab = 'info';
 let modalScrollTop = 0;
 
 function getModalScrollContainer() {
@@ -26,7 +26,7 @@ function restoreModalScrollTop(scrollTop) {
 
 function openProjModal(pid) {
   modalProjectId = pid;
-  modalTab = 'pips';
+  modalTab = 'info';
   document.getElementById('proj-modal-overlay').classList.add('open');
   renderProjModal();
 }
@@ -45,7 +45,7 @@ function renderProjModal() {
   if (!p) return;
   const c = pc(p.color);
   const st = sf(p.stage);
-  const TABS = ['pips','convo','contacts','finances','info'];
+  const TABS = ['info','pips','convo','contacts','finances'];
   const tabHTML = TABS.map(t =>
     `<button class="proj-modal-tab${modalTab===t?' on':''}" onclick="switchModalTab('${t}')">${t === 'pips' ? 'PIPs' : t.charAt(0).toUpperCase()+t.slice(1)}</button>`
   ).join('');
@@ -73,7 +73,7 @@ function renderProjModal() {
       </div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="openDax(${p.id})">✦ Dax</button>
+      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick='openDax(${p.id}, ${JSON.stringify(`I want to talk about ${p.name}.`)})'>✦ Dax</button>
       <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
     </div>`;
 
@@ -237,6 +237,12 @@ function renderModalBody(p) {
     const swatches = PC.map((col,i) =>
       `<div class="cswatch${p.color===i?' sel':''}" style="background:${col.bg};outline:1.5px solid ${col.bd};border-color:${p.color===i?'rgba(0,0,0,.5)':'transparent'}" onclick="updateFieldModal(${p.id},'color',${i})"></div>`
     ).join('');
+    const fmtDate = value => {
+      const raw = String(value || '').trim();
+      if (!raw) return '—';
+      const dt = new Date(raw);
+      return Number.isNaN(dt.getTime()) ? raw : dt.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
     const prows = p.people.map((per,i) =>
       `<div class="person-row"><div class="av" style="background:${ac(per.name).bg};color:${ac(per.name).tc};width:22px;height:22px;font-size:9px">${ini(per.name)}</div><span class="pname">${esc(per.name)}</span><select class="psel" onchange="setPermModal(${p.id},${i},this.value)"><option value="viewer"${per.perm==='viewer'?' selected':''}>Viewer</option><option value="editor"${per.perm==='editor'?' selected':''}>Editor</option></select><span class="ptag ${per.perm==='editor'?'te':'tv'}">${per.perm}</span><button class="tog ${per.visible?'tog-on':'tog-off'}" onclick="toggleVisModal(${p.id},${i})"></button><span class="ptag ${per.visible?'tvis':'th'}">${per.visible?'vis':'hidden'}</span><button class="rm" onclick="rmPersonModal(${p.id},${i})">×</button></div>`
     ).join('');
@@ -246,6 +252,10 @@ function renderModalBody(p) {
       <div class="pm-field"><span class="pm-field-label">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateFieldModal(${p.id},'desc',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateFieldModal(${p.id},'goal',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">GitHub repo</span><input class="fi" value="${esc(p.githubRepo||'')}" placeholder="owner/repo" onchange="updateFieldModal(${p.id},'githubRepo',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">Date started</span><input class="fi" value="${esc(fmtDate(p.startedAt))}" readonly/></div>
+      <div class="pm-field"><span class="pm-field-label">Date updated</span><input class="fi" value="${esc(fmtDate(p.updatedAt))}" readonly/></div>
+      <div class="pm-field"><span class="pm-field-label">Assignee</span><input class="fi" value="${esc(p.assignee||'Dax')}" onchange="updateFieldModal(${p.id},'assignee',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">Assigner</span><input class="fi" value="${esc(p.assigner||'Dax')}" onchange="updateFieldModal(${p.id},'assigner',this.value)"/></div>
       <div class="pm-field" style="align-items:flex-start"><span class="pm-field-label" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div>
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
         <div class="pm-section-title">Team access</div>

@@ -17,6 +17,17 @@ function hideLoading() {
 }
 
 function projectToRow(p) {
+  const meta = {
+    githubRepo: p.githubRepo || null,
+    startedAt: p.startedAt || null,
+    updatedAt: p.updatedAt || null,
+    assignee: p.assignee || null,
+    assigner: p.assigner || null,
+  };
+  const convo = {
+    ...(p.convo || {}),
+    __meta: meta,
+  };
   return {
     id:           p.dbId || undefined,
     name:         p.name,
@@ -25,7 +36,7 @@ function projectToRow(p) {
     description:  p.desc || '',
     goal:         p.goal || '',
     github_repo:  p.githubRepo || null,
-    convo:        p.convo || {},
+    convo,
     tickets:      p.tickets || [],
     contacts:     p.contacts || [],
     finances:     p.finances || [],
@@ -37,6 +48,7 @@ function projectToRow(p) {
 }
 
 function rowToProject(row) {
+  const meta = row.convo && row.convo.__meta ? row.convo.__meta : {};
   return {
     id:           row.sort_order || nextId++,
     dbId:         row.id,
@@ -45,7 +57,11 @@ function rowToProject(row) {
     stage:        row.stage || 'idea',
     desc:         row.description || '',
     goal:         row.goal || '',
-    githubRepo:   row.github_repo || knownGithubRepoForName(row.name) || '',
+    githubRepo:   row.github_repo || meta.githubRepo || knownGithubRepoForName(row.name) || '',
+    startedAt:    meta.startedAt || row.started_at || '',
+    updatedAt:    meta.updatedAt || row.updated_at || '',
+    assignee:     meta.assignee || (row.people && row.people[0] && row.people[0].name) || 'Dax',
+    assigner:     meta.assigner || 'Dax',
     convo:        row.convo || {Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
     tickets:      (row.tickets || []).map(t => ({...t})),
     contacts:     row.contacts || [],
@@ -76,7 +92,15 @@ async function loadProjects() {
 }
 
 async function saveProject(p) {
-  const row = projectToRow(p);
+  const now = new Date().toISOString();
+  const project = {
+    ...p,
+    startedAt: p.startedAt || now,
+    updatedAt: now,
+    assignee: p.assignee || (p.people && p.people[0] && p.people[0].name) || 'Dax',
+    assigner: p.assigner || 'Dax',
+  };
+  const row = projectToRow(project);
   if (p.dbId) {
     const {error} = await sb.from('projects').update(row).eq('id', p.dbId);
     if (error) console.error('Save error:', error);
@@ -84,7 +108,7 @@ async function saveProject(p) {
     const {data, error} = await sb.from('projects').insert(row).select().single();
     if (error) { console.error('Insert error:', error); return; }
     if (data) {
-      projects = projects.map(x => x.id === p.id ? {...x, dbId:data.id} : x);
+      projects = projects.map(x => x.id === p.id ? {...x, dbId:data.id, startedAt: project.startedAt, updatedAt: project.updatedAt, assignee: project.assignee, assigner: project.assigner} : x);
     }
   }
 }

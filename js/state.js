@@ -180,3 +180,5 @@ let projects = [
     finances:[],people:[],openTab:null,
   },
 ];
+
+projects = projects.map(applyKnownGithubRepo);
