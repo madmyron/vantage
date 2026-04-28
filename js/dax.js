@@ -484,16 +484,7 @@ function buildCodeContextSummary(tree, keyFiles, query = '', repo = '') {
 
 function buildDaxContext(project, codeContext) {
   return {
-    activeProject: project ? {
-      ...project,
-      stageLabel: sf(project.stage).label,
-      subProjects: (project.subProjects || []).map(sp => ({
-        ...sp,
-        stageLabel: pipSf(normalizePipStage(sp.stage, project)).label,
-        assignee: sp.assignee || 'Dax',
-        assigner: sp.assigner || 'Dax',
-      })),
-    } : null,
+    activeProject: project ? { name: project.name } : null,
     portfolio: getProjectContextSummary(),
     team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
     pendingReview: daxOrchestration?.pendingReview || null,
@@ -520,16 +511,7 @@ Current focus: ${projectName}${codeContextBlock}`;
 }
 
 function buildReviewSystem(project, codeContext) {
-  const fullProjectContext = project ? JSON.stringify({
-    ...project,
-    stageLabel: sf(project.stage).label,
-    subProjects: (project.subProjects || []).map(sp => ({
-      ...sp,
-      stageLabel: pipSf(normalizePipStage(sp.stage, project)).label,
-      assignee: sp.assignee || 'Dax',
-      assigner: sp.assigner || 'Dax',
-    })),
-  }, null, 2) : 'null';
+  const fullProjectContext = project ? project.name : 'null';
   const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nUse this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.` : '';
 
   return `You are Dax acting as a project manager inside Vantage.

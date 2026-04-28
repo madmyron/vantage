@@ -40,7 +40,6 @@ function openProjModal(pid) {
 function closeProjModal() {
   document.getElementById('proj-modal-overlay').classList.remove('open');
   modalProjectId = null;
-  document.body.classList.remove('dax-split-mode');
 }
 
 document.getElementById('proj-modal-overlay').addEventListener('click', function(e) {
@@ -104,12 +103,7 @@ function switchModalTab(tab) {
 
 function openProjModalDax(pid) {
   const p = projects.find(x => x.id === pid);
-  if (p) {
-    document.body.classList.add('dax-split-mode');
-    openDax(pid, 'I want to talk about ' + p.name);
-  } else {
-    openDax(pid, '');
-  }
+  openDax(pid, p ? 'I want to talk about ' + p.name : '');
 }
 
 // ── MODAL BODY TABS ───────────────────────────────────────────
