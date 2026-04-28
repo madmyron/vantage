@@ -6,7 +6,7 @@ let daxHistory = [];
 const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
 const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
-const CLAUDE_QUEUE_URL = '/.netlify/functions/claude-code-trigger';
+const CLAUDE_QUEUE_URL = '/api/claude-code-trigger';
 const DAX_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const DAX_CHAT_HEADERS = {
   'Content-Type': 'application/json',

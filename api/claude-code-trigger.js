@@ -6,41 +6,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-export default async (req) => {
+export default async function handler(req, res) {
+  setCorsHeaders(res);
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+    res.status(204).end();
+    return;
   }
 
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, 405);
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
   }
 
   try {
-    const body = await req.json();
+    const body = normalizeBody(req.body);
     const jobs = normalizeJobs(body);
     const projectName = String(body?.projectName || '').trim();
     const projectId = body?.projectId || null;
 
     if (!jobs.length) {
-      return jsonResponse({ error: 'jobs are required' }, 400);
+      sendJson(res, 400, { error: 'jobs are required' });
+      return;
     }
 
     const workdir = process.cwd();
     const events = [];
 
     if (isGitDirty(workdir)) {
-      return jsonResponse({
+      sendJson(res, 409, {
         ok: false,
         status: 'paused',
-        message: 'Uncommitted changes detected — please commit before proceeding.',
-        events: ['Uncommitted changes detected — please commit before proceeding.'],
+        message: 'Uncommitted changes detected â€” please commit before proceeding.',
+        events: ['Uncommitted changes detected â€” please commit before proceeding.'],
         jobs: jobs.map(job => ({ ...job, status: 'queued' })),
         projectId,
         projectName,
-      }, 409);
+      });
+      return;
     }
 
     const results = [];
@@ -49,10 +52,10 @@ export default async (req) => {
       const job = { ...jobs[i], status: 'queued' };
 
       if (isGitDirty(workdir)) {
-        const pauseMessage = 'Uncommitted changes detected — please commit before proceeding.';
+        const pauseMessage = 'Uncommitted changes detected â€” please commit before proceeding.';
         events.push(pauseMessage);
         results.push({ ...job, status: 'queued' });
-        return jsonResponse({
+        sendJson(res, 409, {
           ok: false,
           status: 'paused',
           message: pauseMessage,
@@ -60,7 +63,8 @@ export default async (req) => {
           jobs: [...results, ...jobs.slice(i + 1).map(next => ({ ...next, status: 'queued' }))],
           projectId,
           projectName,
-        }, 409);
+        });
+        return;
       }
 
       events.push(`Starting PIP ${i + 1}: ${job.title}`);
@@ -94,19 +98,20 @@ export default async (req) => {
         job.status = 'failed';
         results[i] = { ...job };
         events.push(`PIP ${i + 1} failed: ${message}`);
-        return jsonResponse({
+        sendJson(res, 500, {
           ok: false,
           status: 'failed',
-          message: message,
+          message,
           events,
           jobs: results.concat(jobs.slice(i + 1).map(next => ({ ...next, status: 'queued' }))),
           projectId,
           projectName,
-        }, 500);
+        });
+        return;
       }
     }
 
-    return jsonResponse({
+    sendJson(res, 200, {
       ok: true,
       status: 'completed',
       message: 'Claude Code queue complete.',
@@ -114,11 +119,32 @@ export default async (req) => {
       jobs: results,
       projectId,
       projectName,
-    }, 200);
+    });
   } catch (err) {
-    return jsonResponse({ error: errorMessage(err) }, 500);
+    sendJson(res, 500, { error: errorMessage(err) });
   }
-};
+}
+
+function setCorsHeaders(res) {
+  Object.entries(corsHeaders).forEach(([key, value]) => res.setHeader(key, value));
+}
+
+function sendJson(res, status, data) {
+  setCorsHeaders(res);
+  res.status(status).json(data);
+}
+
+function normalizeBody(body) {
+  if (!body) return {};
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch (_) {
+      return {};
+    }
+  }
+  return body;
+}
 
 function normalizeJobs(body) {
   if (Array.isArray(body?.jobs)) {
@@ -204,17 +230,3 @@ function errorMessage(err) {
   const message = err instanceof Error ? err.message : String(err);
   return stderr || stdout || message || 'Unknown error';
 }
-
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-    },
-  });
-}
-
-export const config = {
-  path: '/.netlify/functions/claude-code-trigger',
-};
