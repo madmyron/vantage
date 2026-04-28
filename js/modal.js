@@ -245,6 +245,7 @@ function renderModalBody(p) {
       <div class="pm-field"><span class="pm-field-label">Stage</span><select class="fi" onchange="updateFieldModal(${p.id},'stage',this.value)">${stOpts}</select></div>
       <div class="pm-field"><span class="pm-field-label">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateFieldModal(${p.id},'desc',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateFieldModal(${p.id},'goal',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">GitHub repo</span><input class="fi" value="${esc(p.githubRepo||'')}" placeholder="owner/repo" onchange="updateFieldModal(${p.id},'githubRepo',this.value)"/></div>
       <div class="pm-field" style="align-items:flex-start"><span class="pm-field-label" style="padding-top:4px">Color</span><div class="color-grid">${swatches}</div></div>
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
         <div class="pm-section-title">Team access</div>

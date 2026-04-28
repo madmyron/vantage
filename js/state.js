@@ -8,6 +8,7 @@ let dragId = null, subDragId = null;
 let projects = [
   {
     id:1, name:'Comedy 4 All', color:0, stage:'inprogress',
+    githubRepo: knownGithubRepoForName('Comedy 4 All'),
     desc:'comedy4all.com · v10 · Supabase + Stripe',
     goal:'500 paying subscribers at $12/month.',
     subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Writing'},{id:'ss3',label:'In development'},{id:'ss4',label:'Testing'},{id:'ss5',label:'Live'}],
@@ -35,6 +36,7 @@ let projects = [
   },
   {
     id:2, name:'SipSavvy.ai', color:1, stage:'inprogress',
+    githubRepo: knownGithubRepoForName('SipSavvy.ai'),
     desc:'AI sommelier SaaS for restaurants',
     goal:'Sign first 10 paying restaurant clients.',
     subStages:[{id:'ss1',label:'Prospect'},{id:'ss2',label:'Outreach'},{id:'ss3',label:'Demo'},{id:'ss4',label:'Negotiating'},{id:'ss5',label:'Closed'}],
@@ -60,6 +62,7 @@ let projects = [
   },
   {
     id:3, name:'Aria', color:2, stage:'plan',
+    githubRepo: knownGithubRepoForName('Aria'),
     desc:'React PWA personal assistant · Vercel',
     goal:'Central hub for all projects.',
     subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Building'},{id:'ss3',label:'Done'}],
@@ -78,6 +81,7 @@ let projects = [
   },
   {
     id:4, name:'Plan-It Travel', color:3, stage:'initiate',
+    githubRepo: knownGithubRepoForName('Plan-It Travel'),
     desc:'Next.js constraint-based trip solver',
     goal:'Public beta with real flight data.',
     subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Building'},{id:'ss3',label:'Testing'},{id:'ss4',label:'Live'}],
@@ -93,6 +97,7 @@ let projects = [
   },
   {
     id:5, name:'FanHole (FLY)', color:4, stage:'evaluate',
+    githubRepo: knownGithubRepoForName('FanHole (FLY)'),
     desc:'Sports venue discovery platform',
     goal:'Close $2.5M seed round.',
     subStages:[{id:'ss1',label:'Concept'},{id:'ss2',label:'Building'},{id:'ss3',label:'Investor ready'},{id:'ss4',label:'Funded'}],
@@ -126,6 +131,7 @@ let projects = [
   },
   {
     id:6, name:'Find My Peeps', color:5, stage:'idea',
+    githubRepo: knownGithubRepoForName('Find My Peeps'),
     desc:'DFW underrepresented biz discovery',
     goal:'Go-to directory for DFW.',
     subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Validate'},{id:'ss3',label:'Build'},{id:'ss4',label:'Launch'}],
@@ -137,6 +143,7 @@ let projects = [
   },
   {
     id:7, name:'Vantage', color:6, stage:'plan',
+    githubRepo: knownGithubRepoForName('Vantage'),
     desc:'Entrepreneurial OS — see everything at once',
     goal:'Launch as a SaaS product for entrepreneurs.',
     subStages:[{id:'ss1',label:'Idea'},{id:'ss2',label:'Design'},{id:'ss3',label:'Build'},{id:'ss4',label:'Beta'},{id:'ss5',label:'Launch'}],

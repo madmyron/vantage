@@ -8,6 +8,35 @@ const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
 const CLAUDE_QUEUE_URL = '/api/claude-code-trigger';
 const DAX_ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
+const PROJECT_REPOS = {
+  aria: 'madmyron/aria-assistant',
+  vantage: 'madmyron/vantage',
+  comedy4all: 'madmyron/comedy4all',
+};
+const GITHUB_CODE_CONTEXT_CACHE = new Map();
+const IMPORTANT_CODE_FILES = [
+  'index.html',
+  'README.md',
+  'README',
+  'package.json',
+  'js/app.js',
+  'js/dax.js',
+  'js/render.js',
+  'js/modal.js',
+  'js/actions.js',
+  'css/styles.css',
+  'sw.js',
+  'manifest.json',
+  'api/claude-code-trigger.js',
+  'supabase/functions/dax-chat/index.ts',
+  'src/App.jsx',
+  'src/main.jsx',
+  'src/index.jsx',
+  'server/index.js',
+];
+const MAX_TREE_PREVIEW = 250;
+const MAX_KEY_FILES = 7;
+const MAX_FILE_CHARS = 12000;
 const DAX_CHAT_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
@@ -49,11 +78,18 @@ function saveDaxOrchestration() {
 }
 
 function scrollDaxToBottom() {
-  const chat = document.getElementById('dax-messages') || document.querySelector('.dax-chat') || document.querySelector('.dax-messages');
-  if (chat) chat.scrollTop = chat.scrollHeight + 9999;
+  const chat = document.getElementById('dax-messages');
+  if (chat) {
+    chat.scrollTop = chat.scrollHeight;
+  }
 }
 
 console.log('dax chat container:', document.getElementById('dax-messages'), document.querySelector('.dax-chat'), document.querySelector('.dax-messages'), document.querySelector('#dax-chat'));
+
+function scrollDaxToBottomDelayed() {
+  scrollDaxToBottom();
+  setTimeout(scrollDaxToBottom, 100);
+}
 
 function getProjectContextSummary() {
   return projects.map(p => {
@@ -87,7 +123,366 @@ function findProjectByName(name) {
   }) || null;
 }
 
-function buildDaxContext(project) {
+function normalizeProjectKey(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function getProjectRepo(project) {
+  const directRepo = String(project?.githubRepo || project?.repo || project?.github || '').trim();
+  if (directRepo) return directRepo;
+
+  const knownRepo = knownGithubRepoForName(project?.name || '');
+  if (knownRepo) return knownRepo;
+
+  const projectKey = normalizeProjectKey(project?.name || project?.slug || project?.id || '');
+  if (!projectKey) return null;
+
+  if (PROJECT_REPOS[projectKey]) {
+    return PROJECT_REPOS[projectKey];
+  }
+
+  const matchedEntry = Object.entries(PROJECT_REPOS).find(([key]) => projectKey.includes(key) || key.includes(projectKey));
+  return matchedEntry ? matchedEntry[1] : null;
+}
+
+function findProjectMentionInText(text) {
+  const lower = String(text || '').toLowerCase();
+  if (!lower) return null;
+  return projects.find(project => lower.includes(String(project.name || '').toLowerCase())) || null;
+}
+
+function shouldFetchCodeContext(text, project) {
+  const query = String(text || '').toLowerCase();
+  if (!query) return false;
+  if (/^(review|analy[sz]e|look at|inspect|audit)\b/.test(query)) return true;
+  if (/\b(how complete|what does|what is built|what's built|what is missing|what's missing|stubbed|implemented|auth system|code base|codebase|architecture|repo|tree)\b/.test(query)) {
+    return true;
+  }
+  if (project && /\b(code|implementation|auth|frontend|backend|ui|api|login|signup|supabase)\b/.test(query)) {
+    return true;
+  }
+  return false;
+}
+
+async function fetchGitHubCodeContext(project, query = '') {
+  const repo = getProjectRepo(project);
+  if (!repo) return null;
+
+  const cacheKey = `${normalizeProjectKey(repo)}::${normalizeProjectKey(query) || 'default'}`;
+  if (GITHUB_CODE_CONTEXT_CACHE.has(cacheKey)) {
+    return GITHUB_CODE_CONTEXT_CACHE.get(cacheKey);
+  }
+
+  const promise = (async () => {
+    const { tree, defaultBranch, truncated } = await fetchGitHubRepoTree(repo);
+    const treePreview = tree.slice(0, MAX_TREE_PREVIEW).map(entry => ({
+      path: entry.path,
+      type: entry.type,
+      size: entry.size || 0,
+    }));
+    const keyPaths = selectImportantCodeFiles(tree, query);
+    const keyFiles = [];
+    for (const path of keyPaths.slice(0, MAX_KEY_FILES)) {
+      const content = await fetchGitHubFileContent(repo, defaultBranch, path);
+      if (content) {
+        keyFiles.push({
+          path,
+          content: content.slice(0, MAX_FILE_CHARS),
+        });
+      }
+    }
+
+    return {
+      projectName: project?.name || null,
+      repoFullName: repo,
+      defaultBranch,
+      treeTotalCount: tree.length,
+      treeTruncated: truncated || tree.length > MAX_TREE_PREVIEW,
+      fileTree: treePreview,
+      keyFiles,
+      summary: buildCodeContextSummary(tree, keyFiles, query, repo),
+    };
+  })();
+
+  GITHUB_CODE_CONTEXT_CACHE.set(cacheKey, promise);
+  try {
+    return await promise;
+  } catch (err) {
+    GITHUB_CODE_CONTEXT_CACHE.delete(cacheKey);
+    console.warn('Could not fetch GitHub code context:', err);
+    return {
+      projectName: project?.name || null,
+      repoFullName: repo,
+      error: err instanceof Error ? err.message : String(err),
+      fileTree: [],
+      keyFiles: [],
+      summary: {
+        completionEstimate: 0,
+        built: [],
+        missing: IMPORTANT_CODE_FILES.slice(),
+        stubbed: [],
+        note: 'Could not fetch code context from GitHub.',
+      },
+    };
+  }
+}
+
+async function fetchProjectCode(repo) {
+  const repoFullName = String(repo || '').trim();
+  if (!repoFullName) return null;
+
+  const cacheKey = `project-code::${normalizeProjectKey(repoFullName)}`;
+  if (GITHUB_CODE_CONTEXT_CACHE.has(cacheKey)) {
+    return GITHUB_CODE_CONTEXT_CACHE.get(cacheKey);
+  }
+
+  const promise = (async () => {
+    const treeResult = await fetchProjectCodeTree(repoFullName);
+    if (!treeResult) return null;
+
+    const { tree, branch } = treeResult;
+    const keyPaths = selectProjectCodePaths(tree).slice(0, 5);
+    const keyFiles = [];
+
+    for (const path of keyPaths) {
+      const content = await fetchProjectCodeFile(repoFullName, branch, path);
+      if (content) {
+        keyFiles.push({
+          path,
+          content: content.slice(0, 3000),
+        });
+      }
+    }
+
+    const fileList = keyFiles.map(file => file.path);
+    const built = keyFiles.filter(file => !/todo|fixme|stub|placeholder|not implemented|temp/i.test(file.content)).map(file => file.path);
+    const stubbed = keyFiles.filter(file => /todo|fixme|stub|placeholder|not implemented|temp/i.test(file.content)).map(file => file.path);
+    const completionEstimate = Math.max(5, Math.min(98, Math.round((built.length / Math.max(1, keyPaths.length)) * 100)));
+
+    return {
+      repoFullName,
+      branch,
+      fileTree: tree.map(entry => ({ path: entry.path, type: entry.type, size: entry.size || 0 })),
+      keyFiles,
+      summary: {
+        fileList,
+        keyFileContents: keyFiles,
+        built,
+        missing: keyPaths.filter(path => !fileList.includes(path)),
+        stubbed,
+        completionEstimate,
+        note: 'Read-only GitHub code context.',
+      },
+    };
+  })();
+
+  GITHUB_CODE_CONTEXT_CACHE.set(cacheKey, promise);
+  try {
+    return await promise;
+  } catch (err) {
+    GITHUB_CODE_CONTEXT_CACHE.delete(cacheKey);
+    console.warn('Could not fetch project code:', err);
+    return null;
+  }
+}
+
+async function fetchProjectCodeTree(repo) {
+  const branches = ['main', 'master'];
+  for (const branch of branches) {
+    const res = await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`, {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        branch,
+        tree: Array.isArray(data.tree) ? data.tree.filter(entry => entry && entry.type === 'blob' && entry.path) : [],
+      };
+    }
+    if (res.status !== 404) {
+      throw new Error(`GitHub tree fetch failed for ${repo} (${res.status})`);
+    }
+  }
+  return null;
+}
+
+function selectProjectCodePaths(tree) {
+  const paths = tree.map(entry => String(entry.path || '')).filter(Boolean);
+  const selected = [];
+  const push = path => {
+    if (path && paths.includes(path) && !selected.includes(path)) {
+      selected.push(path);
+    }
+  };
+
+  const priority = [
+    'index.html',
+    'README.md',
+    'README',
+    'package.json',
+    'js/app.js',
+    'js/dax.js',
+    'js/render.js',
+    'js/modal.js',
+    'js/actions.js',
+    'js/constants.js',
+    'js/state.js',
+    'css/styles.css',
+    'api/claude-code-trigger.js',
+    'supabase/functions/dax-chat/index.ts',
+    'src/main.jsx',
+    'src/App.jsx',
+    'src/index.jsx',
+    'server/index.js',
+  ];
+
+  priority.forEach(push);
+
+  paths
+    .filter(path => /^(index\.html|README(\.md)?|package\.json|js\/|css\/|api\/|src\/|supabase\/functions\/|server\/)/i.test(path))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
+    .forEach(push);
+
+  return selected;
+}
+
+async function fetchProjectCodeFile(repo, branch, filepath) {
+  const branches = branch === 'master' ? ['master'] : ['main', 'master'];
+  for (const currentBranch of branches) {
+    const url = `https://raw.githubusercontent.com/${repo}/${currentBranch}/${filepath.split('/').map(segment => encodeURIComponent(segment)).join('/')}`;
+    const res = await fetch(url, { headers: { Accept: 'text/plain' } });
+    if (res.ok) {
+      return await res.text();
+    }
+    if (res.status !== 404) {
+      continue;
+    }
+  }
+  return '';
+}
+
+async function fetchGitHubRepoTree(repo) {
+  let defaultBranch = 'main';
+  let res = await fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`, {
+    headers: { Accept: 'application/vnd.github+json' },
+  });
+
+  if (!res.ok) {
+    const repoInfo = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { Accept: 'application/vnd.github+json' },
+    }).then(r => r.ok ? r.json() : null).catch(() => null);
+    defaultBranch = String(repoInfo?.default_branch || 'main').trim() || 'main';
+    res = await fetch(`https://api.github.com/repos/${repo}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`, {
+      headers: { Accept: 'application/vnd.github+json' },
+    });
+  }
+
+  if (!res.ok) {
+    throw new Error(`GitHub tree fetch failed for ${repo} (${res.status})`);
+  }
+
+  const data = await res.json();
+  return {
+    defaultBranch,
+    truncated: Boolean(data.truncated),
+    tree: Array.isArray(data.tree) ? data.tree.filter(entry => entry && entry.type === 'blob' && entry.path) : [],
+  };
+}
+
+async function fetchGitHubFileContent(repo, branch, path) {
+  const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`, {
+    headers: { Accept: 'application/vnd.github+json' },
+  });
+
+  if (!res.ok) {
+    return '';
+  }
+
+  const data = await res.json().catch(() => null);
+  if (!data || Array.isArray(data) || data.type === 'dir') {
+    return '';
+  }
+
+  if (typeof data.content === 'string' && data.content.trim()) {
+    return decodeGitHubBase64(data.content);
+  }
+
+  return String(data.download_url || '');
+}
+
+function decodeGitHubBase64(value) {
+  const cleaned = String(value || '').replace(/\s+/g, '');
+  if (!cleaned) return '';
+  try {
+    return decodeURIComponent(escape(atob(cleaned)));
+  } catch (_) {
+    try {
+      return atob(cleaned);
+    } catch (err) {
+      return '';
+    }
+  }
+}
+
+function selectImportantCodeFiles(tree, query = '') {
+  const paths = tree.map(entry => String(entry.path || '')).filter(Boolean);
+  const selected = [];
+  const push = path => {
+    if (path && paths.includes(path) && !selected.includes(path)) {
+      selected.push(path);
+    }
+  };
+  const lowerQuery = String(query || '').toLowerCase();
+
+  IMPORTANT_CODE_FILES.forEach(push);
+
+  const priorityPatterns = [];
+  if (/\b(auth|login|signup|signin|password|oauth|session)\b/.test(lowerQuery)) {
+    priorityPatterns.push(/auth/i, /login/i, /signup/i, /signin/i, /session/i, /supabase/i);
+  }
+  if (/\b(api|backend|server|function|route|endpoint)\b/.test(lowerQuery)) {
+    priorityPatterns.push(/api/i, /server/i, /function/i, /route/i);
+  }
+  if (/\b(ui|frontend|layout|board|modal|chat|dashboard)\b/.test(lowerQuery)) {
+    priorityPatterns.push(/index\.html$/i, /styles\.css$/i, /modal/i, /render/i, /app/i);
+  }
+
+  for (const pattern of priorityPatterns) {
+    paths.filter(path => pattern.test(path)).forEach(push);
+  }
+
+  paths
+    .filter(path => /^(index\.html|README(\.md)?|package\.json|js\/|css\/|api\/|src\/|supabase\/functions\/)/i.test(path))
+    .sort((a, b) => a.length - b.length || a.localeCompare(b))
+    .forEach(push);
+
+  return selected.slice(0, MAX_KEY_FILES);
+}
+
+function buildCodeContextSummary(tree, keyFiles, query = '', repo = '') {
+  const filePaths = new Set(tree.map(entry => String(entry.path || '')));
+  const built = IMPORTANT_CODE_FILES.filter(path => filePaths.has(path));
+  const missing = IMPORTANT_CODE_FILES.filter(path => !filePaths.has(path));
+  const stubbed = keyFiles
+    .filter(file => /todo|fixme|stub|placeholder|not implemented|temp/i.test(String(file.content || '')))
+    .map(file => file.path);
+  const completionEstimate = Math.max(5, Math.min(98, Math.round((built.length / IMPORTANT_CODE_FILES.length) * 100)));
+
+  return {
+    repoFullName: repo || null,
+    query: String(query || '').trim(),
+    completionEstimate,
+    built,
+    missing,
+    stubbed,
+    note: `GitHub-aware code context for ${repo || 'unknown repo'}.`,
+  };
+}
+
+function buildDaxContext(project, codeContext) {
   return {
     activeProject: project ? {
       ...project,
@@ -105,23 +500,26 @@ function buildDaxContext(project) {
     pendingQueue: daxOrchestration?.pendingQueue || null,
     pendingStalePipDeletion: Boolean(daxOrchestration?.pendingStalePipDeletion),
     stalePips: Array.isArray(daxOrchestration?.stalePips) ? daxOrchestration.stalePips : [],
+    codeContext: codeContext || null,
   };
 }
 
-function buildNormalDaxSystem(project) {
+function buildNormalDaxSystem(project, codeContext) {
   const projectName = project ? project.name : 'the current portfolio';
+  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.` : '';
   return `You are Dax, the built-in AI advisor for Vantage, an entrepreneurial operating system.
 
 Be direct, curious, and concise. Ask one pointed question at a time. Push the founder toward clarity.
 Use the provided context to avoid asking for things already known.
+Do not guess about code if code context is available. Use it to answer honestly about completion percentage, built vs stubbed, and what is missing.
 
 If the user asks you to create PIPs, append one JSON block per PIP at the very end using this exact format:
 [PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]
 
-Current focus: ${projectName}`;
+Current focus: ${projectName}${codeContextBlock}`;
 }
 
-function buildReviewSystem(project) {
+function buildReviewSystem(project, codeContext) {
   const fullProjectContext = project ? JSON.stringify({
     ...project,
     stageLabel: sf(project.stage).label,
@@ -132,12 +530,14 @@ function buildReviewSystem(project) {
       assigner: sp.assigner || 'Dax',
     })),
   }, null, 2) : 'null';
+  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nUse this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.` : '';
 
   return `You are Dax acting as a project manager inside Vantage.
 
 The user asked to review the project. Analyze the project's goals, current state, and existing PIPs.
 Draft a proposed list of NEW PIPs in recommended execution order.
 Keep it concise and non-technical.
+Use the code context to be honest about completion percentage, what is actually built, what is stubbed, and what is missing before proposing new PIPs.
 Each proposed PIP must include two descriptions:
 - displayDescription: one plain sentence for the founder
 - technicalDescription: the full build details for Claude Code later
@@ -145,7 +545,7 @@ The response should stay concise. In chat, the founder-facing description is the
 No file names in the founder-facing line, no technical jargon there, no long explanations. Write like you're talking to a busy founder, not a developer.
 
 Project context:
-${fullProjectContext}
+${fullProjectContext}${codeContextBlock}
 
 Return ONLY valid JSON using this shape:
 {
@@ -171,11 +571,11 @@ Rules:
 `;
 }
 
-function buildReviewAnthropicPayload(project, messages) {
+function buildReviewAnthropicPayload(project, messages, codeContext) {
   return {
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
-    system: buildReviewSystem(project),
+    system: buildReviewSystem(project, codeContext),
     messages,
     tools: [proposeReviewPlanTool()],
     tool_choice: { type: 'tool', name: 'propose_review_plan' },
@@ -686,11 +1086,12 @@ function isMissingDaxHistoryError(err) {
 
 async function callDaxChat(messages, context, system) {
   try {
-    const payload = { messages, context, system };
+    const payload = { messages, context, codeContext: context?.codeContext || null, system };
     console.log('dax request payload:', {
       hasActiveProject: !!context?.activeProject,
       activeProjectName: context?.activeProject?.name || null,
       hasPendingReview: !!context?.pendingReview,
+      hasCodeContext: !!context?.codeContext,
       payload,
     });
 
@@ -762,7 +1163,7 @@ async function initDax() {
     await saveDaxMessage('assistant', opener);
   } else {
     history.forEach(m => daxAddMsg(m.role === 'assistant' ? 'dax' : 'user', m.role === 'assistant' ? 'Dax' : 'You', m.content));
-    scrollDaxToBottom();
+    scrollDaxToBottomDelayed();
   }
 
   if (daxOrchestration?.pendingReview?.projectName) {
@@ -779,7 +1180,7 @@ function daxAddMsg(role, label, text) {
   div.className = `dax-msg ${role}`;
   div.innerHTML = `<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g, '<br>')}</div>`;
   msgs.appendChild(div);
-  scrollDaxToBottom();
+  scrollDaxToBottomDelayed();
 }
 
 function daxShowTyping() {
@@ -790,7 +1191,7 @@ function daxShowTyping() {
   div.id = 'dax-typing-indicator';
   div.innerHTML = '<div class="dax-msg-label">Dax</div><div class="dax-typing"><span></span><span></span><span></span></div>';
   msgs.appendChild(div);
-  scrollDaxToBottom();
+  scrollDaxToBottomDelayed();
 }
 
 function daxRemoveTyping() {
@@ -805,8 +1206,10 @@ async function handleReviewCommand(projectName) {
   }
 
   console.log('review project data:', project);
-  const context = buildDaxContext(project);
-  const system = buildReviewSystem(project);
+  const repo = getProjectRepo(project);
+  const codeContext = repo ? await fetchProjectCode(repo) : null;
+  const context = buildDaxContext(project, codeContext);
+  const system = buildReviewSystem(project, codeContext);
   const messages = [
     { role: 'user', content: `Review this project: ${project.name}. Draft the next PIPs, ordered by execution priority.` },
   ];
@@ -831,7 +1234,7 @@ async function handleReviewCommand(projectName) {
       return;
     }
 
-    const reviewPayload = buildReviewAnthropicPayload(project, messages);
+    const reviewPayload = buildReviewAnthropicPayload(project, messages, codeContext);
     console.log('review anthropic payload:', reviewPayload);
 
     const res = await fetch(DAX_ANTHROPIC_URL, {
@@ -1035,8 +1438,12 @@ async function daxSend() {
 
   try {
     const activeProject = daxProjectId ? projects.find(p => p.id === daxProjectId) : null;
-    const context = buildDaxContext(activeProject);
-    const system = buildNormalDaxSystem(activeProject);
+    const mentionProject = findProjectMentionInText(text);
+    const codeProject = mentionProject || activeProject;
+    const repo = codeProject ? getProjectRepo(codeProject) : null;
+    const codeContext = (repo && shouldFetchCodeContext(text, codeProject)) ? await fetchProjectCode(repo) : null;
+    const context = buildDaxContext(activeProject, codeContext);
+    const system = buildNormalDaxSystem(activeProject, codeContext);
     const reply = await callDaxChat(daxHistory.slice(-30), context, system);
     daxRemoveTyping();
     daxTyping = false;
@@ -1101,7 +1508,7 @@ function openDax(pid) {
   }
   const inp = document.getElementById('dax-input');
   if (inp) inp.focus();
-  scrollDaxToBottom();
+  scrollDaxToBottomDelayed();
 }
 
 function closeDax() {
@@ -1123,9 +1530,11 @@ function daxKeydown(e) {
 const daxOverlay = document.getElementById('dax-overlay');
 if (daxOverlay) daxOverlay.addEventListener('click', function() {});
 
-window.addEventListener('focus', scrollDaxToBottom);
+window.addEventListener('focus', scrollDaxToBottomDelayed);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) scrollDaxToBottom();
+  if (!document.hidden) scrollDaxToBottomDelayed();
 });
+
+document.addEventListener('DOMContentLoaded', scrollDaxToBottomDelayed);
 
 

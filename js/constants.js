@@ -43,6 +43,15 @@ const CTOPICS       = ['Goal','Ideas','Financing','Marketing','Team','Timeline',
 const CONTACT_TYPES = ['team','investor','partner','client','vendor','press'];
 const FIN_TYPES     = ['revenue','expense','investment','grant'];
 const PIP_USERS     = ['Dax'];
+const KNOWN_REPOS = {
+  'aria': 'madmyron/aria-assistant',
+  'fly': 'madmyron/FLY',
+  'fans like you': 'madmyron/FandLikeYou',
+  'comedy4all': 'madmyron/comedy4all',
+  'comedy 4 all': 'madmyron/comedy4all',
+  'vantage': 'madmyron/vantage',
+  'masters fantasy': 'madmyron/masters-fantasy',
+};
 const PIP_STAGES    = [
   {id:'idea',       label:'IDEA'},
   {id:'todo',       label:'TO DO'},
@@ -105,5 +114,21 @@ function mkSubP(name, desc, stageId) {
     assigner:'Dax',
     tickets:[],
     _openNote:false,
+  };
+}
+
+function knownGithubRepoForName(name) {
+  const key = String(name || '').trim().toLowerCase();
+  if (!key) return '';
+  if (KNOWN_REPOS[key]) return KNOWN_REPOS[key];
+  const entry = Object.entries(KNOWN_REPOS).find(([pattern]) => key === pattern || key.includes(pattern) || pattern.includes(key));
+  return entry ? entry[1] : '';
+}
+
+function applyKnownGithubRepo(project) {
+  if (!project) return project;
+  return {
+    ...project,
+    githubRepo: project.githubRepo || knownGithubRepoForName(project.name) || '',
   };
 }

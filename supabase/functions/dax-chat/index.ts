@@ -12,7 +12,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { messages, context, system } = await req.json() as {
+    const { messages, context, codeContext, system } = await req.json() as {
       messages: Array<{ role: "user" | "assistant"; content: string }>;
       context?: {
         projects?: unknown[];
@@ -21,10 +21,16 @@ Deno.serve(async (req: Request) => {
         team?: unknown[];
         activeProject?: unknown;
         pendingReview?: unknown;
+        codeContext?: unknown;
       };
+      codeContext?: unknown;
       system?: string;
     };
     const isReviewMode = Boolean(context?.pendingReview);
+    const resolvedContext = {
+      ...(context || {}),
+      codeContext: codeContext ?? context?.codeContext ?? null,
+    };
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
@@ -36,7 +42,7 @@ Deno.serve(async (req: Request) => {
 
     const client = new Anthropic({ apiKey });
 
-    const systemPrompt = isReviewMode ? buildReviewSystem(context) : (system?.trim() ? system : buildSystem(context));
+    const systemPrompt = isReviewMode ? buildReviewSystem(resolvedContext) : (system?.trim() ? system : buildSystem(resolvedContext));
     const tools = isReviewMode ? [proposeReviewPlanTool()] : undefined;
     const toolChoice = isReviewMode ? { type: "tool" as const, name: "propose_review_plan" } : undefined;
 
@@ -70,6 +76,7 @@ function buildSystem(ctx?: {
   team?: unknown[];
   activeProject?: unknown;
   pendingReview?: unknown;
+  codeContext?: unknown;
 }): string {
   const lines: string[] = [
     "You are Dax, a sharp and concise AI advisor built into Vantage — an entrepreneurial operating system.",
@@ -77,6 +84,8 @@ function buildSystem(ctx?: {
     "Be direct, specific, and action-oriented. No fluff. Use bullet points when listing items.",
     "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
     "When referencing data, cite project names and PIP IDs. Keep responses under 300 words unless asked for more.",
+    "If codeContext is present, use it to answer honestly about completion percentage, what is built, what is stubbed, and what is missing. Do not guess when codeContext exists.",
+    "When code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.",
     "",
     "Today's date: " + new Date().toISOString().split("T")[0],
   ];
@@ -100,6 +109,11 @@ function buildSystem(ctx?: {
   if (ctx?.activeProject) {
     lines.push("\n## Active Project Context");
     lines.push(JSON.stringify(ctx.activeProject, null, 2));
+  }
+  if (ctx?.codeContext) {
+    lines.push("\n## GitHub Code Context");
+    lines.push(JSON.stringify(ctx.codeContext, null, 2));
+    lines.push("Use this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.");
   }
   if (ctx?.pendingReview) {
     lines.push("\n## Pending Review");
@@ -138,6 +152,7 @@ function buildReviewSystem(ctx?: {
   team?: unknown[];
   activeProject?: unknown;
   pendingReview?: unknown;
+  codeContext?: unknown;
 }): string {
   const lines: string[] = [
     "You are Dax acting as a project manager inside Vantage.",
@@ -145,6 +160,8 @@ function buildReviewSystem(ctx?: {
     "Do not output normal text. Use the tool once and only once.",
     "The tool output must be concise, founder-friendly, and ready for Claude Code handoff.",
     "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
+    "If codeContext is present, use it to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly before proposing new PIPs.",
+    "When code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.",
   ];
 
   if (ctx?.activeProject) {
@@ -154,6 +171,11 @@ function buildReviewSystem(ctx?: {
   if (ctx?.pendingReview) {
     lines.push("\n## Pending Review");
     lines.push(JSON.stringify(ctx.pendingReview, null, 2));
+  }
+  if (ctx?.codeContext) {
+    lines.push("\n## GitHub Code Context");
+    lines.push(JSON.stringify(ctx.codeContext, null, 2));
+    lines.push("Use this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.");
   }
 
   lines.push("");

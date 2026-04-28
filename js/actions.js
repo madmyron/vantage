@@ -321,6 +321,7 @@ function openAdd() {
     <div class="fl"><span class="fl-lbl">Stage</span><select class="fi" id="m-stage">${STAGES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}</select></div>
     <div class="fl"><span class="fl-lbl">Summary</span><input class="fi" id="m-desc" placeholder="One-line description..."/></div>
     <div class="fl"><span class="fl-lbl">Goal</span><input class="fi" id="m-goal" placeholder="What does success look like?"/></div>
+    <div class="fl"><span class="fl-lbl">GitHub repo</span><input class="fi" id="m-repo" placeholder="owner/repo"/></div>
     <div class="fl" style="align-items:flex-start"><span class="fl-lbl" style="padding-top:5px">Color</span><div class="color-grid" id="nc-grid">${swatches}</div></div>
     <div class="modal-acts"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-accent" onclick="saveNew()">Add project</button></div>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -346,6 +347,7 @@ function saveNew() {
     stage: document.getElementById('m-stage').value,
     desc:  document.getElementById('m-desc').value.trim() || 'No description',
     goal:  document.getElementById('m-goal').value.trim(),
+    githubRepo: document.getElementById('m-repo').value.trim() || knownGithubRepoForName(name),
     subStages:    PIP_STAGES.map(s => ({id:s.id, label:s.label})),
     subProjects:  [], openSubBoard:false,
     convo: {Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},

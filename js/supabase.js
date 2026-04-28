@@ -24,6 +24,7 @@ function projectToRow(p) {
     stage:        p.stage,
     description:  p.desc || '',
     goal:         p.goal || '',
+    github_repo:  p.githubRepo || null,
     convo:        p.convo || {},
     tickets:      p.tickets || [],
     contacts:     p.contacts || [],
@@ -44,6 +45,7 @@ function rowToProject(row) {
     stage:        row.stage || 'idea',
     desc:         row.description || '',
     goal:         row.goal || '',
+    githubRepo:   row.github_repo || knownGithubRepoForName(row.name) || '',
     convo:        row.convo || {Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
     tickets:      (row.tickets || []).map(t => ({...t})),
     contacts:     row.contacts || [],
@@ -66,7 +68,7 @@ async function loadProjects() {
   const {data, error} = await sb.from('projects').select('*').order('sort_order', {ascending:true});
   if (error) { console.error('Load error:', error); hideLoading(); render(); return; }
   if (data && data.length > 0) {
-    projects = data.map(rowToProject);
+    projects = data.map(rowToProject).map(applyKnownGithubRepo);
     nextId = Math.max(...projects.map(p => p.id)) + 1;
   }
   hideLoading();
