@@ -835,6 +835,10 @@ To propose a code change for Claude to execute, add ONE EXECUTE block per change
 
 Only output EXECUTE blocks when you have a clear, specific code change ready. Do not output them speculatively.
 
+If you hit a technical problem you can't solve on your own (e.g. a file is too large to edit in one shot, execution keeps failing, you're unsure how to split a task), ask Claude for help by outputting a THINK block:
+[THINK:{"problem":"describe the specific technical challenge","context":"what you've already tried or what failed"}]
+Claude will respond with a concrete solution and you can continue. Use this instead of giving up or asking the user.
+
 To move a PIP to a different stage, output at the end of your message:
 [MOVE_PIP:{"projectName":"exact project name","pipName":"exact pip name","stage":"idea|todo|inprogress|done"}]
 
@@ -1147,6 +1151,18 @@ function applyQueueJobStatuses(project, jobs) {
     return { ...sp, status: status === 'running' ? 'in progress' : status };
   });
   return { ...project, subProjects: updatedSubProjects };
+}
+
+async function callDaxThink(problem, context, repo) {
+  const { data, error } = await sb.functions.invoke('dax-think', {
+    body: { problem, context: context || '', repo: repo || '' },
+  });
+  if (error) {
+    let msg = error.message || 'dax-think failed';
+    try { const b = await error.context?.json?.(); if (b?.error) msg = b.error; } catch (_) {}
+    throw new Error(msg);
+  }
+  return data?.solution || '';
 }
 
 async function executePip(repo, pip) {
@@ -1866,9 +1882,51 @@ async function daxSend() {
       const executeMatches = extractDaxBlocks(reply, 'EXECUTE');
       const pipMatches = extractDaxBlocks(reply, 'PIP');
       const movePipMatches = extractDaxBlocks(reply, 'MOVE_PIP');
+      const thinkMatches = extractDaxBlocks(reply, 'THINK');
       let cleanText = reply;
-      [...executeMatches, ...pipMatches, ...movePipMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
+      [...executeMatches, ...pipMatches, ...movePipMatches, ...thinkMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
       cleanText = cleanText.trim();
+
+      // Handle THINK blocks — Dax is asking me for technical guidance, resolve silently then re-send
+      if (thinkMatches.length > 0) {
+        for (const match of thinkMatches) {
+          const { problem, context: thinkCtx } = match.parsed;
+          try {
+            daxShowTyping();
+            const solution = await callDaxThink(problem, thinkCtx, repo);
+            daxRemoveTyping();
+            const injected = `Claude's guidance: ${solution}`;
+            daxHistory.push({ role: 'user', content: injected });
+            // Re-call Dax with the guidance injected — it will continue from here
+            const followUp = await callDaxChat(daxHistory.slice(-30), context, system);
+            daxRemoveTyping();
+            if (followUp) {
+              const cleanFollowUp = followUp
+                .replace(/\[THINK:[^\]]*\]/g, '')
+                .trim();
+              if (cleanFollowUp) {
+                daxAddMsg('dax', 'Dax', cleanFollowUp);
+                daxHistory.push({ role: 'assistant', content: cleanFollowUp });
+                await saveDaxMessage('assistant', cleanFollowUp);
+              }
+              // Process any EXECUTE blocks in the follow-up
+              const followExec = extractDaxBlocks(followUp, 'EXECUTE');
+              if (followExec.length > 0) {
+                const actions = followExec.map(m => {
+                  const action = m.parsed;
+                  const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
+                  return { action, proj, repo: proj ? getProjectRepo(proj) : null };
+                });
+                daxShowExecuteApproval(actions);
+              }
+            }
+          } catch (err) {
+            daxRemoveTyping();
+            console.warn('dax-think error:', err);
+          }
+        }
+        return; // THINK blocks handled above, skip normal flow
+      }
 
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
