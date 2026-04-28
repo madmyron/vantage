@@ -41,7 +41,6 @@ function projectToRow(p) {
     stage:        p.stage,
     description:  p.desc || '',
     goal:         p.goal || '',
-    github_repo:  p.githubRepo || null,
     convo,
     tickets:      p.tickets || [],
     contacts:     p.contacts || [],

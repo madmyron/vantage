@@ -87,7 +87,7 @@ Return only the complete modified file content.`;
 
       const response = await client.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 8096,
+        max_tokens: 16000,
         messages: [{ role: "user", content: prompt }],
       });
 
