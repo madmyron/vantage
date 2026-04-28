@@ -1136,7 +1136,14 @@ async function executePip(repo, pip) {
   const { data, error } = await sb.functions.invoke('dax-execute', {
     body: { repo, pip },
   });
-  if (error) throw new Error(error.message || 'dax-execute failed');
+  if (error) {
+    let msg = error.message || 'dax-execute failed';
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) msg = body.error;
+    } catch (_) {}
+    throw new Error(msg);
+  }
   return data;
 }
 
