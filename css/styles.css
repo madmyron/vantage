@@ -318,6 +318,13 @@ select.fi option{background:var(--bg3)}
 .proj-modal-overlay.open{display:flex}
 .proj-modal{background:var(--bg2);border-radius:14px;border:1px solid var(--border2);width:95vw;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.3);overflow:hidden}
 .proj-modal.proj-modal-narrow{width:min(600px,95vw);max-width:min(600px,95vw)}
+.dax-split-mode{overflow:hidden}
+.dax-split-mode .main{overflow:hidden}
+.dax-split-mode .dax-panel{position:fixed;top:0;right:0;width:380px;min-width:380px;height:100vh;z-index:260;border-left:1px solid var(--border2);box-shadow:-12px 0 32px rgba(0,0,0,.18)}
+.dax-split-mode .dax-overlay{display:block}
+.dax-split-mode .proj-modal-overlay.open{align-items:stretch;justify-content:flex-start;padding:0;background:rgba(0,0,0,.25);z-index:255}
+.dax-split-mode .proj-modal{position:fixed;left:0;top:0;width:calc(100vw - 380px);max-width:calc(100vw - 380px);height:100vh;max-height:100vh;border-radius:0;border-right:1px solid var(--border2)}
+.dax-split-mode .proj-modal.proj-modal-narrow{width:calc(100vw - 380px);max-width:calc(100vw - 380px)}
 .proj-modal-header{padding:16px 20px 0;flex-shrink:0}
 .proj-modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .proj-modal-title{font-size:20px;font-weight:700;color:var(--text);line-height:1.2}

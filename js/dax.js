@@ -1513,11 +1513,9 @@ function openDax(pid, starterMessage = '') {
   const inp = document.getElementById('dax-input');
   if (inp) inp.focus();
   scrollDaxToBottomDelayed();
-  const msg = String(starterMessage || '')
-    .replace(/\s+/g, ' ')
-    .replace(/\s+([?.!,])$/g, '$1')
-    .trim();
+  const msg = String(starterMessage || '').trim();
   if (msg) {
+    console.log('Dax starter message:', msg);
     if (inp) inp.value = msg;
     setTimeout(() => {
       const current = document.getElementById('dax-input');

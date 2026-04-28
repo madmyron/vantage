@@ -250,7 +250,7 @@ function closeSubBoardOpenDax(pid) {
   projects = projects.map(p => ({...p, openSubBoard: false}));
   render();
   const p = projects.find(x => x.id === pid);
-  openDax(pid, p ? `I want to talk about ${p.name}.` : '');
+  openDax(pid, p ? 'I want to talk about ' + p.name : '');
 }
 
 function toggleSubBoard(pid) {
