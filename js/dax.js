@@ -33,19 +33,24 @@ function promptDaxAnthropicKey() {
 function loadDaxOrchestration() {
   try {
     const raw = localStorage.getItem(DAX_ORCHESTRATION_KEY);
-    return raw ? JSON.parse(raw) : { pendingReview: null };
+    return raw ? JSON.parse(raw) : { pendingReview: null, pendingQueue: null };
   } catch (err) {
     console.warn('Could not load Dax orchestration state:', err);
-    return { pendingReview: null };
+    return { pendingReview: null, pendingQueue: null };
   }
 }
 
 function saveDaxOrchestration() {
   try {
-    localStorage.setItem(DAX_ORCHESTRATION_KEY, JSON.stringify(daxOrchestration || { pendingReview: null }));
+    localStorage.setItem(DAX_ORCHESTRATION_KEY, JSON.stringify(daxOrchestration || { pendingReview: null, pendingQueue: null }));
   } catch (err) {
     console.warn('Could not save Dax orchestration state:', err);
   }
+}
+
+function scrollDaxToBottom() {
+  const msgs = document.getElementById('dax-messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
 }
 
 function getProjectContextSummary() {
@@ -95,6 +100,7 @@ function buildDaxContext(project) {
     portfolio: getProjectContextSummary(),
     team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
     pendingReview: daxOrchestration?.pendingReview || null,
+    pendingQueue: daxOrchestration?.pendingQueue || null,
   };
 }
 
@@ -507,8 +513,105 @@ function stashPendingReview(plan, project) {
 }
 
 function clearPendingReview() {
-  daxOrchestration = { pendingReview: null };
+  daxOrchestration = { pendingReview: null, pendingQueue: null };
   saveDaxOrchestration();
+}
+
+function clearPendingQueue() {
+  daxOrchestration = { ...daxOrchestration, pendingQueue: null };
+  saveDaxOrchestration();
+}
+
+function stashPendingQueue(queue) {
+  daxOrchestration = {
+    ...daxOrchestration,
+    pendingQueue: queue,
+  };
+  saveDaxOrchestration();
+}
+
+function shouldDeleteStalePipsReply(text) {
+  return /^(yes|y|no|n|delete|keep)\b/i.test(String(text || '').trim());
+}
+
+async function startQueuedClaudeExecution(queuedPlan, project, jobs, startMsgOverride) {
+  const projectWithQueuedPips = addQueuedPipsToProject(project, jobs);
+  const projectWithRunningPip = jobs.length
+    ? applyQueueJobStatuses(projectWithQueuedPips, [{ pipId: jobs[0].pipId, status: 'in progress' }])
+    : projectWithQueuedPips;
+  projects = projects.map(p => p.id === projectWithRunningPip.id ? projectWithRunningPip : p);
+  await saveProject(projectWithRunningPip);
+  render();
+
+  const startMsg = startMsgOverride || `Queued ${jobs.length} PIP${jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`;
+  daxAddMsg('dax', 'Dax', startMsg);
+  daxHistory.push({ role: 'assistant', content: startMsg });
+  await saveDaxMessage('assistant', startMsg);
+
+  daxTyping = true;
+  daxShowTyping();
+
+  try {
+    const result = await startClaudeCodeQueue(queuedPlan, projectWithRunningPip);
+    daxRemoveTyping();
+    daxTyping = false;
+
+    const finalJobs = Array.isArray(result.jobs) ? result.jobs : jobs;
+    const finalProject = applyQueueJobStatuses(projectWithRunningPip, finalJobs);
+    projects = projects.map(p => p.id === finalProject.id ? finalProject : p);
+    await saveProject(finalProject);
+    render();
+
+    const events = Array.isArray(result.events) ? result.events : [];
+    const displayEvents = events.filter((event, idx) => !(idx === 0 && event === startMsg));
+    if (displayEvents.length) {
+      for (const event of displayEvents) {
+        daxAddMsg('dax', 'Dax', event);
+        daxHistory.push({ role: 'assistant', content: event });
+        await saveDaxMessage('assistant', event);
+      }
+    }
+
+    if (result.status === 'paused' && result.message) {
+      daxOrchestration.pendingReview = {
+        ...queuedPlan,
+        status: 'paused',
+        message: result.message,
+        jobs: finalJobs,
+      };
+      saveDaxOrchestration();
+      daxAddMsg('dax', 'Dax', result.message);
+      daxHistory.push({ role: 'assistant', content: result.message });
+      await saveDaxMessage('assistant', result.message);
+    } else if (result.status === 'failed' && result.message) {
+      daxOrchestration.pendingReview = {
+        ...queuedPlan,
+        status: 'failed',
+        message: result.message,
+        jobs: finalJobs,
+      };
+      saveDaxOrchestration();
+      daxAddMsg('dax', 'Dax', result.message);
+      daxHistory.push({ role: 'assistant', content: result.message });
+      await saveDaxMessage('assistant', result.message);
+    } else {
+      const doneMsg = `Claude Code queue finished for ${project.name}.`;
+      daxAddMsg('dax', 'Dax', doneMsg);
+      daxHistory.push({ role: 'assistant', content: doneMsg });
+      await saveDaxMessage('assistant', doneMsg);
+      clearPendingReview();
+    }
+  } catch (err) {
+    daxRemoveTyping();
+    daxTyping = false;
+    projects = projects.map(p => p.id === projectWithQueuedPips.id ? projectWithQueuedPips : p);
+    await saveProject(projectWithQueuedPips);
+    render();
+    const msg = err instanceof Error ? err.message : 'Claude Code queue failed.';
+    daxAddMsg('dax', 'Dax', msg);
+    daxHistory.push({ role: 'assistant', content: msg });
+    await saveDaxMessage('assistant', msg);
+  }
 }
 
 async function loadDaxHistory() {
@@ -627,8 +730,7 @@ async function initDax() {
     await saveDaxMessage('assistant', opener);
   } else {
     history.forEach(m => daxAddMsg(m.role === 'assistant' ? 'dax' : 'user', m.role === 'assistant' ? 'Dax' : 'You', m.content));
-    const msgs = document.getElementById('dax-messages');
-    msgs.scrollTop = msgs.scrollHeight;
+    scrollDaxToBottom();
   }
 
   if (daxOrchestration?.pendingReview?.projectName) {
@@ -645,7 +747,7 @@ function daxAddMsg(role, label, text) {
   div.className = `dax-msg ${role}`;
   div.innerHTML = `<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g, '<br>')}</div>`;
   msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  scrollDaxToBottom();
 }
 
 function daxShowTyping() {
@@ -656,7 +758,7 @@ function daxShowTyping() {
   div.id = 'dax-typing-indicator';
   div.innerHTML = '<div class="dax-msg-label">Dax</div><div class="dax-typing"><span></span><span></span><span></span></div>';
   msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  scrollDaxToBottom();
 }
 
 function daxRemoveTyping() {
@@ -757,6 +859,44 @@ async function daxSend() {
   daxHistory.push({ role: 'user', content: text });
   await saveDaxMessage('user', text);
 
+  if (daxOrchestration?.pendingQueue) {
+    if (shouldDeleteStalePipsReply(text)) {
+      const pendingQueue = daxOrchestration.pendingQueue;
+      const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
+      if (!project) {
+        const msg = `I couldn't find the project for the queued review plan.`;
+        daxAddMsg('dax', 'Dax', msg);
+        daxHistory.push({ role: 'assistant', content: msg });
+        await saveDaxMessage('assistant', msg);
+        clearPendingQueue();
+        return;
+      }
+
+      const queuedPlan = {
+        ...pendingQueue.pending,
+        status: 'queued',
+        approvedAt: new Date().toISOString(),
+        jobs: pendingQueue.jobs,
+      };
+      daxOrchestration.pendingReview = queuedPlan;
+      clearPendingQueue();
+      saveDaxOrchestration();
+      await startQueuedClaudeExecution(
+        queuedPlan,
+        project,
+        pendingQueue.jobs,
+        `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
+      );
+      return;
+    }
+
+    const msg = 'Please answer yes or no so I can continue the review plan.';
+    daxAddMsg('dax', 'Dax', msg);
+    daxHistory.push({ role: 'assistant', content: msg });
+    await saveDaxMessage('assistant', msg);
+    return;
+  }
+
   if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
     const pending = daxOrchestration.pendingReview;
     const project = projects.find(p => p.id === pending.projectId) || findProjectByName(pending.projectName);
@@ -789,20 +929,25 @@ async function daxSend() {
       daxAddMsg('dax', 'Dax', msg);
       daxHistory.push({ role: 'assistant', content: msg });
       await saveDaxMessage('assistant', msg);
+      stashPendingQueue({
+        pending,
+        projectId: project.id,
+        projectName: project.name,
+        jobs: keptJobs,
+        duplicateJobs,
+        extraneousExisting: extraneousExisting.map(sp => ({
+          id: sp.id || sp.pipId || sp.name || '',
+          title: getProjectPipTitle(sp),
+        })),
+        status: 'waiting-on-deletion',
+      });
+      return;
     }
 
     if (!keptJobs.length) {
       const msg = duplicateJobs.length
         ? `I skipped the duplicate PIPs, and there aren't any new ones left to run for ${project.name}.`
         : `There aren't any queued PIPs to run for ${project.name}.`;
-      daxAddMsg('dax', 'Dax', msg);
-      daxHistory.push({ role: 'assistant', content: msg });
-      await saveDaxMessage('assistant', msg);
-      return;
-    }
-
-    if (!jobs.length) {
-      const msg = `There aren't any queued PIPs to run for ${project.name}.`;
       daxAddMsg('dax', 'Dax', msg);
       daxHistory.push({ role: 'assistant', content: msg });
       await saveDaxMessage('assistant', msg);
@@ -817,84 +962,12 @@ async function daxSend() {
     };
     daxOrchestration.pendingReview = queuedPlan;
     saveDaxOrchestration();
-
-    const projectWithQueuedPips = addQueuedPipsToProject(project, keptJobs);
-    const projectWithRunningPip = keptJobs.length
-      ? applyQueueJobStatuses(projectWithQueuedPips, [{ pipId: keptJobs[0].pipId, status: 'in progress' }])
-      : projectWithQueuedPips;
-    projects = projects.map(p => p.id === projectWithRunningPip.id ? projectWithRunningPip : p);
-    await saveProject(projectWithRunningPip);
-    render();
-
-    const startMsg = `Queued ${keptJobs.length} PIP${keptJobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`;
-    daxAddMsg('dax', 'Dax', startMsg);
-    daxHistory.push({ role: 'assistant', content: startMsg });
-    await saveDaxMessage('assistant', startMsg);
-
-    daxTyping = true;
-    daxShowTyping();
-
-    try {
-      const result = await startClaudeCodeQueue(queuedPlan, projectWithRunningPip);
-      daxRemoveTyping();
-      daxTyping = false;
-
-      const finalJobs = Array.isArray(result.jobs) ? result.jobs : keptJobs;
-      const finalProject = applyQueueJobStatuses(projectWithRunningPip, finalJobs);
-      projects = projects.map(p => p.id === finalProject.id ? finalProject : p);
-      await saveProject(finalProject);
-      render();
-
-      const events = Array.isArray(result.events) ? result.events : [];
-      const displayEvents = events.filter((event, idx) => !(idx === 0 && event === startMsg));
-      if (displayEvents.length) {
-        for (const event of displayEvents) {
-          daxAddMsg('dax', 'Dax', event);
-          daxHistory.push({ role: 'assistant', content: event });
-          await saveDaxMessage('assistant', event);
-        }
-      }
-
-      if (result.status === 'paused' && result.message) {
-        daxOrchestration.pendingReview = {
-          ...queuedPlan,
-          status: 'paused',
-          message: result.message,
-          jobs: finalJobs,
-        };
-        saveDaxOrchestration();
-        daxAddMsg('dax', 'Dax', result.message);
-        daxHistory.push({ role: 'assistant', content: result.message });
-        await saveDaxMessage('assistant', result.message);
-      } else if (result.status === 'failed' && result.message) {
-        daxOrchestration.pendingReview = {
-          ...queuedPlan,
-          status: 'failed',
-          message: result.message,
-          jobs: finalJobs,
-        };
-        saveDaxOrchestration();
-        daxAddMsg('dax', 'Dax', result.message);
-        daxHistory.push({ role: 'assistant', content: result.message });
-        await saveDaxMessage('assistant', result.message);
-      } else {
-        const doneMsg = `Claude Code queue finished for ${project.name}.`;
-        daxAddMsg('dax', 'Dax', doneMsg);
-        daxHistory.push({ role: 'assistant', content: doneMsg });
-        await saveDaxMessage('assistant', doneMsg);
-        clearPendingReview();
-      }
-    } catch (err) {
-      daxRemoveTyping();
-      daxTyping = false;
-      projects = projects.map(p => p.id === projectWithQueuedPips.id ? projectWithQueuedPips : p);
-      await saveProject(projectWithQueuedPips);
-      render();
-      const msg = err instanceof Error ? err.message : 'Claude Code queue failed.';
-      daxAddMsg('dax', 'Dax', msg);
-      daxHistory.push({ role: 'assistant', content: msg });
-      await saveDaxMessage('assistant', msg);
-    }
+    await startQueuedClaudeExecution(
+      queuedPlan,
+      project,
+      keptJobs,
+      `Queued ${keptJobs.length} PIP${keptJobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
+    );
     return;
   }
 
@@ -969,6 +1042,7 @@ function openDax(pid) {
   }
   const inp = document.getElementById('dax-input');
   if (inp) inp.focus();
+  scrollDaxToBottom();
 }
 
 function closeDax() {
@@ -989,5 +1063,10 @@ function daxKeydown(e) {
 
 const daxOverlay = document.getElementById('dax-overlay');
 if (daxOverlay) daxOverlay.addEventListener('click', function() {});
+
+window.addEventListener('focus', scrollDaxToBottom);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) scrollDaxToBottom();
+});
 
 
