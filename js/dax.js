@@ -1471,7 +1471,9 @@ function extractDaxBlocks(text, prefix) {
     if (found && text[i + 1] === ']') {
       const jsonStr = text.slice(jsonStart, i + 1);
       try {
-        results.push({ raw: text.slice(start, i + 2), parsed: JSON.parse(jsonStr) });
+        // Sanitize literal newlines/tabs inside JSON string values before parsing
+        const sanitized = jsonStr.replace(/[\r\n\t]/g, ' ');
+        results.push({ raw: text.slice(start, i + 2), parsed: JSON.parse(sanitized) });
       } catch (_) {}
       pos = i + 2;
     } else {
