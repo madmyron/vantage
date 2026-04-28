@@ -1593,48 +1593,7 @@ async function daxSend() {
   await saveDaxMessage('user', text);
 
   if (daxOrchestration?.pendingQueue) {
-    if (daxOrchestration?.pendingStalePipDeletion) {
-      if (isStaleDeletionReply(text)) {
-        const pendingQueue = daxOrchestration.pendingQueue;
-        const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
-        if (!project) {
-          const msg = `I couldn't find the project for the queued review plan.`;
-          daxAddMsg('dax', 'Dax', msg);
-          daxHistory.push({ role: 'assistant', content: msg });
-          await saveDaxMessage('assistant', msg);
-          clearPendingQueue();
-          return;
-        }
-
-        const queuedPlan = {
-          ...pendingQueue.pending,
-          status: 'queued',
-          approvedAt: new Date().toISOString(),
-          jobs: pendingQueue.jobs,
-        };
-        daxOrchestration.pendingReview = queuedPlan;
-        daxOrchestration.pendingStalePipDeletion = false;
-        daxOrchestration.stalePips = [];
-        saveDaxOrchestration();
-        await startQueuedClaudeExecution(
-          queuedPlan,
-          project,
-          pendingQueue.jobs,
-          `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
-        );
-        return;
-      }
-
-      const pendingProjectName = daxOrchestration.pendingQueue?.projectName || 'the project';
-      const stalePipNames = (daxOrchestration.stalePips || []).map(s => s.title).filter(Boolean).join(', ');
-      const reminder = `That's for ${pendingProjectName}. The PIPs that may no longer be needed are: ${stalePipNames || 'the ones listed above'}. Should I delete them? (yes or no)`;
-      daxAddMsg('dax', 'Dax', reminder);
-      daxHistory.push({ role: 'assistant', content: reminder });
-      await saveDaxMessage('assistant', reminder);
-      return;
-    }
-
-    if (shouldDeleteStalePipsReply(text)) {
+    if (daxOrchestration?.pendingStalePipDeletion && isStaleDeletionReply(text)) {
       const pendingQueue = daxOrchestration.pendingQueue;
       const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
       if (!project) {
@@ -1645,7 +1604,36 @@ async function daxSend() {
         clearPendingQueue();
         return;
       }
+      const queuedPlan = {
+        ...pendingQueue.pending,
+        status: 'queued',
+        approvedAt: new Date().toISOString(),
+        jobs: pendingQueue.jobs,
+      };
+      daxOrchestration.pendingReview = queuedPlan;
+      daxOrchestration.pendingStalePipDeletion = false;
+      daxOrchestration.stalePips = [];
+      saveDaxOrchestration();
+      await startQueuedClaudeExecution(
+        queuedPlan,
+        project,
+        pendingQueue.jobs,
+        `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
+      );
+      return;
+    }
 
+    if (!daxOrchestration?.pendingStalePipDeletion && shouldDeleteStalePipsReply(text)) {
+      const pendingQueue = daxOrchestration.pendingQueue;
+      const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
+      if (!project) {
+        const msg = `I couldn't find the project for the queued review plan.`;
+        daxAddMsg('dax', 'Dax', msg);
+        daxHistory.push({ role: 'assistant', content: msg });
+        await saveDaxMessage('assistant', msg);
+        clearPendingQueue();
+        return;
+      }
     }
   }
 
