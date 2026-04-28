@@ -1743,50 +1743,6 @@ async function daxSend() {
   daxHistory.push({ role: 'user', content: text });
   await saveDaxMessage('user', text);
 
-  if (daxOrchestration?.pendingQueue) {
-    if (daxOrchestration?.pendingStalePipDeletion && isStaleDeletionReply(text)) {
-      const pendingQueue = daxOrchestration.pendingQueue;
-      const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
-      if (!project) {
-        const msg = `I couldn't find the project for the queued review plan.`;
-        daxAddMsg('dax', 'Dax', msg);
-        daxHistory.push({ role: 'assistant', content: msg });
-        await saveDaxMessage('assistant', msg);
-        clearPendingQueue();
-        return;
-      }
-      const queuedPlan = {
-        ...pendingQueue.pending,
-        status: 'queued',
-        approvedAt: new Date().toISOString(),
-        jobs: pendingQueue.jobs,
-      };
-      daxOrchestration.pendingReview = queuedPlan;
-      daxOrchestration.pendingStalePipDeletion = false;
-      daxOrchestration.stalePips = [];
-      saveDaxOrchestration();
-      await startQueuedClaudeExecution(
-        queuedPlan,
-        project,
-        pendingQueue.jobs,
-        `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
-      );
-      return;
-    }
-
-    if (!daxOrchestration?.pendingStalePipDeletion && shouldDeleteStalePipsReply(text)) {
-      const pendingQueue = daxOrchestration.pendingQueue;
-      const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
-      if (!project) {
-        const msg = `I couldn't find the project for the queued review plan.`;
-        daxAddMsg('dax', 'Dax', msg);
-        daxHistory.push({ role: 'assistant', content: msg });
-        await saveDaxMessage('assistant', msg);
-        clearPendingQueue();
-        return;
-      }
-    }
-  }
 
   if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
     const pending = daxOrchestration.pendingReview;
@@ -1802,46 +1758,30 @@ async function daxSend() {
     }
 
     const { duplicateJobs, keptJobs } = getReviewPlanDuplicates(project, jobs);
-    const extraneousExisting = getExtraneousExistingPips(project, jobs);
 
-    for (const duplicate of duplicateJobs) {
-      const msg = `Skipped duplicate: ${duplicate.title}`;
-      daxAddMsg('dax', 'Dax', msg);
-      daxHistory.push({ role: 'assistant', content: msg });
-      await saveDaxMessage('assistant', msg);
+    // Auto-remove done PIPs and extraneous PIPs silently — no asking
+    const donePipStages = ['done', 'complete', 'completed'];
+    const donePips = (project.subProjects || []).filter(sp => donePipStages.includes(String(sp.stage || '').toLowerCase()));
+    const extraneousExisting = getExtraneousExistingPips(project, jobs).filter(sp => !donePipStages.includes(String(sp.stage || '').toLowerCase()));
+
+    if (donePips.length || extraneousExisting.length) {
+      const toRemoveIds = new Set([...donePips, ...extraneousExisting].map(sp => sp.id || sp.pipId));
+      const updatedProject = { ...project, subProjects: (project.subProjects || []).filter(sp => !toRemoveIds.has(sp.id || sp.pipId)) };
+      projects = projects.map(p => p.id === project.id ? updatedProject : p);
+      await saveProject(updatedProject);
+      render();
+      const removed = [...donePips, ...extraneousExisting].map(sp => getProjectPipTitle(sp)).filter(Boolean);
+      const cleanMsg = `Cleaned up ${removed.length} PIP${removed.length === 1 ? '' : 's'} (${removed.join(', ')}).`;
+      daxAddMsg('dax', 'Dax', cleanMsg);
+      daxHistory.push({ role: 'assistant', content: cleanMsg });
+      await saveDaxMessage('assistant', cleanMsg);
     }
 
-    if (extraneousExisting.length) {
-      const names = extraneousExisting
-        .map(sp => getProjectPipTitle(sp))
-        .filter(Boolean)
-        .join(', ');
-      const msg = `These existing PIPs may no longer be needed: ${names}. Should I delete them?`;
+    if (duplicateJobs.length) {
+      const msg = `Skipped ${duplicateJobs.length} duplicate${duplicateJobs.length === 1 ? '' : 's'}: ${duplicateJobs.map(j => j.title).join(', ')}.`;
       daxAddMsg('dax', 'Dax', msg);
       daxHistory.push({ role: 'assistant', content: msg });
       await saveDaxMessage('assistant', msg);
-      daxOrchestration = {
-        ...daxOrchestration,
-        pendingStalePipDeletion: true,
-        stalePips: extraneousExisting.map(sp => ({
-          id: sp.id || sp.pipId || sp.name || '',
-          title: getProjectPipTitle(sp),
-        })),
-        pendingQueue: {
-          pending,
-          projectId: project.id,
-          projectName: project.name,
-          jobs: keptJobs,
-          duplicateJobs,
-          extraneousExisting: extraneousExisting.map(sp => ({
-            id: sp.id || sp.pipId || sp.name || '',
-            title: getProjectPipTitle(sp),
-          })),
-          status: 'waiting-on-deletion',
-        },
-      };
-      saveDaxOrchestration();
-      return;
     }
 
     if (!keptJobs.length) {
