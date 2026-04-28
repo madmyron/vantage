@@ -250,3 +250,6 @@ Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel se
 | New file commit fails | Sending `sha` for a file that doesn't exist | Only include `sha` in commit body when updating existing files |
 | dax-chat 500 (large payload) | Code context sent 3x: inside `context`, as `codeContext`, AND baked into `system` | Send only `{ messages, context: { activeProject }, system }` — never include `codeContext` or `portfolio` separately |
 | Code truncated (large data) | Asking Dax/Claude to write a file with 30+ static data entries | Write large static data files directly (git clone → edit → push) instead of generating via dax-execute |
+| 403 HTML dumped in chat | GitHub API returns Cloudflare HTML instead of JSON; `res.json()` throws raw HTML into error message | Use `res.text()` then `JSON.parse()` with try/catch in fetchFile — return null on parse failure |
+| Raw HTML/JSON error in chat | Error message from failed execute contains full HTTP response body | Truncate and strip HTML tags from error messages before displaying: `rawErr.slice(0,120).replace(/<[^>]+>/g,'')` |
+| max_tokens reset to 64000 | dax-execute file reverted or overwritten without convention check | Always verify max_tokens is 16000 after any dax-execute edit — 64000 causes immediate 500 |
