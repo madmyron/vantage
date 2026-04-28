@@ -1625,10 +1625,12 @@ async function daxSend() {
         return;
       }
 
-      const msg = 'Please answer yes or no so I can continue the review plan.';
-      daxAddMsg('dax', 'Dax', msg);
-      daxHistory.push({ role: 'assistant', content: msg });
-      await saveDaxMessage('assistant', msg);
+      const pendingProjectName = daxOrchestration.pendingQueue?.projectName || 'the project';
+      const stalePipNames = (daxOrchestration.stalePips || []).map(s => s.title).filter(Boolean).join(', ');
+      const reminder = `That's for ${pendingProjectName}. The PIPs that may no longer be needed are: ${stalePipNames || 'the ones listed above'}. Should I delete them? (yes or no)`;
+      daxAddMsg('dax', 'Dax', reminder);
+      daxHistory.push({ role: 'assistant', content: reminder });
+      await saveDaxMessage('assistant', reminder);
       return;
     }
 
