@@ -180,6 +180,38 @@ async function executePip(repo, pip) {
 - Only pass: `activeProject` (name only), `conversationId`, `conversationTitle`
 - Full project data, PIPs, finances, team go in the system prompt as JSON — not as context fields
 
+## callDaxChat Payload — CRITICAL
+
+**The system string already contains everything** (code context, PIPs, project data). Never duplicate it.
+
+```javascript
+// CORRECT — minimum payload
+const payload = {
+  messages,
+  context: { activeProject: context?.activeProject || null },
+  system,
+};
+
+// WRONG — sends code context 3x, causes 500
+const payload = {
+  messages,
+  context: { ...context, codeContext },   // ← duplicates data already in system
+  codeContext,                              // ← again
+  system,                                  // ← already has everything
+};
+```
+
+Also slim code context before baking it into the system string:
+```javascript
+const slim = {
+  repo: codeContext.repoFullName,
+  branch: codeContext.branch,
+  files: (codeContext.fileTree || []).map(f => f.path).slice(0, 80),
+  keyFiles: (codeContext.keyFiles || []).map(f => ({ path: f.path, content: f.content?.slice(0, 1500) })),
+  summary: codeContext.summary,
+};
+```
+
 ---
 
 ## Common Pitfalls
@@ -194,3 +226,4 @@ async function executePip(repo, pip) {
 | Multiple approval cards | Old loop called `daxShowExecuteApproval` per EXECUTE block | Collect all blocks, call once with array |
 | "non-2xx" error with no details | Supabase swallows error body | Use `error.context?.json?.()` to get actual message |
 | New file commit fails | Sending `sha` for a file that doesn't exist | Only include `sha` in commit body when updating existing files |
+| dax-chat 500 (large payload) | Code context sent 3x: inside `context`, as `codeContext`, AND baked into `system` | Send only `{ messages, context: { activeProject }, system }` — never include `codeContext` or `portfolio` separately |
