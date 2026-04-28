@@ -34,7 +34,7 @@ async function fetchFile(repo: string, path: string, token: string): Promise<{ c
 async function commitFile(repo: string, path: string, content: string, sha: string, message: string, token: string): Promise<boolean> {
   const encoded = btoa(unescape(encodeURIComponent(content)));
   const body: Record<string, unknown> = { message, content: encoded };
-  if (sha) body.sha = sha; // omit sha for new files
+  if (sha) body.sha = sha;
   const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
     method: "PUT",
     headers: {
@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
 
     const githubToken = Deno.env.get("GITHUB_TOKEN");
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!githubToken) throw new Error("GITHUB_TOKEN not set in Supabase secrets");
+    if (!githubToken) throw new Error("GITHUB_TOKEN not set");
     if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
     const client = new Anthropic({ apiKey });
@@ -74,7 +74,7 @@ File path: ${filePath}
 What to create: ${pip.technicalDescription}
 
 Return only the complete file content.`
-        : `You are a precise code editor. Apply ONLY the specific change described below. Return the complete modified file with no explanation, no markdown fences, no commentary — just the raw file content exactly as it should be saved.
+        : `You are a precise code editor. Apply ONLY the specific change described below. Return the complete modified file with no explanation, no markdown fences, no commentary. Just the raw file content exactly as it should be saved.
 
 File path: ${filePath}
 
@@ -85,30 +85,13 @@ Change to apply: ${pip.technicalDescription}
 
 Return only the complete modified file content.`;
 
-      let response = await client.messages.create({
+      const response = await client.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 32000,
+        max_tokens: 64000,
         messages: [{ role: "user", content: prompt }],
       });
 
-      // If output was cut off by token limit, retry with a continuation prompt
-      if (response.stop_reason === "max_tokens") {
-        const partial = response.content[0].type === "text" ? response.content[0].text : "";
-        const continuation = await client.messages.create({
-          model: "claude-sonnet-4-6",
-          max_tokens: 32000,
-          messages: [
-            { role: "user", content: prompt },
-            { role: "assistant", content: partial },
-            { role: "user", content: "Continue exactly where you left off. Do not repeat any code. Output only the remaining file content." },
-          ],
-        });
-        const cont = continuation.content[0].type === "text" ? continuation.content[0].text : "";
-        // Merge: replace response with combined text so cleaning below works on full output
-        response = { ...response, content: [{ type: "text", text: partial + cont }], stop_reason: continuation.stop_reason } as typeof response;
-      }
-
-      const raw = response.content[0].type === "text" ? response.content[0].text : "";
+      const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
       const cleaned = raw
         .replace(/^```[\w]*[ \t]*\r?\n/, "")
         .replace(/\r?\n```[ \t]*$/, "")
@@ -124,6 +107,7 @@ Return only the complete modified file content.`;
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    console.error("dax-execute error:", msg);
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
