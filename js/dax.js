@@ -805,16 +805,26 @@ function buildNormalDaxSystem(project, codeContext) {
 
   const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Be direct and specific about what works and what doesn't.` : '';
 
-  return `You are Dax, the built-in AI advisor for Vantage, an entrepreneurial operating system.
+  return `You are Dax, the AI orchestrator inside Vantage. Your job is to understand the project, figure out what needs to be built, and send jobs to Claude to actually write the code. You are the decision-maker and quality checker — Claude is the one who writes code.
 
-Keep it simple and plain. No jargon. Talk like a smart friend, not a consultant.
-Be brief — 3 to 5 short sentences max unless asked for more.
-No bullet walls. If you use bullets, max 4 items.
-You have full visibility into the project's existing PIPs listed below — use them to avoid duplicates and understand current status.
-Ask one question at a time if you need something. Push toward a decision, not a discussion.
+Your role in order:
+1. Read the project code and understand where things stand.
+2. Tell the user in plain English what's done, what's missing, and what should happen next.
+3. When you know what to build, propose it clearly and ask the user to approve.
+4. When approved, you trigger Claude to write the code by outputting an EXECUTE block (see format below).
+5. After Claude runs, you verify the result and report back.
 
-If the user asks you to create PIPs, append one JSON block per PIP at the very end using this exact format:
-[PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]
+Rules:
+- Never say "Claude Code, do X" — you trigger execution by outputting EXECUTE blocks, not by talking to Claude.
+- Never pretend to do something you haven't actually triggered.
+- Keep responses short and plain — one sentence per point, max 4 bullets.
+- You can see the project's existing PIPs below. Do not duplicate them.
+- Ask one question at a time. Push toward a decision.
+
+To propose a code change for Claude to execute, add ONE EXECUTE block per change at the very end of your message (after your explanation):
+[EXECUTE:{"projectName":"exact project name","title":"short title","description":"plain English explanation for the user","technicalDescription":"precise instruction for Claude: what to create, modify, or fix and exactly how","files":["path/to/file.js"]}]
+
+Only output EXECUTE blocks when you have a clear, specific code change ready. Do not output them speculatively.
 
 Current focus: ${projectName}${pipBlock}${codeContextBlock}`;
 }
@@ -1495,6 +1505,76 @@ async function initDax() {
   }
 }
 
+function daxShowExecuteApproval(action, proj, repo) {
+  const msgs = document.getElementById('dax-messages');
+  if (!msgs) return;
+
+  const card = document.createElement('div');
+  card.className = 'dax-msg dax';
+  card.innerHTML = `
+    <div class="dax-msg-label">Dax — Proposed Change</div>
+    <div class="dax-bubble" style="border:1px solid var(--accent,#6c63ff);padding:12px;border-radius:10px;">
+      <div style="font-weight:600;margin-bottom:6px">${esc(action.title || 'Code Change')}</div>
+      <div style="margin-bottom:10px;font-size:13px">${esc(action.description || action.technicalDescription || '')}</div>
+      ${!repo ? '<div style="color:#e55;font-size:12px;margin-bottom:8px">⚠ No GitHub repo linked to this project — add it in the Info tab first.</div>' : ''}
+      <div style="display:flex;gap:8px">
+        <button class="dax-approve-btn" style="background:var(--accent,#6c63ff);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px">Approve</button>
+        <button class="dax-skip-btn" style="background:transparent;border:1px solid var(--border2,#ccc);border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px">Skip</button>
+      </div>
+    </div>`;
+  msgs.appendChild(card);
+  scrollDaxToBottomDelayed();
+
+  card.querySelector('.dax-skip-btn').addEventListener('click', () => {
+    card.remove();
+    const msg = `Skipped: ${action.title}`;
+    daxAddMsg('dax', 'Dax', msg);
+  });
+
+  card.querySelector('.dax-approve-btn').addEventListener('click', async () => {
+    card.remove();
+    if (!repo) {
+      daxAddMsg('dax', 'Dax', `Can't run — no GitHub repo linked to ${action.projectName}. Add it in the project's Info tab.`);
+      return;
+    }
+    const runMsg = `Running: ${action.title}...`;
+    daxAddMsg('dax', 'Dax', runMsg);
+    daxHistory.push({ role: 'assistant', content: runMsg });
+    await saveDaxMessage('assistant', runMsg);
+
+    try {
+      const pip = {
+        pipId: `dax-${Date.now()}`,
+        title: action.title,
+        displayDescription: action.description || action.title,
+        technicalDescription: action.technicalDescription || action.description || action.title,
+        files: Array.isArray(action.files) ? action.files : [],
+      };
+      const execResult = await executePip(repo, pip);
+      if (!execResult?.success) {
+        const failed = (execResult?.results || []).filter(r => !r.success).map(r => r.error || r.file).join(', ');
+        throw new Error(failed || 'execution failed');
+      }
+
+      await new Promise(r => setTimeout(r, 2000));
+      const vercelUrl = proj?.metadata?.websiteUrl || null;
+      const verifyResult = await verifyPip(repo, pip, vercelUrl);
+
+      const resultMsg = verifyResult?.passed
+        ? `Done — "${action.title}" is in and verified.`
+        : `"${action.title}" was committed but verification found issues: ${(verifyResult?.issues || []).join('; ')}. Want me to try again?`;
+      daxAddMsg('dax', 'Dax', resultMsg);
+      daxHistory.push({ role: 'assistant', content: resultMsg });
+      await saveDaxMessage('assistant', resultMsg);
+    } catch (err) {
+      const errMsg = `Failed to run "${action.title}": ${err instanceof Error ? err.message : String(err)}`;
+      daxAddMsg('dax', 'Dax', errMsg);
+      daxHistory.push({ role: 'assistant', content: errMsg });
+      await saveDaxMessage('assistant', errMsg);
+    }
+  });
+}
+
 function daxAddMsg(role, label, text, opts = {}) {
   const msgs = document.getElementById('dax-messages');
   const empty = document.getElementById('dax-empty');
@@ -1764,16 +1844,31 @@ async function daxSend() {
     daxTyping = false;
 
     if (reply) {
-      const actionMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
-      const cleanText = reply.replace(/\[PIP:.*?\]/gs, '').trim();
-      let createdPipCount = 0;
+      const executeMatches = [...reply.matchAll(/\[EXECUTE:(.*?)\]/gs)];
+      const pipMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
+      const cleanText = reply.replace(/\[EXECUTE:.*?\]/gs, '').replace(/\[PIP:.*?\]/gs, '').trim();
+
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
         daxHistory.push({ role: 'assistant', content: cleanText });
         await saveDaxMessage('assistant', cleanText);
       }
 
-      for (const match of actionMatches) {
+      // Handle EXECUTE blocks — show approval card for each
+      for (const match of executeMatches) {
+        try {
+          const action = JSON.parse(match[1]);
+          const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
+          const repo = proj ? getProjectRepo(proj) : null;
+          daxShowExecuteApproval(action, proj, repo);
+        } catch (e) {
+          console.warn('Dax EXECUTE parse error:', e, match[1]);
+        }
+      }
+
+      // Handle PIP card creation blocks
+      let createdPipCount = 0;
+      for (const match of pipMatches) {
         try {
           const action = JSON.parse(match[1]);
           const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
@@ -1785,16 +1880,14 @@ async function daxSend() {
             if (updated) await saveProject(updated);
             render();
             createdPipCount += 1;
-            daxAddMsg('dax', 'Dax', `✓ ${createdPipCount}. ${action.pipName} created in ${proj.name}`);
-          } else {
-            daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}".`);
+            daxAddMsg('dax', 'Dax', `PIP created: ${action.pipName} in ${proj.name}`);
           }
         } catch (e) {
           console.warn('Dax pip error:', e, match[1]);
         }
       }
 
-      if (!cleanText && actionMatches.length === 0) {
+      if (!cleanText && executeMatches.length === 0 && pipMatches.length === 0) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
