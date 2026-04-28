@@ -33,24 +33,24 @@ function promptDaxAnthropicKey() {
 function loadDaxOrchestration() {
   try {
     const raw = localStorage.getItem(DAX_ORCHESTRATION_KEY);
-    return raw ? JSON.parse(raw) : { pendingReview: null, pendingQueue: null };
+    return raw ? JSON.parse(raw) : { pendingReview: null, pendingQueue: null, pendingStalePipDeletion: false, stalePips: [] };
   } catch (err) {
     console.warn('Could not load Dax orchestration state:', err);
-    return { pendingReview: null, pendingQueue: null };
+    return { pendingReview: null, pendingQueue: null, pendingStalePipDeletion: false, stalePips: [] };
   }
 }
 
 function saveDaxOrchestration() {
   try {
-    localStorage.setItem(DAX_ORCHESTRATION_KEY, JSON.stringify(daxOrchestration || { pendingReview: null, pendingQueue: null }));
+    localStorage.setItem(DAX_ORCHESTRATION_KEY, JSON.stringify(daxOrchestration || { pendingReview: null, pendingQueue: null, pendingStalePipDeletion: false, stalePips: [] }));
   } catch (err) {
     console.warn('Could not save Dax orchestration state:', err);
   }
 }
 
 function scrollDaxToBottom() {
-  const msgs = document.getElementById('dax-messages');
-  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  const chat = document.getElementById('dax-messages') || document.querySelector('.dax-chat') || document.querySelector('.dax-messages');
+  if (chat) chat.scrollTop = chat.scrollHeight + 9999;
 }
 
 function getProjectContextSummary() {
@@ -101,6 +101,8 @@ function buildDaxContext(project) {
     team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
     pendingReview: daxOrchestration?.pendingReview || null,
     pendingQueue: daxOrchestration?.pendingQueue || null,
+    pendingStalePipDeletion: Boolean(daxOrchestration?.pendingStalePipDeletion),
+    stalePips: Array.isArray(daxOrchestration?.stalePips) ? daxOrchestration.stalePips : [],
   };
 }
 
@@ -346,6 +348,15 @@ function getProjectPipTitle(sp) {
   return String(sp?.title || sp?.name || sp?.desc || sp?.displayDescription || '').trim();
 }
 
+function getProjectSimilarPips(project, title, threshold = 0.6, excludeIds = new Set()) {
+  const existingPips = Array.isArray(project?.subProjects) ? project.subProjects : [];
+  return existingPips.filter(sp => {
+    const spId = String(sp?.id || sp?.pipId || sp?.name || '');
+    if (excludeIds.has(spId)) return false;
+    return titleSimilarity(title, getProjectPipTitle(sp)) > threshold;
+  });
+}
+
 function getReviewPlanDuplicates(project, jobs) {
   const existingPips = Array.isArray(project?.subProjects) ? project.subProjects : [];
   const duplicateJobs = [];
@@ -353,7 +364,7 @@ function getReviewPlanDuplicates(project, jobs) {
 
   jobs.forEach(job => {
     const jobTitle = String(job?.title || '').trim();
-    const isDuplicate = existingPips.some(sp => titleSimilarity(jobTitle, getProjectPipTitle(sp)) >= 0.8);
+    const isDuplicate = existingPips.some(sp => titleSimilarity(jobTitle, getProjectPipTitle(sp)) > 0.6);
     if (isDuplicate) {
       duplicateJobs.push(job);
     } else {
@@ -513,12 +524,12 @@ function stashPendingReview(plan, project) {
 }
 
 function clearPendingReview() {
-  daxOrchestration = { pendingReview: null, pendingQueue: null };
+  daxOrchestration = { pendingReview: null, pendingQueue: null, pendingStalePipDeletion: false, stalePips: [] };
   saveDaxOrchestration();
 }
 
 function clearPendingQueue() {
-  daxOrchestration = { ...daxOrchestration, pendingQueue: null };
+  daxOrchestration = { ...daxOrchestration, pendingQueue: null, pendingStalePipDeletion: false, stalePips: [] };
   saveDaxOrchestration();
 }
 
@@ -532,6 +543,10 @@ function stashPendingQueue(queue) {
 
 function shouldDeleteStalePipsReply(text) {
   return /^(yes|y|no|n|delete|keep)\b/i.test(String(text || '').trim());
+}
+
+function isStaleDeletionReply(text) {
+  return shouldDeleteStalePipsReply(text);
 }
 
 async function startQueuedClaudeExecution(queuedPlan, project, jobs, startMsgOverride) {
@@ -860,6 +875,45 @@ async function daxSend() {
   await saveDaxMessage('user', text);
 
   if (daxOrchestration?.pendingQueue) {
+    if (daxOrchestration?.pendingStalePipDeletion) {
+      if (isStaleDeletionReply(text)) {
+        const pendingQueue = daxOrchestration.pendingQueue;
+        const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
+        if (!project) {
+          const msg = `I couldn't find the project for the queued review plan.`;
+          daxAddMsg('dax', 'Dax', msg);
+          daxHistory.push({ role: 'assistant', content: msg });
+          await saveDaxMessage('assistant', msg);
+          clearPendingQueue();
+          return;
+        }
+
+        const queuedPlan = {
+          ...pendingQueue.pending,
+          status: 'queued',
+          approvedAt: new Date().toISOString(),
+          jobs: pendingQueue.jobs,
+        };
+        daxOrchestration.pendingReview = queuedPlan;
+        daxOrchestration.pendingStalePipDeletion = false;
+        daxOrchestration.stalePips = [];
+        saveDaxOrchestration();
+        await startQueuedClaudeExecution(
+          queuedPlan,
+          project,
+          pendingQueue.jobs,
+          `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
+        );
+        return;
+      }
+
+      const msg = 'Please answer yes or no so I can continue the review plan.';
+      daxAddMsg('dax', 'Dax', msg);
+      daxHistory.push({ role: 'assistant', content: msg });
+      await saveDaxMessage('assistant', msg);
+      return;
+    }
+
     if (shouldDeleteStalePipsReply(text)) {
       const pendingQueue = daxOrchestration.pendingQueue;
       const project = projects.find(p => p.id === pendingQueue.projectId) || findProjectByName(pendingQueue.projectName);
@@ -872,29 +926,7 @@ async function daxSend() {
         return;
       }
 
-      const queuedPlan = {
-        ...pendingQueue.pending,
-        status: 'queued',
-        approvedAt: new Date().toISOString(),
-        jobs: pendingQueue.jobs,
-      };
-      daxOrchestration.pendingReview = queuedPlan;
-      clearPendingQueue();
-      saveDaxOrchestration();
-      await startQueuedClaudeExecution(
-        queuedPlan,
-        project,
-        pendingQueue.jobs,
-        `Queued ${pendingQueue.jobs.length} PIP${pendingQueue.jobs.length === 1 ? '' : 's'} for ${project.name}. Starting PIP 1...`
-      );
-      return;
     }
-
-    const msg = 'Please answer yes or no so I can continue the review plan.';
-    daxAddMsg('dax', 'Dax', msg);
-    daxHistory.push({ role: 'assistant', content: msg });
-    await saveDaxMessage('assistant', msg);
-    return;
   }
 
   if (daxOrchestration?.pendingReview && isApprovalReply(text)) {
@@ -929,18 +961,27 @@ async function daxSend() {
       daxAddMsg('dax', 'Dax', msg);
       daxHistory.push({ role: 'assistant', content: msg });
       await saveDaxMessage('assistant', msg);
-      stashPendingQueue({
-        pending,
-        projectId: project.id,
-        projectName: project.name,
-        jobs: keptJobs,
-        duplicateJobs,
-        extraneousExisting: extraneousExisting.map(sp => ({
+      daxOrchestration = {
+        ...daxOrchestration,
+        pendingStalePipDeletion: true,
+        stalePips: extraneousExisting.map(sp => ({
           id: sp.id || sp.pipId || sp.name || '',
           title: getProjectPipTitle(sp),
         })),
-        status: 'waiting-on-deletion',
-      });
+        pendingQueue: {
+          pending,
+          projectId: project.id,
+          projectName: project.name,
+          jobs: keptJobs,
+          duplicateJobs,
+          extraneousExisting: extraneousExisting.map(sp => ({
+            id: sp.id || sp.pipId || sp.name || '',
+            title: getProjectPipTitle(sp),
+          })),
+          status: 'waiting-on-deletion',
+        },
+      };
+      saveDaxOrchestration();
       return;
     }
 
