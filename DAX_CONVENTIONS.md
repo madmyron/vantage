@@ -214,6 +214,28 @@ const slim = {
 
 ---
 
+## Aria Architecture (aria-assistant repo)
+
+Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel serverless functions — **it is not used in production**. Always edit `server/index.js` for backend changes.
+
+| File | Purpose |
+|---|---|
+| `server/index.js` | Express server — all API routes live here |
+| `sportsBackend.js` | NHL team data + NHL API helpers — **not imported by server/index.js**, standalone module |
+| `client/src/App.jsx` | Frontend — intent detection, context fetching, Claude chat |
+| `api/` | Vercel serverless stubs — **ignored in production** |
+| `railway.toml` | Deploy config: `cd server && node index.js` |
+
+**Adding a new sport (NBA, NFL, MLB):**
+1. Add a team lookup map in `server/index.js` (same pattern as `NHL_NEXT_GAME_TEAMS`)
+2. Add routes: `/api/sports/next-game`, `/api/sports/standings`, `/api/sports/last-games`, `/api/sports/team-record` — scoped to that sport (e.g. `?sport=nba&team=mavericks`)
+3. Add intent keywords in `client/src/App.jsx` (extend `sports:` regex and add `nextGame`/`standings`/etc. regexes)
+4. Add `detectTeam()` call in the context-building section and `fetchJson` calls to the new routes
+5. **Use the league's official API** — NHL uses `api-web.nhle.com`, NBA uses `stats.nba.com` or ESPN, NFL uses ESPN, MLB uses `statsapi.mlb.com`
+6. Write team lookup tables directly (git clone → edit → push) — do NOT ask Dax to generate 30+ team entries
+
+---
+
 ## Common Pitfalls
 
 | Problem | Cause | Fix |
@@ -227,3 +249,4 @@ const slim = {
 | "non-2xx" error with no details | Supabase swallows error body | Use `error.context?.json?.()` to get actual message |
 | New file commit fails | Sending `sha` for a file that doesn't exist | Only include `sha` in commit body when updating existing files |
 | dax-chat 500 (large payload) | Code context sent 3x: inside `context`, as `codeContext`, AND baked into `system` | Send only `{ messages, context: { activeProject }, system }` — never include `codeContext` or `portfolio` separately |
+| Code truncated (large data) | Asking Dax/Claude to write a file with 30+ static data entries | Write large static data files directly (git clone → edit → push) instead of generating via dax-execute |
