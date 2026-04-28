@@ -53,6 +53,8 @@ function scrollDaxToBottom() {
   if (chat) chat.scrollTop = chat.scrollHeight + 9999;
 }
 
+console.log('dax chat container:', document.getElementById('dax-messages'), document.querySelector('.dax-chat'), document.querySelector('.dax-messages'), document.querySelector('#dax-chat'));
+
 function getProjectContextSummary() {
   return projects.map(p => {
     const openPips = (p.subProjects || []).length;
@@ -833,6 +835,7 @@ async function handleReviewCommand(projectName) {
       throw new Error(data.error?.message || data.error || `Anthropic review request failed (${res.status})`);
     }
 
+    console.log('raw anthropic review response:', data);
     const reply = extractReviewPlanFromToolUseBlocks(data.content);
     daxRemoveTyping();
     daxTyping = false;
