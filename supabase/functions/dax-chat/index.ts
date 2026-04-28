@@ -84,28 +84,9 @@ function buildSystem(ctx?: {
     "Be direct, specific, and action-oriented. No fluff. Use bullet points when listing items.",
     "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
     "When referencing data, cite project names and PIP IDs. Keep responses under 300 words unless asked for more.",
-    "If codeContext is present, use it to answer honestly about completion percentage, what is built, what is stubbed, and what is missing. Do not guess when codeContext exists.",
-    "When code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.",
     "",
     "Today's date: " + new Date().toISOString().split("T")[0],
   ];
-
-  if (ctx?.projects?.length) {
-    lines.push("\n## Active Projects");
-    lines.push(JSON.stringify(ctx.projects, null, 2));
-  }
-  if (ctx?.pips?.length) {
-    lines.push("\n## Open PIPs (action items)");
-    lines.push(JSON.stringify(ctx.pips, null, 2));
-  }
-  if (ctx?.finances?.length) {
-    lines.push("\n## Financial Snapshot");
-    lines.push(JSON.stringify(ctx.finances, null, 2));
-  }
-  if (ctx?.team?.length) {
-    lines.push("\n## Team");
-    lines.push(JSON.stringify(ctx.team, null, 2));
-  }
   if (ctx?.activeProject) {
     const projectName = typeof ctx.activeProject === "string"
       ? ctx.activeProject
@@ -116,37 +97,6 @@ function buildSystem(ctx?: {
       lines.push("\n## Active Project");
       lines.push(String(projectName));
     }
-  }
-  if (ctx?.codeContext) {
-    lines.push("\n## GitHub Code Context");
-    lines.push(JSON.stringify(ctx.codeContext, null, 2));
-    lines.push("Use this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.");
-  }
-  if (ctx?.pendingReview) {
-    lines.push("\n## Pending Review");
-    lines.push(JSON.stringify(ctx.pendingReview, null, 2));
-    lines.push("");
-    lines.push("Review mode instructions:");
-    lines.push("Each proposed PIP must include displayDescription and technicalDescription.");
-    lines.push("displayDescription is for the founder: one plain sentence, concise and non-technical.");
-    lines.push("technicalDescription is for the Claude Code handoff: full implementation detail, including what to build and which files to touch.");
-    lines.push("In the chat-facing response, keep it concise and only present the founder-facing content.");
-    lines.push("Return ONLY this exact JSON structure with no other text:");
-    lines.push('{');
-    lines.push('  "projectName": "string",');
-    lines.push('  "recommendation": "string (2 sentences max)",');
-    lines.push('  "proposedPips": [');
-    lines.push('    {');
-    lines.push('      "pipId": "string",');
-    lines.push('      "title": "string",');
-    lines.push('      "displayDescription": "string (one sentence)",');
-    lines.push('      "technicalDescription": "string",');
-    lines.push('      "files": ["string"],');
-    lines.push('      "order": number');
-    lines.push('    }');
-    lines.push('  ]');
-    lines.push('}');
-    lines.push('Do not include a summary field. Do not wrap in markdown. Do not add any text outside the JSON.');
   }
 
   return lines.join("\n");
@@ -167,8 +117,6 @@ function buildReviewSystem(ctx?: {
     "Do not output normal text. Use the tool once and only once.",
     "The tool output must be concise, founder-friendly, and ready for Claude Code handoff.",
     "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
-    "If codeContext is present, use it to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly before proposing new PIPs.",
-    "When code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.",
   ];
 
   if (ctx?.activeProject) {
@@ -182,16 +130,6 @@ function buildReviewSystem(ctx?: {
       lines.push(String(projectName));
     }
   }
-  if (ctx?.pendingReview) {
-    lines.push("\n## Pending Review");
-    lines.push(JSON.stringify(ctx.pendingReview, null, 2));
-  }
-  if (ctx?.codeContext) {
-    lines.push("\n## GitHub Code Context");
-    lines.push(JSON.stringify(ctx.codeContext, null, 2));
-    lines.push("Use this code context to judge what is actually built, what looks stubbed, what is missing, and to estimate completion percentage honestly.");
-  }
-
   lines.push("");
   lines.push("Return ONLY this exact JSON structure with no other text:");
   lines.push('{');
