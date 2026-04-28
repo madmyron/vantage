@@ -1543,8 +1543,9 @@ async function initDax() {
     daxAddMsg('dax', 'Dax', "I'm back — I remember where we left off. What do you need?");
   }
 
-  if (daxOrchestration?.pendingReview?.projectName) {
-    daxAddMsg('dax', 'Dax', `I still have a pending review plan for ${daxOrchestration.pendingReview.projectName}. Say "yes" when you're ready to continue.`);
+  // Auto-clear stale pending reviews — the new EXECUTE flow replaces the old queue system
+  if (daxOrchestration?.pendingReview) {
+    clearPendingReview();
   }
 }
 
