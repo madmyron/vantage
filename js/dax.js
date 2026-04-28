@@ -781,19 +781,33 @@ function buildDaxContext(project, codeContext) {
 
 function buildNormalDaxSystem(project, codeContext) {
   const projectName = project ? project.name : 'the current portfolio';
-  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Estimate real completion percentage based on the code itself, not what the user says. Be direct and specific about what works and what doesn't.` : '';
+
+  let pipBlock = '';
+  if (project) {
+    const projectData = projects.find(p => p.id === project.id || p.name === project.name);
+    const pips = (projectData?.subProjects || []);
+    if (pips.length) {
+      const pipList = pips.map(sp => `- ${sp.name}${sp.desc ? ': ' + sp.desc : ''} [${sp.stage || 'unknown stage'}]`).join('\n');
+      pipBlock = `\n\nExisting PIPs in ${projectName}:\n${pipList}`;
+    } else {
+      pipBlock = `\n\nExisting PIPs in ${projectName}: none yet.`;
+    }
+  }
+
+  const codeContextBlock = codeContext ? `\n\nGitHub code context:\n${JSON.stringify(codeContext, null, 2)}\n\nWhen code context is provided, use it to give an honest technical assessment. Identify what is actually implemented vs stubbed. Be direct and specific about what works and what doesn't.` : '';
+
   return `You are Dax, the built-in AI advisor for Vantage, an entrepreneurial operating system.
 
 Keep it simple and plain. No jargon. Talk like a smart friend, not a consultant.
 Be brief — 3 to 5 short sentences max unless asked for more.
 No bullet walls. If you use bullets, max 4 items.
-Skip the technical file names and code details — just say what's built, what's missing, and what to do next in plain English.
+You have full visibility into the project's existing PIPs listed below — use them to avoid duplicates and understand current status.
 Ask one question at a time if you need something. Push toward a decision, not a discussion.
 
 If the user asks you to create PIPs, append one JSON block per PIP at the very end using this exact format:
 [PIP:{"projectName":"exact project name","pipName":"pip name","pipDesc":"one-line description"}]
 
-Current focus: ${projectName}${codeContextBlock}`;
+Current focus: ${projectName}${pipBlock}${codeContextBlock}`;
 }
 
 function buildReviewSystem(project, codeContext) {
