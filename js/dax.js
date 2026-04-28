@@ -1688,7 +1688,9 @@ function daxShowExecuteApproval(items) {
         daxHistory.push({ role: 'assistant', content: resultMsg });
         await saveDaxMessage('assistant', resultMsg);
       } catch (err) {
-        const errMsg = `Failed to run "${action.title}": ${err instanceof Error ? err.message : String(err)}`;
+        const rawErr = err instanceof Error ? err.message : String(err);
+        const cleanErr = rawErr.startsWith('<') || rawErr.length > 200 ? rawErr.slice(0, 120).replace(/<[^>]+>/g, '').trim() + '...' : rawErr;
+        const errMsg = `Failed to run "${action.title}": ${cleanErr}`;
         daxAddMsg('dax', 'Dax', errMsg);
         daxHistory.push({ role: 'assistant', content: errMsg });
         await saveDaxMessage('assistant', errMsg);

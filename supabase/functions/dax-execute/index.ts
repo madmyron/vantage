@@ -23,7 +23,9 @@ async function fetchFile(repo: string, path: string, token: string): Promise<{ c
     },
   });
   if (!res.ok) return null;
-  const data = await res.json();
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try { data = JSON.parse(text); } catch { return null; }
   if (data.type !== "file") return null;
   return {
     content: new TextDecoder().decode(Uint8Array.from(atob(data.content.replace(/\n/g, "")), c => c.charCodeAt(0))),
@@ -87,7 +89,7 @@ Return only the complete modified file content.`;
 
       const response = await client.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 64000,
+        max_tokens: 16000,
         messages: [{ role: "user", content: prompt }],
       });
 
