@@ -1528,13 +1528,19 @@ async function callDaxChat(messages, context, system) {
 async function initDax() {
   ensureDaxConversationHeaderControls();
   const history = await loadDaxHistory();
-  daxHistory = Array.isArray(history) ? history.map(m => ({ role: m.role, content: m.content })) : [];
+  daxHistory = Array.isArray(history) ? history.filter(m => !looksLikeJson(m.content)).map(m => ({ role: m.role, content: m.content })) : [];
 
-  if (history.length === 0) {
-    const opener = "Hey Michael - I'm Dax, your AI advisor. What project or idea is on your mind right now?";
+  // Clear the visual box — history is loaded into daxHistory for context but not displayed
+  const msgs = document.getElementById('dax-messages');
+  if (msgs) msgs.innerHTML = '';
+
+  if (daxHistory.length === 0) {
+    const opener = "Hey Michael — I'm Dax. What project or idea is on your mind?";
     daxAddMsg('dax', 'Dax', opener);
     daxHistory.push({ role: 'assistant', content: opener });
     await saveDaxMessage('assistant', opener);
+  } else {
+    daxAddMsg('dax', 'Dax', "I'm back — I remember where we left off. What do you need?");
   }
 
   if (daxOrchestration?.pendingReview?.projectName) {
@@ -1988,6 +1994,16 @@ async function openDax(pid, starterMessage = '') {
   if (inp) inp.focus();
   ensureDaxConversationHeaderControls();
   await loadLatestOrNewDaxConversation(pid, { forceNew: false });
+
+  // Clear the visual box — history is in daxHistory for context, not displayed
+  const msgBox = document.getElementById('dax-messages');
+  if (msgBox) msgBox.innerHTML = '';
+  daxHistory = daxHistory.filter(m => !looksLikeJson(m.content));
+  if (daxHistory.length > 0) {
+    const proj = pid ? projects.find(p => p.id === pid) : null;
+    daxAddMsg('dax', 'Dax', `I remember our ${proj ? proj.name : ''} conversation — pick up where we left off or ask me something new.`);
+  }
+
   scrollDaxToBottomDelayed();
   const msg = String(starterMessage || '').trim();
   if (msg) {
