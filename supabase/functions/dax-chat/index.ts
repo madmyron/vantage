@@ -75,6 +75,7 @@ function buildSystem(ctx?: {
     "You are Dax, a sharp and concise AI advisor built into Vantage — an entrepreneurial operating system.",
     "Your role: help the founder make better decisions about their projects, priorities, and resources.",
     "Be direct, specific, and action-oriented. No fluff. Use bullet points when listing items.",
+    "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
     "When referencing data, cite project names and PIP IDs. Keep responses under 300 words unless asked for more.",
     "",
     "Today's date: " + new Date().toISOString().split("T")[0],
@@ -143,6 +144,7 @@ function buildReviewSystem(ctx?: {
     "Your job is to propose a review plan for the active project and return it only through the propose_review_plan tool.",
     "Do not output normal text. Use the tool once and only once.",
     "The tool output must be concise, founder-friendly, and ready for Claude Code handoff.",
+    "Do not ask clarifying questions unless absolutely necessary. Make reasonable assumptions and act. If you need to ask, ask only one question maximum.",
   ];
 
   if (ctx?.activeProject) {

@@ -215,7 +215,7 @@ function formatReviewPlan(plan) {
     return "I couldn't generate a plan — please try again";
   }
 
-  const lines = [title, "Here's what I recommend:", ''];
+  const lines = [title, "Here's what I recommend:"];
   pips.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
   pips.forEach((pip, idx) => {
     const description = pip.displayDescription || 'No description provided.';
@@ -912,6 +912,7 @@ async function daxSend() {
     if (reply) {
       const actionMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
       const cleanText = reply.replace(/\[PIP:.*?\]/gs, '').trim();
+      let createdPipCount = 0;
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
         daxHistory.push({ role: 'assistant', content: cleanText });
@@ -929,7 +930,8 @@ async function daxSend() {
             const updated = projects.find(x => x.id === proj.id);
             if (updated) await saveProject(updated);
             render();
-            daxAddMsg('dax', 'Dax', `Created pip "${action.pipName}" in ${proj.name}.`);
+            createdPipCount += 1;
+            daxAddMsg('dax', 'Dax', `✓ ${createdPipCount}. ${action.pipName} created in ${proj.name}`);
           } else {
             daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}".`);
           }
