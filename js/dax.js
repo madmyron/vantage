@@ -446,7 +446,7 @@ function shouldFetchCodeContext(text, project) {
   const query = String(text || '').toLowerCase();
   if (!query) return false;
   if (/^(review|analy[sz]e|look at|inspect|audit)\b/.test(query)) return true;
-  if (/\b(how complete|what does|what is built|what's built|what is missing|what's missing|stubbed|implemented|auth system|code base|codebase|architecture|repo|tree)\b/.test(query)) {
+  if (/\b(how complete|what does|what is built|what's built|what is missing|what's missing|stubbed|implemented|auth system|code base|codebase|architecture|repo|tree|read the code|read.*code|where.*development|development.*where|progress|how far|how much.*done|what.*done)\b/.test(query)) {
     return true;
   }
   if (project && /\b(code|implementation|auth|frontend|backend|ui|api|login|signup|supabase)\b/.test(query)) {
@@ -776,10 +776,6 @@ function buildDaxContext(project, codeContext) {
     activeProject: project ? { name: project.name } : null,
     portfolio: getProjectContextSummary(),
     team: (typeof team !== 'undefined' && Array.isArray(team)) ? team : [],
-    pendingReview: daxOrchestration?.pendingReview || null,
-    pendingQueue: daxOrchestration?.pendingQueue || null,
-    pendingStalePipDeletion: Boolean(daxOrchestration?.pendingStalePipDeletion),
-    stalePips: Array.isArray(daxOrchestration?.stalePips) ? daxOrchestration.stalePips : [],
     codeContext: codeContext || null,
   };
 }
