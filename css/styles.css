@@ -317,6 +317,7 @@ select.fi option{background:var(--bg3)}
 .proj-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;align-items:center;justify-content:center;padding:20px}
 .proj-modal-overlay.open{display:flex}
 .proj-modal{background:var(--bg2);border-radius:14px;border:1px solid var(--border2);width:95vw;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.3);overflow:hidden}
+.proj-modal.proj-modal-narrow{width:min(600px,95vw);max-width:min(600px,95vw)}
 .proj-modal-header{padding:16px 20px 0;flex-shrink:0}
 .proj-modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .proj-modal-title{font-size:20px;font-weight:700;color:var(--text);line-height:1.2}

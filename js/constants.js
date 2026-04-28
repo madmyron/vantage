@@ -130,6 +130,11 @@ function applyKnownGithubRepo(project) {
   return {
     ...project,
     githubRepo: project.githubRepo || knownGithubRepoForName(project.name) || '',
+    websiteUrl: project.websiteUrl || '',
+    techStack: project.techStack || '',
+    descriptionLong: project.descriptionLong || '',
+    revenueModel: project.revenueModel || '',
+    targetAudience: project.targetAudience || '',
     startedAt: project.startedAt || '',
     updatedAt: project.updatedAt || '',
     assignee: project.assignee || (project.people && project.people[0] && project.people[0].name) || 'Dax',

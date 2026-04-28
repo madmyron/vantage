@@ -224,9 +224,11 @@ function addPerson(id) {
   const inp = document.getElementById('ni-' + id);
   const sel = document.getElementById('np-' + id);
   if (!inp || !inp.value.trim()) return;
+  const raw = inp.value.trim();
+  const isEmail = /@/.test(raw);
   projects = projects.map(p => {
     if (p.id !== id) return p;
-    const updated = {...p, people:[...p.people, {name:inp.value.trim(), perm:sel.value, visible:true}]};
+    const updated = {...p, people:[...p.people, {name:raw, email:isEmail ? raw : '', perm:sel.value, visible:true}]};
     saveProject(updated);
     return updated;
   });
@@ -341,18 +343,26 @@ function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
 }
 
-function saveNew() {
+async function saveNew() {
   const name = document.getElementById('m-name').value.trim(); if (!name) return;
+  const assigner = await getLoggedInUserLabel();
   const newP = {
     id: nextId++, name, color:pendingColor,
     stage: document.getElementById('m-stage').value,
     desc:  document.getElementById('m-desc').value.trim() || 'No description',
     goal:  document.getElementById('m-goal').value.trim(),
     githubRepo: document.getElementById('m-repo').value.trim() || knownGithubRepoForName(name),
+    websiteUrl: '',
+    techStack: '',
+    descriptionLong: '',
+    revenueModel: '',
+    targetAudience: '',
     subStages:    PIP_STAGES.map(s => ({id:s.id, label:s.label})),
     subProjects:  [], openSubBoard:false,
     convo: {Goal:'',Ideas:'',Financing:'',Marketing:'',Team:'',Timeline:'',Risks:'','Action items':''},
     tickets:[], contacts:[], finances:[], people:[], openTab:null,
+    assignee: 'Dax',
+    assigner,
   };
   projects.push(newP);
   colorIdx++;

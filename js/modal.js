@@ -8,6 +8,12 @@ function getModalScrollContainer() {
   return document.querySelector('.proj-modal-body') || document.getElementById('proj-modal-body');
 }
 
+function syncProjModalWidth() {
+  const modal = document.getElementById('proj-modal');
+  if (!modal) return;
+  modal.classList.toggle('proj-modal-narrow', modalTab !== 'pips');
+}
+
 function captureModalScrollTop() {
   const container = getModalScrollContainer();
   return container ? container.scrollTop || 0 : 0;
@@ -60,6 +66,8 @@ function renderProjModal() {
     </div>
     <div class="proj-modal-tabs">${tabHTML}</div>`;
 
+  syncProjModalWidth();
+
   document.getElementById('proj-modal-footer').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px">
       <span class="stage-badge" style="background:${st.sc};color:${st.sf};border:1px solid ${st.sf}44">${st.label}</span>
@@ -73,7 +81,7 @@ function renderProjModal() {
       </div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick='openDax(${p.id}, ${JSON.stringify(`I want to talk about ${p.name}.`)})'>✦ Dax</button>
+      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick='openProjModalDax(${p.id}, ${JSON.stringify(`I want to talk about ${p.name}.`)})'>✦ Dax</button>
       <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
     </div>`;
 
@@ -91,6 +99,11 @@ function moveProjFromModal(id, stage) {
 function switchModalTab(tab) {
   modalTab = tab;
   renderProjModal();
+}
+
+function openProjModalDax(pid, message) {
+  closeProjModal();
+  setTimeout(() => openDax(pid, message), 50);
 }
 
 // ── MODAL BODY TABS ───────────────────────────────────────────
@@ -252,6 +265,11 @@ function renderModalBody(p) {
       <div class="pm-field"><span class="pm-field-label">Summary</span><input class="fi" value="${esc(p.desc)}" onchange="updateFieldModal(${p.id},'desc',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">Goal</span><input class="fi" value="${esc(p.goal||'')}" placeholder="What does success look like?" onchange="updateFieldModal(${p.id},'goal',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">GitHub repo</span><input class="fi" value="${esc(p.githubRepo||'')}" placeholder="owner/repo" onchange="updateFieldModal(${p.id},'githubRepo',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">Website URL</span><input class="fi" value="${esc(p.websiteUrl||'')}" placeholder="https://..." onchange="updateFieldModal(${p.id},'websiteUrl',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">Tech stack</span><input class="fi" value="${esc(p.techStack||'')}" placeholder="React, Supabase, Vercel" onchange="updateFieldModal(${p.id},'techStack',this.value)"/></div>
+      <div class="pm-field" style="align-items:flex-start"><span class="pm-field-label" style="padding-top:4px">Description</span><textarea class="fi" style="min-height:84px;resize:vertical" placeholder="Longer notes about the project..." onchange="updateFieldModal(${p.id},'descriptionLong',this.value)">${esc(p.descriptionLong||'')}</textarea></div>
+      <div class="pm-field"><span class="pm-field-label">Revenue model</span><input class="fi" value="${esc(p.revenueModel||'')}" placeholder="Subscriptions, services, ads..." onchange="updateFieldModal(${p.id},'revenueModel',this.value)"/></div>
+      <div class="pm-field"><span class="pm-field-label">Target audience</span><input class="fi" value="${esc(p.targetAudience||'')}" placeholder="Who is this for?" onchange="updateFieldModal(${p.id},'targetAudience',this.value)"/></div>
       <div class="pm-field"><span class="pm-field-label">Date started</span><input class="fi" value="${esc(fmtDate(p.startedAt))}" readonly/></div>
       <div class="pm-field"><span class="pm-field-label">Date updated</span><input class="fi" value="${esc(fmtDate(p.updatedAt))}" readonly/></div>
       <div class="pm-field"><span class="pm-field-label">Assignee</span><input class="fi" value="${esc(p.assignee||'Dax')}" onchange="updateFieldModal(${p.id},'assignee',this.value)"/></div>
@@ -410,9 +428,11 @@ function addPersonModal(id) {
   const inp = document.getElementById('mni-' + id);
   const sel = document.getElementById('mnp-' + id);
   if (!inp || !inp.value.trim()) return;
+  const raw = inp.value.trim();
+  const isEmail = /@/.test(raw);
   projects = projects.map(p => {
     if (p.id !== id) return p;
-    return {...p, people:[...p.people, {name:inp.value.trim(), perm:sel.value, visible:true}]};
+    return {...p, people:[...p.people, {name:raw, email:isEmail ? raw : '', perm:sel.value, visible:true}]};
   });
   const p = projects.find(x => x.id === id); if (p) saveProject(p);
   renderProjModal();
