@@ -1499,7 +1499,12 @@ function isMissingDaxHistoryError(err) {
 
 async function callDaxChat(messages, context, system) {
   try {
-    const payload = { messages, context, codeContext: context?.codeContext || null, system };
+    // Only send what dax-chat actually uses — system is already built with all context baked in
+    const payload = {
+      messages,
+      context: { activeProject: context?.activeProject || null },
+      system,
+    };
     console.log('dax request payload:', {
       hasActiveProject: !!context?.activeProject,
       activeProjectName: typeof context?.activeProject === 'string' ? context.activeProject : context?.activeProject?.name || null,
@@ -1586,6 +1591,26 @@ async function initDax() {
   // Auto-clear stale pending reviews — the new EXECUTE flow replaces the old queue system
   if (daxOrchestration?.pendingReview) {
     clearPendingReview();
+  }
+
+  // Check for tasks Claude has queued for Dax
+  checkDaxInbox();
+}
+
+async function checkDaxInbox() {
+  try {
+    const { data, error } = await sb.from('dax_inbox').select('*').eq('status', 'pending').order('created_at').limit(1);
+    if (error || !data || !data.length) return;
+    const item = data[0];
+    // Mark as processing immediately to prevent double-fire
+    await sb.from('dax_inbox').update({ status: 'done' }).eq('id', item.id);
+    // Show the task as a user message and send it to Dax
+    daxAddMsg('user', 'You', item.task);
+    daxHistory.push({ role: 'user', content: item.task });
+    await saveDaxMessage('user', item.task);
+    await daxSend(item.task);
+  } catch (e) {
+    console.error('dax inbox check failed:', e);
   }
 }
 
