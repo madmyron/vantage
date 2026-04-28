@@ -826,6 +826,11 @@ To propose a code change for Claude to execute, add ONE EXECUTE block per change
 
 Only output EXECUTE blocks when you have a clear, specific code change ready. Do not output them speculatively.
 
+To move a PIP to a different stage, output at the end of your message:
+[MOVE_PIP:{"projectName":"exact project name","pipName":"exact pip name","stage":"idea|todo|inprogress|done"}]
+
+Use MOVE_PIP any time you say you are moving, updating, or changing the status of a PIP. Never say you moved something without outputting this block.
+
 Current focus: ${projectName}${pipBlock}${codeContextBlock}`;
 }
 
@@ -1846,7 +1851,8 @@ async function daxSend() {
     if (reply) {
       const executeMatches = [...reply.matchAll(/\[EXECUTE:(.*?)\]/gs)];
       const pipMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
-      const cleanText = reply.replace(/\[EXECUTE:.*?\]/gs, '').replace(/\[PIP:.*?\]/gs, '').trim();
+      const movePipMatches = [...reply.matchAll(/\[MOVE_PIP:(.*?)\]/gs)];
+      const cleanText = reply.replace(/\[EXECUTE:.*?\]/gs, '').replace(/\[PIP:.*?\]/gs, '').replace(/\[MOVE_PIP:.*?\]/gs, '').trim();
 
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
@@ -1887,7 +1893,33 @@ async function daxSend() {
         }
       }
 
-      if (!cleanText && executeMatches.length === 0 && pipMatches.length === 0) {
+      // Handle MOVE_PIP blocks — actually update the PIP stage
+      for (const match of movePipMatches) {
+        try {
+          const action = JSON.parse(match[1]);
+          const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
+          if (!proj) { daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}" to move PIP.`); continue; }
+          const pipNameLower = String(action.pipName || '').toLowerCase();
+          const pip = (proj.subProjects || []).find(sp => String(sp.name || '').toLowerCase().includes(pipNameLower));
+          if (!pip) { daxAddMsg('dax', 'Dax', `Couldn't find PIP "${action.pipName}" in ${proj.name}.`); continue; }
+          const validStages = ['idea', 'todo', 'inprogress', 'done'];
+          const newStage = validStages.includes(action.stage) ? action.stage : 'inprogress';
+          const updatedPip = { ...pip, stage: newStage };
+          const updatedProj = { ...proj, subProjects: proj.subProjects.map(sp => sp.id === pip.id ? updatedPip : sp) };
+          projects = projects.map(p => p.id === proj.id ? updatedProj : p);
+          await saveProject(updatedProj);
+          render();
+          const stageLabel = pipSf(newStage).label;
+          const moveMsg = `Moved "${pip.name}" to ${stageLabel} in ${proj.name}.`;
+          daxAddMsg('dax', 'Dax', moveMsg);
+          daxHistory.push({ role: 'assistant', content: moveMsg });
+          await saveDaxMessage('assistant', moveMsg);
+        } catch (e) {
+          console.warn('Dax MOVE_PIP error:', e, match[1]);
+        }
+      }
+
+      if (!cleanText && executeMatches.length === 0 && pipMatches.length === 0 && movePipMatches.length === 0) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
