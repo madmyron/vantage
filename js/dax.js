@@ -1409,6 +1409,38 @@ async function saveDaxMessage(role, content) {
   }
 }
 
+function extractDaxBlocks(text, prefix) {
+  const results = [];
+  const marker = `[${prefix}:`;
+  let pos = 0;
+  while (pos < text.length) {
+    const start = text.indexOf(marker, pos);
+    if (start === -1) break;
+    const jsonStart = start + marker.length;
+    let depth = 0;
+    let i = jsonStart;
+    let found = false;
+    while (i < text.length) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}') {
+        depth--;
+        if (depth === 0) { found = true; break; }
+      }
+      i++;
+    }
+    if (found && text[i + 1] === ']') {
+      const jsonStr = text.slice(jsonStart, i + 1);
+      try {
+        results.push({ raw: text.slice(start, i + 2), parsed: JSON.parse(jsonStr) });
+      } catch (_) {}
+      pos = i + 2;
+    } else {
+      pos = start + 1;
+    }
+  }
+  return results;
+}
+
 function looksLikeJson(text) {
   const t = (text || '').trim();
   return (t.startsWith('{') || t.startsWith('[')) && (t.includes('"pipId"') || t.includes('"files"') || t.includes('"technicalDescription"'));
@@ -1849,10 +1881,12 @@ async function daxSend() {
     daxTyping = false;
 
     if (reply) {
-      const executeMatches = [...reply.matchAll(/\[EXECUTE:(.*?)\]/gs)];
-      const pipMatches = [...reply.matchAll(/\[PIP:(.*?)\]/gs)];
-      const movePipMatches = [...reply.matchAll(/\[MOVE_PIP:(.*?)\]/gs)];
-      const cleanText = reply.replace(/\[EXECUTE:.*?\]/gs, '').replace(/\[PIP:.*?\]/gs, '').replace(/\[MOVE_PIP:.*?\]/gs, '').trim();
+      const executeMatches = extractDaxBlocks(reply, 'EXECUTE');
+      const pipMatches = extractDaxBlocks(reply, 'PIP');
+      const movePipMatches = extractDaxBlocks(reply, 'MOVE_PIP');
+      let cleanText = reply;
+      [...executeMatches, ...pipMatches, ...movePipMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
+      cleanText = cleanText.trim();
 
       if (cleanText) {
         daxAddMsg('dax', 'Dax', cleanText);
@@ -1863,12 +1897,12 @@ async function daxSend() {
       // Handle EXECUTE blocks — show approval card for each
       for (const match of executeMatches) {
         try {
-          const action = JSON.parse(match[1]);
+          const action = match.parsed;
           const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
           const repo = proj ? getProjectRepo(proj) : null;
           daxShowExecuteApproval(action, proj, repo);
         } catch (e) {
-          console.warn('Dax EXECUTE parse error:', e, match[1]);
+          console.warn('Dax EXECUTE parse error:', e);
         }
       }
 
@@ -1876,8 +1910,8 @@ async function daxSend() {
       let createdPipCount = 0;
       for (const match of pipMatches) {
         try {
-          const action = JSON.parse(match[1]);
-          const proj = projects.find(p => p.name.toLowerCase().includes(action.projectName.toLowerCase()));
+          const action = match.parsed;
+          const proj = projects.find(p => p.name.toLowerCase().includes((action.projectName || '').toLowerCase()));
           if (proj) {
             const firstStage = proj.subStages[0]?.id || 'ss1';
             const newPip = mkSubP(action.pipName, action.pipDesc || '', firstStage);
@@ -1889,14 +1923,14 @@ async function daxSend() {
             daxAddMsg('dax', 'Dax', `PIP created: ${action.pipName} in ${proj.name}`);
           }
         } catch (e) {
-          console.warn('Dax pip error:', e, match[1]);
+          console.warn('Dax pip error:', e);
         }
       }
 
       // Handle MOVE_PIP blocks — actually update the PIP stage
       for (const match of movePipMatches) {
         try {
-          const action = JSON.parse(match[1]);
+          const action = match.parsed;
           const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
           if (!proj) { daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}" to move PIP.`); continue; }
           const pipNameLower = String(action.pipName || '').toLowerCase();
@@ -1919,7 +1953,7 @@ async function daxSend() {
         }
       }
 
-      if (!cleanText && executeMatches.length === 0 && pipMatches.length === 0 && movePipMatches.length === 0) {
+      if (!cleanText && !executeMatches.length && !pipMatches.length && !movePipMatches.length) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
