@@ -1549,20 +1549,25 @@ async function initDax() {
   }
 }
 
-function daxShowExecuteApproval(action, proj, repo) {
+function daxShowExecuteApproval(items) {
   const msgs = document.getElementById('dax-messages');
   if (!msgs) return;
+
+  const listHtml = items.map(({ action, repo }) => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--border2,#eee)">
+      <div style="font-weight:600;font-size:13px">${esc(action.title || 'Code Change')}</div>
+      <div style="font-size:12px;color:var(--text2,#666);margin-top:2px">${esc(action.description || action.technicalDescription || '')}</div>
+      ${!repo ? '<div style="color:#e55;font-size:11px;margin-top:3px">⚠ No GitHub repo linked — add it in Info tab first.</div>' : ''}
+    </div>`).join('');
 
   const card = document.createElement('div');
   card.className = 'dax-msg dax';
   card.innerHTML = `
-    <div class="dax-msg-label">Dax — Proposed Change</div>
+    <div class="dax-msg-label">Dax — Proposed Changes</div>
     <div class="dax-bubble" style="border:1px solid var(--accent,#6c63ff);padding:12px;border-radius:10px;">
-      <div style="font-weight:600;margin-bottom:6px">${esc(action.title || 'Code Change')}</div>
-      <div style="margin-bottom:10px;font-size:13px">${esc(action.description || action.technicalDescription || '')}</div>
-      ${!repo ? '<div style="color:#e55;font-size:12px;margin-bottom:8px">⚠ No GitHub repo linked to this project — add it in the Info tab first.</div>' : ''}
-      <div style="display:flex;gap:8px">
-        <button class="dax-approve-btn" style="background:var(--accent,#6c63ff);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px">Approve</button>
+      ${listHtml}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="dax-approve-btn" style="background:var(--accent,#6c63ff);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px">Approve${items.length > 1 ? ` All (${items.length})` : ''}</button>
         <button class="dax-skip-btn" style="background:transparent;border:1px solid var(--border2,#ccc);border-radius:6px;padding:6px 16px;cursor:pointer;font-size:13px">Skip</button>
       </div>
     </div>`;
@@ -1571,50 +1576,56 @@ function daxShowExecuteApproval(action, proj, repo) {
 
   card.querySelector('.dax-skip-btn').addEventListener('click', () => {
     card.remove();
-    const msg = `Skipped: ${action.title}`;
-    daxAddMsg('dax', 'Dax', msg);
+    daxAddMsg('dax', 'Dax', 'Skipped.');
   });
 
   card.querySelector('.dax-approve-btn').addEventListener('click', async () => {
     card.remove();
-    if (!repo) {
-      daxAddMsg('dax', 'Dax', `Can't run — no GitHub repo linked to ${action.projectName}. Add it in the project's Info tab.`);
-      return;
-    }
-    const runMsg = `Running: ${action.title}...`;
-    daxAddMsg('dax', 'Dax', runMsg);
-    daxHistory.push({ role: 'assistant', content: runMsg });
-    await saveDaxMessage('assistant', runMsg);
 
-    try {
-      const pip = {
-        pipId: `dax-${Date.now()}`,
-        title: action.title,
-        displayDescription: action.description || action.title,
-        technicalDescription: action.technicalDescription || action.description || action.title,
-        files: Array.isArray(action.files) ? action.files : [],
-      };
-      const execResult = await executePip(repo, pip);
-      if (!execResult?.success) {
-        const failed = (execResult?.results || []).filter(r => !r.success).map(r => r.error || r.file).join(', ');
-        throw new Error(failed || 'execution failed');
+    for (const { action, proj, repo } of items) {
+      if (!repo) {
+        const msg = `Can't run "${action.title}" — no GitHub repo linked to ${action.projectName}. Add it in the project's Info tab.`;
+        daxAddMsg('dax', 'Dax', msg);
+        daxHistory.push({ role: 'assistant', content: msg });
+        await saveDaxMessage('assistant', msg);
+        continue;
       }
 
-      await new Promise(r => setTimeout(r, 2000));
-      const vercelUrl = proj?.metadata?.websiteUrl || null;
-      const verifyResult = await verifyPip(repo, pip, vercelUrl);
+      const runMsg = `Running: ${action.title}...`;
+      daxAddMsg('dax', 'Dax', runMsg);
+      daxHistory.push({ role: 'assistant', content: runMsg });
+      await saveDaxMessage('assistant', runMsg);
 
-      const resultMsg = verifyResult?.passed
-        ? `Done — "${action.title}" is in and verified.`
-        : `"${action.title}" was committed but verification found issues: ${(verifyResult?.issues || []).join('; ')}. Want me to try again?`;
-      daxAddMsg('dax', 'Dax', resultMsg);
-      daxHistory.push({ role: 'assistant', content: resultMsg });
-      await saveDaxMessage('assistant', resultMsg);
-    } catch (err) {
-      const errMsg = `Failed to run "${action.title}": ${err instanceof Error ? err.message : String(err)}`;
-      daxAddMsg('dax', 'Dax', errMsg);
-      daxHistory.push({ role: 'assistant', content: errMsg });
-      await saveDaxMessage('assistant', errMsg);
+      try {
+        const pip = {
+          pipId: `dax-${Date.now()}`,
+          title: action.title,
+          displayDescription: action.description || action.title,
+          technicalDescription: action.technicalDescription || action.description || action.title,
+          files: Array.isArray(action.files) ? action.files : [],
+        };
+        const execResult = await executePip(repo, pip);
+        if (!execResult?.success) {
+          const failed = (execResult?.results || []).filter(r => !r.success).map(r => r.error || r.file).join(', ');
+          throw new Error(failed || 'execution failed');
+        }
+
+        await new Promise(r => setTimeout(r, 2000));
+        const vercelUrl = proj?.websiteUrl || null;
+        const verifyResult = await verifyPip(repo, pip, vercelUrl);
+
+        const resultMsg = verifyResult?.passed
+          ? `Done — "${action.title}" is in and verified.`
+          : `"${action.title}" was committed but verification found issues: ${(verifyResult?.issues || []).join('; ')}. Want me to try again?`;
+        daxAddMsg('dax', 'Dax', resultMsg);
+        daxHistory.push({ role: 'assistant', content: resultMsg });
+        await saveDaxMessage('assistant', resultMsg);
+      } catch (err) {
+        const errMsg = `Failed to run "${action.title}": ${err instanceof Error ? err.message : String(err)}`;
+        daxAddMsg('dax', 'Dax', errMsg);
+        daxHistory.push({ role: 'assistant', content: errMsg });
+        await saveDaxMessage('assistant', errMsg);
+      }
     }
   });
 }
@@ -1841,16 +1852,15 @@ async function daxSend() {
         await saveDaxMessage('assistant', cleanText);
       }
 
-      // Handle EXECUTE blocks — show approval card for each
-      for (const match of executeMatches) {
-        try {
-          const action = match.parsed;
+      // Handle EXECUTE blocks — single approval card for the whole batch
+      if (executeMatches.length > 0) {
+        const actions = executeMatches.map(m => {
+          const action = m.parsed;
           const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
           const repo = proj ? getProjectRepo(proj) : null;
-          daxShowExecuteApproval(action, proj, repo);
-        } catch (e) {
-          console.warn('Dax EXECUTE parse error:', e);
-        }
+          return { action, proj, repo };
+        });
+        daxShowExecuteApproval(actions);
       }
 
       // Handle PIP card creation blocks
