@@ -81,7 +81,7 @@ function renderProjModal() {
       </div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick='openProjModalDax(${p.id}, ${JSON.stringify(`I want to talk about ${p.name}.`)})'>✦ Dax</button>
+      <button class="btn" style="color:#3d2fa8;border-color:rgba(91,77,224,.4);font-weight:600" onclick="openProjModalDax(${p.id})">✦ Dax</button>
       <button class="btn" style="color:var(--red);border-color:rgba(192,48,48,.3)" onclick="deleteProject(${p.id});closeProjModal()">Delete</button>
     </div>`;
 
@@ -101,9 +101,9 @@ function switchModalTab(tab) {
   renderProjModal();
 }
 
-function openProjModalDax(pid, message) {
-  closeProjModal();
-  setTimeout(() => openDax(pid, message), 50);
+function openProjModalDax(pid) {
+  const p = projects.find(x => x.id === pid);
+  openDax(pid, p ? `I want to talk about ${p.name}` : '');
 }
 
 // ── MODAL BODY TABS ───────────────────────────────────────────
