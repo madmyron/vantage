@@ -33,6 +33,8 @@ async function fetchFile(repo: string, path: string, token: string): Promise<{ c
 
 async function commitFile(repo: string, path: string, content: string, sha: string, message: string, token: string): Promise<boolean> {
   const encoded = btoa(unescape(encodeURIComponent(content)));
+  const body: Record<string, unknown> = { message, content: encoded };
+  if (sha) body.sha = sha; // omit sha for new files
   const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
     method: "PUT",
     headers: {
@@ -41,7 +43,7 @@ async function commitFile(repo: string, path: string, content: string, sha: stri
       "Content-Type": "application/json",
       "User-Agent": "vantage-dax/1.0",
     },
-    body: JSON.stringify({ message, content: encoded, sha }),
+    body: JSON.stringify(body),
   });
   return res.ok;
 }
@@ -62,17 +64,17 @@ Deno.serve(async (req: Request) => {
 
     for (const filePath of pip.files) {
       const fileData = await fetchFile(repo, filePath, githubToken);
-      if (!fileData) {
-        results.push({ file: filePath, success: false, error: `File not found: ${filePath}` });
-        continue;
-      }
+      const isNewFile = !fileData;
 
-      const response = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8096,
-        messages: [{
-          role: "user",
-          content: `You are a precise code editor. Apply ONLY the specific change described below. Return the complete modified file with no explanation, no markdown fences, no commentary — just the raw file content exactly as it should be saved.
+      const prompt = isNewFile
+        ? `You are a precise code writer. Create the file described below from scratch. Return only the complete file content with no explanation, no markdown fences, no commentary.
+
+File path: ${filePath}
+
+What to create: ${pip.technicalDescription}
+
+Return only the complete file content.`
+        : `You are a precise code editor. Apply ONLY the specific change described below. Return the complete modified file with no explanation, no markdown fences, no commentary — just the raw file content exactly as it should be saved.
 
 File path: ${filePath}
 
@@ -81,14 +83,18 @@ ${fileData.content}
 
 Change to apply: ${pip.technicalDescription}
 
-Return only the complete modified file content.`,
-        }],
+Return only the complete modified file content.`;
+
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8096,
+        messages: [{ role: "user", content: prompt }],
       });
 
       const raw = response.content[0].type === "text" ? response.content[0].text : "";
       const cleaned = raw.replace(/^```[\w]*\r?\n/, "").replace(/\r?\n```$/, "").trim();
 
-      const ok = await commitFile(repo, filePath, cleaned, fileData.sha, `dax: ${pip.title}`, githubToken);
+      const ok = await commitFile(repo, filePath, cleaned, fileData?.sha ?? "", `dax: ${pip.title}`, githubToken);
       results.push({ file: filePath, success: ok, error: ok ? undefined : "GitHub commit failed" });
     }
 
