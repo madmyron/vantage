@@ -174,7 +174,7 @@ Rules:
 function buildReviewAnthropicPayload(project, messages) {
   return {
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
+    max_tokens: 4096,
     system: buildReviewSystem(project),
     messages,
     tools: [proposeReviewPlanTool()],
@@ -253,7 +253,7 @@ function extractReviewPlanFromToolUseBlocks(content) {
     throw new Error('Review mode did not return a propose_review_plan tool call.');
   }
 
-  return JSON.stringify(toolUse.input || {});
+  return toolUse.input || {};
 }
 
 function normalizeReviewPayload(parsed) {
@@ -454,6 +454,21 @@ async function startClaudeCodeQueue(plan, project) {
 }
 
 function parseReviewPlan(reply, project) {
+  if (reply && typeof reply === 'object' && !Array.isArray(reply)) {
+    const parsed = normalizeReviewPayload(reply);
+    const pips = getReviewPips(parsed).map(pip => ({
+      ...pip,
+      displayDescription: pip.displayDescription || pip.description || pip.reason || '',
+      technicalDescription: pip.technicalDescription || pip.description || pip.reason || '',
+    }));
+    return {
+      projectName: parsed?.projectName || project?.name || 'Project',
+      summary: parsed?.summary || '',
+      recommendation: parsed?.recommendation || '',
+      proposedPips: pips,
+    };
+  }
+
   let raw = String(reply || '').replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
   const firstBrace = raw.indexOf('{');
   const lastBrace = raw.lastIndexOf('}');
@@ -840,7 +855,7 @@ async function handleReviewCommand(projectName) {
     daxRemoveTyping();
     daxTyping = false;
 
-    console.log('Dax review raw response:', reply);
+    console.log('Dax review raw response:', data);
 
     const plan = parseReviewPlan(reply, project);
     console.log('parsed plan:', plan, 'proposedPips:', plan?.proposedPips);
