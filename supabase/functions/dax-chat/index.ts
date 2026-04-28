@@ -20,6 +20,8 @@ Deno.serve(async (req: Request) => {
         finances?: unknown[];
         team?: unknown[];
         activeProject?: unknown;
+        conversationId?: unknown;
+        conversationTitle?: unknown;
         pendingReview?: unknown;
         codeContext?: unknown;
       };
@@ -75,6 +77,8 @@ function buildSystem(ctx?: {
   finances?: unknown[];
   team?: unknown[];
   activeProject?: unknown;
+  conversationId?: unknown;
+  conversationTitle?: unknown;
   pendingReview?: unknown;
   codeContext?: unknown;
 }): string {
@@ -108,6 +112,8 @@ function buildReviewSystem(ctx?: {
   finances?: unknown[];
   team?: unknown[];
   activeProject?: unknown;
+  conversationId?: unknown;
+  conversationTitle?: unknown;
   pendingReview?: unknown;
   codeContext?: unknown;
 }): string {

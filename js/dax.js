@@ -3,7 +3,11 @@
 let daxProjectId = null;
 let daxTyping = false;
 let daxHistory = [];
+let daxConversationId = null;
+let daxConversationTitle = '';
+let daxConversationSummaries = [];
 const DAX_ORCHESTRATION_KEY = 'vantage_dax_orchestration';
+const DAX_ACTIVE_CONVERSATIONS_KEY = 'vantage_dax_active_conversations';
 const DAX_HISTORY_TABLE = 'dax_history';
 const DAX_CHAT_URL = `${SUPABASE_URL}/functions/v1/dax-chat`;
 const CLAUDE_QUEUE_URL = '/api/claude-code-trigger';
@@ -75,6 +79,289 @@ function saveDaxOrchestration() {
   } catch (err) {
     console.warn('Could not save Dax orchestration state:', err);
   }
+}
+
+function loadDaxConversationMap() {
+  try {
+    const raw = localStorage.getItem(DAX_ACTIVE_CONVERSATIONS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.warn('Could not load Dax conversation map:', err);
+    return {};
+  }
+}
+
+function saveDaxConversationMap(map) {
+  try {
+    localStorage.setItem(DAX_ACTIVE_CONVERSATIONS_KEY, JSON.stringify(map || {}));
+  } catch (err) {
+    console.warn('Could not save Dax conversation map:', err);
+  }
+}
+
+function getDaxScopeKey(projectId = daxProjectId) {
+  return projectId == null || projectId === '' ? 'global' : String(projectId);
+}
+
+function getStoredDaxConversationId(projectId = daxProjectId) {
+  const map = loadDaxConversationMap();
+  return map[getDaxScopeKey(projectId)] || null;
+}
+
+function setStoredDaxConversationId(projectId, conversationId) {
+  const map = loadDaxConversationMap();
+  const key = getDaxScopeKey(projectId);
+  if (conversationId) map[key] = conversationId;
+  else delete map[key];
+  saveDaxConversationMap(map);
+}
+
+function createDaxConversationId() {
+  if (typeof crypto !== 'undefined' && crypto?.randomUUID) return crypto.randomUUID();
+  return `dax-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getDaxConversationTitle(projectId, rows = []) {
+  const project = projectId ? projects.find(p => String(p.id) === String(projectId)) : null;
+  const projectName = project?.name || 'Conversation';
+  const firstUser = rows.find(row => row.role === 'user' && String(row.content || '').trim());
+  const firstAssistant = rows.find(row => row.role === 'assistant' && String(row.content || '').trim());
+  const source = firstUser || firstAssistant;
+  if (source?.content) {
+    const snippet = String(source.content).replace(/\s+/g, ' ').trim();
+    if (snippet) return snippet.slice(0, 72);
+  }
+  return projectName;
+}
+
+function clearDaxConversationMenu() {
+  const menu = document.getElementById('dax-history-menu');
+  if (menu) menu.remove();
+}
+
+function ensureDaxConversationHeaderControls() {
+  const header = document.querySelector('.dax-header');
+  if (!header || document.getElementById('dax-convo-controls')) return;
+
+  header.style.position = 'relative';
+
+  const controls = document.createElement('div');
+  controls.id = 'dax-convo-controls';
+  controls.style.display = 'flex';
+  controls.style.alignItems = 'center';
+  controls.style.gap = '6px';
+  controls.style.marginLeft = 'auto';
+  controls.style.flexWrap = 'wrap';
+
+  const makeBtn = (label, title, onClick, extraStyle = '') => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.title = title;
+    btn.style.cssText = `min-height:28px;padding:6px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text2);font:inherit;font-size:11px;font-weight:600;cursor:pointer;${extraStyle}`;
+    btn.addEventListener('click', onClick);
+    return btn;
+  };
+
+  const historyBtn = makeBtn('History', 'Open conversation history', async (e) => {
+    e.stopPropagation();
+    await toggleDaxHistoryMenu();
+  });
+  const newBtn = makeBtn('New', 'Start a new conversation', async (e) => {
+    e.stopPropagation();
+    await startFreshDaxConversation({ deleteCurrent: false });
+  });
+  const clearBtn = makeBtn('Clear', 'Delete the current conversation', async (e) => {
+    e.stopPropagation();
+    await startFreshDaxConversation({ deleteCurrent: true });
+  }, 'color:#ff7f7f;border-color:rgba(255,127,127,.35);');
+
+  controls.appendChild(historyBtn);
+  controls.appendChild(newBtn);
+  controls.appendChild(clearBtn);
+  header.appendChild(controls);
+
+  const panel = document.getElementById('dax-panel');
+  if (panel && !document.getElementById('dax-history-menu')) {
+    const menu = document.createElement('div');
+    menu.id = 'dax-history-menu';
+    menu.style.cssText = 'display:none;position:absolute;top:48px;right:12px;z-index:420;width:260px;max-height:320px;overflow:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.25);';
+    panel.appendChild(menu);
+  }
+}
+
+function renderDaxConversationMessages(messages) {
+  const msgs = document.getElementById('dax-messages');
+  if (!msgs) return;
+  msgs.innerHTML = '';
+  if (!messages.length) {
+    scrollDaxToBottomDelayed();
+    return;
+  }
+  messages.forEach(msg => {
+    daxAddMsg(msg.role === 'assistant' ? 'dax' : 'user', msg.role === 'assistant' ? 'Dax' : 'You', msg.content, { silent: true });
+  });
+  scrollDaxToBottomDelayed();
+}
+
+function renderDaxHistoryMenu() {
+  const menu = document.getElementById('dax-history-menu');
+  if (!menu) return;
+  const summaries = daxConversationSummaries || [];
+  menu.innerHTML = '';
+  menu.style.display = summaries.length ? 'block' : 'none';
+
+  if (!summaries.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding:10px 12px;font-size:12px;color:var(--text3);';
+    empty.textContent = 'No previous conversations yet.';
+    menu.appendChild(empty);
+    return;
+  }
+
+  summaries.forEach(summary => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.style.cssText = 'display:block;width:100%;text-align:left;padding:10px 12px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font:inherit;';
+    item.innerHTML = `<div style="font-size:12px;font-weight:600;line-height:1.3">${esc(summary.title || 'Conversation')}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">${esc(summary.updatedAtLabel || '')}</div>`;
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await loadDaxConversationById(summary.projectId, summary.conversationId);
+      menu.style.display = 'none';
+    });
+    menu.appendChild(item);
+  });
+}
+
+async function refreshDaxConversationSummaries(projectId = daxProjectId) {
+  const scopeKey = getDaxScopeKey(projectId);
+  try {
+    const query = sb
+      .from(DAX_HISTORY_TABLE)
+      .select('role, content, created_at, project_id, conversation_id, conversation_title')
+      .order('created_at', { ascending: true })
+      .limit(1000);
+    if (scopeKey === 'global') query = query.is('project_id', null);
+    else query = query.eq('project_id', scopeKey);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    const grouped = new Map();
+    rows.forEach(row => {
+      const key = row.conversation_id || row.created_at || 'legacy';
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(row);
+    });
+    daxConversationSummaries = Array.from(grouped.entries()).map(([conversationId, items]) => {
+      const last = items[items.length - 1] || {};
+      const title = last.conversation_title || getDaxConversationTitle(projectId, items);
+      const updatedAt = last.created_at || '';
+      return {
+        projectId: scopeKey === 'global' ? null : scopeKey,
+        conversationId: last.conversation_id || conversationId,
+        title,
+        updatedAt,
+        updatedAtLabel: updatedAt ? new Date(updatedAt).toLocaleString() : '',
+        itemCount: items.length,
+      };
+    }).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  } catch (err) {
+    console.warn('Could not refresh Dax conversation summaries:', err);
+    daxConversationSummaries = [];
+  }
+  renderDaxHistoryMenu();
+}
+
+async function loadDaxConversationById(projectId, conversationId) {
+  daxProjectId = projectId == null ? null : projectId;
+  daxConversationId = conversationId || createDaxConversationId();
+  setStoredDaxConversationId(projectId, daxConversationId);
+  daxConversationTitle = null;
+  try {
+    const scopeKey = getDaxScopeKey(projectId);
+    let query = sb
+      .from(DAX_HISTORY_TABLE)
+      .select('role, content, created_at, project_id, conversation_id, conversation_title')
+      .order('created_at', { ascending: true })
+      .limit(1000);
+    if (scopeKey === 'global') query = query.is('project_id', null);
+    else query = query.eq('project_id', scopeKey);
+    query = query.eq('conversation_id', daxConversationId);
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    daxHistory = rows.map(row => ({ role: row.role, content: row.content }));
+    daxConversationTitle = rows[0]?.conversation_title || getDaxConversationTitle(projectId, rows);
+    renderDaxConversationMessages(daxHistory);
+    await refreshDaxConversationSummaries(projectId);
+    return daxHistory;
+  } catch (err) {
+    console.warn('Could not load Dax conversation:', err);
+    daxHistory = [];
+    renderDaxConversationMessages([]);
+    await refreshDaxConversationSummaries(projectId);
+    return daxHistory;
+  }
+}
+
+async function loadLatestOrNewDaxConversation(projectId, { forceNew = false } = {}) {
+  const scopeKey = getDaxScopeKey(projectId);
+  let conversationId = forceNew ? createDaxConversationId() : getStoredDaxConversationId(projectId);
+  if (!conversationId) {
+    try {
+      let query = sb
+        .from(DAX_HISTORY_TABLE)
+        .select('conversation_id, conversation_title, created_at, project_id')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (scopeKey === 'global') query = query.is('project_id', null);
+      else query = query.eq('project_id', scopeKey);
+      const { data, error } = await query;
+      if (!error && Array.isArray(data)) {
+        conversationId = data[0]?.conversation_id || null;
+      }
+    } catch (err) {
+      console.warn('Could not locate latest Dax conversation:', err);
+    }
+  }
+  if (!conversationId) conversationId = createDaxConversationId();
+  return loadDaxConversationById(projectId, conversationId);
+}
+
+async function startFreshDaxConversation({ deleteCurrent = false } = {}) {
+  const projectId = daxProjectId;
+  const currentConversationId = daxConversationId || getStoredDaxConversationId(projectId);
+  if (deleteCurrent && currentConversationId) {
+    try {
+      let query = sb.from(DAX_HISTORY_TABLE).delete();
+      if (projectId == null) query = query.is('project_id', null);
+      else query = query.eq('project_id', String(projectId));
+      query = query.eq('conversation_id', currentConversationId);
+      await query;
+    } catch (err) {
+      console.warn('Could not delete current Dax conversation:', err);
+    }
+  }
+  daxConversationId = createDaxConversationId();
+  daxConversationTitle = projectId ? (projects.find(p => String(p.id) === String(projectId))?.name || 'Conversation') : 'Conversation';
+  setStoredDaxConversationId(projectId, daxConversationId);
+  daxHistory = [];
+  renderDaxConversationMessages([]);
+  await refreshDaxConversationSummaries(projectId);
+}
+
+async function toggleDaxHistoryMenu() {
+  ensureDaxConversationHeaderControls();
+  const menu = document.getElementById('dax-history-menu');
+  if (!menu) return;
+  if (menu.style.display === 'block') {
+    menu.style.display = 'none';
+    return;
+  }
+  await refreshDaxConversationSummaries(daxProjectId);
+  const summaries = daxConversationSummaries || [];
+  menu.style.display = summaries.length ? 'block' : 'none';
+  renderDaxHistoryMenu();
 }
 
 function scrollDaxToBottom() {
@@ -1029,14 +1316,23 @@ async function startQueuedClaudeExecution(queuedPlan, project, jobs, startMsgOve
 }
 
 async function loadDaxHistory() {
+  return loadLatestOrNewDaxConversation(daxProjectId, { forceNew: false });
+}
+
+async function loadDaxHistoryRowsForScope(projectId = daxProjectId, conversationId = null) {
   try {
-    const { data, error } = await sb
+    const scopeKey = getDaxScopeKey(projectId);
+    let query = sb
       .from(DAX_HISTORY_TABLE)
-      .select('role, content, created_at')
+      .select('role, content, created_at, project_id, conversation_id, conversation_title')
       .order('created_at', { ascending: true })
-      .limit(200);
+      .limit(500);
+    if (scopeKey === 'global') query = query.is('project_id', null);
+    else query = query.eq('project_id', scopeKey);
+    if (conversationId) query = query.eq('conversation_id', conversationId);
+    const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return Array.isArray(data) ? data : [];
   } catch (e) {
     if (!isMissingDaxHistoryError(e)) {
       console.warn('Could not load Dax history:', e.message);
@@ -1047,7 +1343,23 @@ async function loadDaxHistory() {
 
 async function saveDaxMessage(role, content) {
   try {
-    await sb.from(DAX_HISTORY_TABLE).insert({ role, content });
+    if (!daxConversationId) {
+      daxConversationId = createDaxConversationId();
+      setStoredDaxConversationId(daxProjectId, daxConversationId);
+    }
+
+    if (!daxConversationTitle) {
+      daxConversationTitle = getDaxConversationTitle(daxProjectId, daxHistory.concat([{ role, content }]));
+    }
+
+    await sb.from(DAX_HISTORY_TABLE).insert({
+      role,
+      content,
+      project_id: daxProjectId == null ? null : String(daxProjectId),
+      conversation_id: daxConversationId,
+      conversation_title: daxConversationTitle,
+    });
+    await refreshDaxConversationSummaries(daxProjectId);
   } catch (e) {
     if (!isMissingDaxHistoryError(e)) {
       console.warn('Could not save Dax message:', e.message);
@@ -1135,17 +1447,15 @@ async function callDaxChat(messages, context, system) {
 }
 
 async function initDax() {
+  ensureDaxConversationHeaderControls();
   const history = await loadDaxHistory();
-  daxHistory = history.map(m => ({ role: m.role, content: m.content }));
+  daxHistory = Array.isArray(history) ? history.map(m => ({ role: m.role, content: m.content })) : [];
 
   if (history.length === 0) {
     const opener = "Hey Michael - I'm Dax, your AI advisor. What project or idea is on your mind right now?";
     daxAddMsg('dax', 'Dax', opener);
     daxHistory.push({ role: 'assistant', content: opener });
     await saveDaxMessage('assistant', opener);
-  } else {
-    history.forEach(m => daxAddMsg(m.role === 'assistant' ? 'dax' : 'user', m.role === 'assistant' ? 'Dax' : 'You', m.content));
-    scrollDaxToBottomDelayed();
   }
 
   if (daxOrchestration?.pendingReview?.projectName) {
@@ -1153,7 +1463,7 @@ async function initDax() {
   }
 }
 
-function daxAddMsg(role, label, text) {
+function daxAddMsg(role, label, text, opts = {}) {
   const msgs = document.getElementById('dax-messages');
   const empty = document.getElementById('dax-empty');
   if (empty) empty.remove();
@@ -1162,7 +1472,7 @@ function daxAddMsg(role, label, text) {
   div.className = `dax-msg ${role}`;
   div.innerHTML = `<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g, '<br>')}</div>`;
   msgs.appendChild(div);
-  scrollDaxToBottomDelayed();
+  if (!opts.silent) scrollDaxToBottomDelayed();
 }
 
 function daxShowTyping() {
@@ -1476,7 +1786,7 @@ async function daxSend() {
   }
 }
 
-function openDax(pid, starterMessage = '') {
+async function openDax(pid, starterMessage = '') {
   daxProjectId = pid;
   const badge = document.getElementById('dax-project-badge');
   if (pid && badge) {
@@ -1495,6 +1805,8 @@ function openDax(pid, starterMessage = '') {
   }
   const inp = document.getElementById('dax-input');
   if (inp) inp.focus();
+  ensureDaxConversationHeaderControls();
+  await loadLatestOrNewDaxConversation(pid, { forceNew: false });
   scrollDaxToBottomDelayed();
   const msg = String(starterMessage || '').trim();
   if (msg) {
@@ -1514,6 +1826,8 @@ function closeDax() {
   const badge = document.getElementById('dax-project-badge');
   if (badge) badge.style.display = 'none';
   daxProjectId = null;
+  daxConversationId = null;
+  daxConversationTitle = '';
 }
 
 function daxKeydown(e) {
