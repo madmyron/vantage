@@ -236,6 +236,44 @@ Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel se
 
 ---
 
+## Aria Sports API — Known Issues & Patterns
+
+### NHL API — Use the new endpoint
+
+The old NHL API (`statsapi.web.nhl.com/api/v1/schedule`) is **deprecated and returns 404**. Do not use it anywhere.
+
+**Correct endpoints (`api-web.nhle.com/v1`):**
+
+| Data | Endpoint |
+|---|---|
+| Team schedule | `/club-schedule-season/{abbr}/now` |
+| Standings | `/standings/now` |
+| Recent games | `/club-schedule-season/{abbr}/now` (filter completed) |
+
+### All API calls go through the backend
+
+Never call a league API (NHL, NBA, NFL, MLB) directly from the client (`App.jsx`, `voiceInput.js`). Always route through `server/index.js` backend routes. Client-side league API calls break CORS, expose credentials, and bypass caching.
+
+- `voiceInput.js` → calls `/api/sports/next-game?team=` on our backend
+- `App.jsx` context builder → calls `/api/sports/*` on our backend
+- `server/index.js` → calls the league's official API
+
+### sportsBackend.js is not imported
+
+`sportsBackend.js` exists in the repo root but is **not imported by `server/index.js`**. It is a standalone unused module. Never add new sports routes there — always add to `server/index.js`.
+
+### Team data goes stale — verify abbreviations
+
+Teams relocate and rebrand. The team lookup tables in `server/index.js` and `voiceInput.js` need to reflect current reality:
+
+| Was | Now |
+|---|---|
+| Arizona Coyotes (`ARI`) | Utah Mammoth (`UTA`, id: 53) |
+
+When adding or editing team lookups, verify abbreviations against the current league roster. For NHL, cross-check against `api-web.nhle.com/v1/standings/now` — it returns the live team list with correct abbreviations.
+
+---
+
 ## Common Pitfalls
 
 | Problem | Cause | Fix |
@@ -253,3 +291,8 @@ Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel se
 | 403 HTML dumped in chat | GitHub API returns Cloudflare HTML instead of JSON; `res.json()` throws raw HTML into error message | Use `res.text()` then `JSON.parse()` with try/catch in fetchFile — return null on parse failure |
 | Raw HTML/JSON error in chat | Error message from failed execute contains full HTTP response body | Truncate and strip HTML tags from error messages before displaying: `rawErr.slice(0,120).replace(/<[^>]+>/g,'')` |
 | max_tokens reset to 64000 | dax-execute file reverted or overwritten without convention check | Always verify max_tokens is 16000 after any dax-execute edit — 64000 causes immediate 500 |
+| Aria sport route 404 | Edited `api/sports/*.js` (Vercel stubs) instead of `server/index.js` | Aria backend is Railway Express — only `server/index.js` runs in production; `api/` is dead |
+| NHL schedule returns 404 | Using deprecated `statsapi.web.nhl.com/api/v1/schedule` | Use `api-web.nhle.com/v1/club-schedule-season/{abbr}/now` — old API is gone |
+| voiceInput not fetching data | Voice code calls league API directly instead of Aria backend | All sport API calls must go through `server/index.js` routes — never call NHL/NBA/etc. from client |
+| Wrong team abbr / no data | Team relocated or rebranded (e.g. Arizona Coyotes → Utah Mammoth) | Verify team abbrs against `api-web.nhle.com/v1/standings/now` before hardcoding lookup tables |
+| THINK block text leaks into chat | Literal `\n` or `\t` inside JSON string causes `JSON.parse()` to fail silently; block not stripped | Sanitize before parsing: `jsonStr.replace(/[\r\n\t]/g, ' ')` then parse |
