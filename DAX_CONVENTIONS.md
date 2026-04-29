@@ -284,6 +284,8 @@ const finished = games.filter(g => finishedStates.includes(g.gameState));
 
 ### Aria sports routes (server/index.js) — current inventory
 
+**NHL routes** (use `api-web.nhle.com/v1`):
+
 | Route | Query param | Returns |
 |---|---|---|
 | `GET /api/sports/next-game` | `?team=dallas stars` | Next scheduled game (skips live) |
@@ -291,6 +293,30 @@ const finished = games.filter(g => finishedStates.includes(g.gameState));
 | `GET /api/sports/standings` | none | Full NHL standings |
 | `GET /api/sports/last-games` | `?team=dallas stars` | Last 5 completed games |
 | `GET /api/sports/team-record` | `?team=dallas stars` | W/L/OT/points/division rank |
+
+**NBA routes** (use ESPN public API — `site.api.espn.com`):
+
+| Route | Query param | Returns |
+|---|---|---|
+| `GET /api/sports/nba/next-game` | `?team=dallas mavericks` | Next scheduled game |
+| `GET /api/sports/nba/score` | `?team=dallas mavericks` | Live score if game in progress |
+| `GET /api/sports/nba/standings` | none | Full NBA standings |
+| `GET /api/sports/nba/last-games` | `?team=dallas mavericks` | Last 5 completed games |
+| `GET /api/sports/nba/team-record` | `?team=dallas mavericks` | W/L/win pct/conference |
+
+**ESPN API endpoints used for NBA:**
+- Schedule: `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/{abbr}/schedule`
+- Live scoreboard: `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard`
+- Standings: `https://site.api.espn.com/apis/v2/sports/basketball/nba/standings`
+
+**ESPN game states:** `pre` = upcoming, `in` = live, `post` = finished (different from NHL's string states)
+
+**ESPN response shape (competitions array):**
+- `competitions[0].competitors` — array with `homeAway: 'home'|'away'`, `team.abbreviation`, `team.displayName`, `score`, `winner`
+- `competitions[0].status.type.state` — `'pre'`/`'in'`/`'post'`
+- `competitions[0].status.period` — current quarter/period number
+- `competitions[0].status.displayClock` — clock string e.g. `"4:32"`
+- `competitions[0].venue.fullName` — arena name
 
 **Adding a new intent in App.jsx** — two places to touch:
 1. Add to `intents` object in `detectIntent()` (regex for trigger words + team/sport keywords)
