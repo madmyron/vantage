@@ -1573,10 +1573,16 @@ async function callDaxChat(messages, context, system) {
       });
 
       if (error) {
-        const detail = error.message || error.error || JSON.stringify(error);
+        let detail = error.message || JSON.stringify(error);
+        try {
+          const body = await error.context?.json?.();
+          if (body?.error) detail = body.error;
+        } catch (_) {}
+        console.error('dax-chat raw error body:', detail);
         throw new Error(`Supabase dax-chat invoke failed: ${detail}`);
       }
 
+      if (!data?.reply && data?.error) throw new Error(data.error);
       return data?.reply || '';
     }
 
