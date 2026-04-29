@@ -785,6 +785,9 @@ function buildNormalDaxSystem(project, codeContext) {
   let pipBlock = '';
   if (project) {
     const projectData = projects.find(p => p.id === project.id || p.name === project.name);
+    if (projectData?.plan) {
+      pipBlock += `\n\nProject plan:\n${projectData.plan}`;
+    }
     const pips = (projectData?.subProjects || []);
     if (pips.length) {
       const pipList = pips.map(sp => `- ${sp.name}${sp.desc ? ': ' + sp.desc : ''} [${sp.stage || 'unknown stage'}]`).join('\n');
@@ -839,10 +842,18 @@ If you hit a technical problem you can't solve on your own (e.g. a file is too l
 [THINK:{"problem":"describe the specific technical challenge","context":"what you've already tried or what failed"}]
 Claude will respond with a concrete solution and you can continue. Use this instead of giving up or asking the user.
 
+To create a new PIP card in a project, output at the end of your message:
+[PIP:{"projectName":"exact project name","pipName":"short pip title","pipDesc":"one sentence description"}]
+
+Use PIP any time you are creating a new PIP that does not yet exist.
+
 To move a PIP to a different stage, output at the end of your message:
 [MOVE_PIP:{"projectName":"exact project name","pipName":"exact pip name","stage":"idea|todo|inprogress|done"}]
 
 Use MOVE_PIP any time you say you are moving, updating, or changing the status of a PIP. Never say you moved something without outputting this block.
+
+To save a plan for the project (visible in the Info tab), output at the end of your message:
+[WRITE_PLAN:{"projectName":"exact project name","plan":"the full plan text"}]
 
 Current focus: ${projectName}${pipBlock}${codeContextBlock}`;
 }
@@ -1186,6 +1197,29 @@ async function verifyPip(repo, pip, vercelUrl) {
   });
   if (error) throw new Error(error.message || 'dax-verify failed');
   return data;
+}
+
+async function createGithubRepoForProject(proj) {
+  const slug = String(proj.name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  const fullName = `madmyron/${slug}`;
+  const desc = String(proj.description || proj.name || '').replace(/"/g, '');
+  const job = {
+    pipId: `create-repo-${Date.now()}`,
+    title: `Create GitHub repo for ${proj.name}`,
+    technicalDescription: `Run this exact command and nothing else:\ngh repo create ${fullName} --public --description "${desc}"\nIf the repo already exists, that is fine — just confirm it exists.`,
+    files: [],
+    tools: 'Bash',
+  };
+  const res = await fetch('/api/claude-code-trigger', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobs: [job], projectName: proj.name }),
+  });
+  if (!res.ok) throw new Error(`Repo creation failed: ${res.status}`);
+  return fullName;
 }
 
 async function startClaudeCodeQueue(plan, project) {
@@ -1624,7 +1658,7 @@ function daxShowExecuteApproval(items) {
     <div style="padding:6px 0;border-bottom:1px solid var(--border2,#eee)">
       <div style="font-weight:600;font-size:13px">${esc(action.title || 'Code Change')}</div>
       <div style="font-size:12px;color:var(--text2,#666);margin-top:2px">${esc(action.description || action.technicalDescription || '')}</div>
-      ${!repo ? '<div style="color:#e55;font-size:11px;margin-top:3px">⚠ No GitHub repo linked — add it in Info tab first.</div>' : ''}
+      ${!repo ? '<div style="color:#b06a10;font-size:11px;margin-top:3px">⚠ No GitHub repo linked — I\'ll create one automatically.</div>' : ''}
     </div>`).join('');
 
   const card = document.createElement('div');
@@ -1649,9 +1683,31 @@ function daxShowExecuteApproval(items) {
   card.querySelector('.dax-approve-btn').addEventListener('click', async () => {
     card.remove();
 
-    for (const { action, proj, repo } of items) {
-      if (!repo) {
-        const msg = `Can't run "${action.title}" — no GitHub repo linked to ${action.projectName}. Add it in the project's Info tab.`;
+    for (const { action, proj } of items) {
+      let repo = proj ? getProjectRepo(proj) : null;
+      if (!repo && proj) {
+        const createMsg = `No GitHub repo linked for ${proj.name} — creating one now...`;
+        daxAddMsg('dax', 'Dax', createMsg);
+        daxHistory.push({ role: 'assistant', content: createMsg });
+        await saveDaxMessage('assistant', createMsg);
+        try {
+          repo = await createGithubRepoForProject(proj);
+          const updatedProj = { ...proj, githubRepo: repo };
+          projects = projects.map(p => p.id === proj.id ? updatedProj : p);
+          await saveProject(updatedProj);
+          const createdMsg = `Created ${repo}. Running: ${action.title}...`;
+          daxAddMsg('dax', 'Dax', createdMsg);
+          daxHistory.push({ role: 'assistant', content: createdMsg });
+          await saveDaxMessage('assistant', createdMsg);
+        } catch (repoErr) {
+          const errMsg = `Couldn't create repo for ${proj.name}: ${repoErr.message}`;
+          daxAddMsg('dax', 'Dax', errMsg);
+          daxHistory.push({ role: 'assistant', content: errMsg });
+          await saveDaxMessage('assistant', errMsg);
+          continue;
+        }
+      } else if (!repo) {
+        const msg = `Can't run "${action.title}" — no project found for ${action.projectName}.`;
         daxAddMsg('dax', 'Dax', msg);
         daxHistory.push({ role: 'assistant', content: msg });
         await saveDaxMessage('assistant', msg);
@@ -1914,9 +1970,10 @@ async function daxSend() {
       const executeMatches = extractDaxBlocks(reply, 'EXECUTE');
       const pipMatches = extractDaxBlocks(reply, 'PIP');
       const movePipMatches = extractDaxBlocks(reply, 'MOVE_PIP');
+      const writePlanMatches = extractDaxBlocks(reply, 'WRITE_PLAN');
       const thinkMatches = extractDaxBlocks(reply, 'THINK');
       let cleanText = reply;
-      [...executeMatches, ...pipMatches, ...movePipMatches, ...thinkMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
+      [...executeMatches, ...pipMatches, ...movePipMatches, ...writePlanMatches, ...thinkMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
       cleanText = cleanText.trim();
 
       // Handle THINK blocks — Dax is asking me for technical guidance, resolve silently then re-send
@@ -2005,12 +2062,17 @@ async function daxSend() {
           const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
           if (!proj) { daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}" to move PIP.`); continue; }
           const pipNameLower = String(action.pipName || '').toLowerCase();
-          const pip = (proj.subProjects || []).find(sp => String(sp.name || '').toLowerCase().includes(pipNameLower));
-          if (!pip) { daxAddMsg('dax', 'Dax', `Couldn't find PIP "${action.pipName}" in ${proj.name}.`); continue; }
+          let pip = (proj.subProjects || []).find(sp => String(sp.name || '').toLowerCase().includes(pipNameLower));
           const validStages = ['idea', 'todo', 'inprogress', 'done'];
           const newStage = validStages.includes(action.stage) ? action.stage : 'inprogress';
-          const updatedPip = { ...pip, stage: newStage };
-          const updatedProj = { ...proj, subProjects: proj.subProjects.map(sp => sp.id === pip.id ? updatedPip : sp) };
+          let updatedProj;
+          if (!pip) {
+            pip = mkSubP(action.pipName, '', newStage);
+            updatedProj = { ...proj, subProjects: [...(proj.subProjects || []), pip] };
+          } else {
+            const updatedPip = { ...pip, stage: newStage };
+            updatedProj = { ...proj, subProjects: proj.subProjects.map(sp => sp.id === pip.id ? updatedPip : sp) };
+          }
           projects = projects.map(p => p.id === proj.id ? updatedProj : p);
           await saveProject(updatedProj);
           render();
@@ -2024,7 +2086,22 @@ async function daxSend() {
         }
       }
 
-      if (!cleanText && !executeMatches.length && !pipMatches.length && !movePipMatches.length) {
+      // Handle WRITE_PLAN blocks
+      for (const match of writePlanMatches) {
+        try {
+          const action = match.parsed;
+          const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
+          if (!proj) { daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}" to save plan.`); continue; }
+          const updatedProj = { ...proj, plan: String(action.plan || '') };
+          projects = projects.map(p => p.id === proj.id ? updatedProj : p);
+          await saveProject(updatedProj);
+          daxAddMsg('dax', 'Dax', `Plan saved to ${proj.name}.`);
+        } catch (e) {
+          console.warn('Dax WRITE_PLAN error:', e);
+        }
+      }
+
+      if (!cleanText && !executeMatches.length && !pipMatches.length && !movePipMatches.length && !writePlanMatches.length) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
@@ -2092,14 +2169,17 @@ function closeDax() {
   daxConversationTitle = '';
 }
 
+function daxResize(inp) {
+  inp.style.height = 'auto';
+  inp.style.height = Math.min(inp.scrollHeight, 80) + 'px';
+}
+
 function daxKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     daxSend();
   }
-  const inp = e.target;
-  inp.style.height = 'auto';
-  inp.style.height = Math.min(inp.scrollHeight, 80) + 'px';
+  daxResize(e.target);
 }
 
 const daxOverlay = document.getElementById('dax-overlay');

@@ -75,7 +75,7 @@ export default async function handler(req, res) {
         const prompt = buildClaudePrompt(job, projectName, i + 1, jobs.length);
         const output = execFileSync(
           'claude',
-          ['--print', prompt, '--allowedTools', 'Edit,Write,Read'],
+          ['--print', prompt, '--allowedTools', job.tools || 'Edit,Write,Read'],
           {
             cwd: workdir,
             encoding: 'utf8',
@@ -179,6 +179,7 @@ function normalizeJob(job, index) {
     technicalDescription,
     files,
     status: job.status || 'queued',
+    tools: job.tools ? String(job.tools).trim() : null,
   };
 }
 

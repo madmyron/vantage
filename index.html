@@ -56,7 +56,7 @@
     <div class="dax-project-badge" id="dax-project-badge" style="display:none">Project: <span id="dax-project-name">â€”</span></div>
     <div class="dax-messages" id="dax-messages"></div>
     <div class="dax-footer">
-      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)"></textarea>
+      <textarea class="dax-input" id="dax-input" placeholder="Talk to Dax..." rows="1" onkeydown="daxKeydown(event)" oninput="daxResize(this)"></textarea>
       <button class="dax-send" onclick="daxSend()"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </div>
   </div>
