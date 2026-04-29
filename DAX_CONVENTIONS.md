@@ -246,9 +246,55 @@ The old NHL API (`statsapi.web.nhl.com/api/v1/schedule`) is **deprecated and ret
 
 | Data | Endpoint |
 |---|---|
-| Team schedule | `/club-schedule-season/{abbr}/now` |
+| Team schedule / live game | `/club-schedule-season/{abbr}/now` |
 | Standings | `/standings/now` |
-| Recent games | `/club-schedule-season/{abbr}/now` (filter completed) |
+| Recent games | `/club-schedule-season/{abbr}/now` (filter `OFF`/`FINAL`) |
+| Live score | `/club-schedule-season/{abbr}/now` (filter `LIVE`/`PRG`/`CRIT`) |
+
+**NHL game states — critical for filtering:**
+
+| State | Meaning |
+|---|---|
+| `FUT` | Future / not yet started |
+| `LIVE` | Game in progress |
+| `PRG` | Game in progress (alternate) |
+| `CRIT` | Final minutes, high leverage |
+| `FINAL` | Game over |
+| `OFF` | Official / final (same as FINAL) |
+
+```javascript
+const liveStates = ['LIVE', 'PRG', 'CRIT'];
+const finishedStates = ['OFF', 'FINAL'];
+
+// Next scheduled game — skip live AND finished
+const next = games.find(g => !liveStates.includes(g.gameState) && !finishedStates.includes(g.gameState));
+
+// Current live game
+const live = games.find(g => liveStates.includes(g.gameState));
+
+// Recent completed games
+const finished = games.filter(g => finishedStates.includes(g.gameState));
+```
+
+**Live score fields** (on game objects when `gameState` is live):
+- `homeTeam.score`, `awayTeam.score` — current score
+- `homeTeam.commonName.default`, `awayTeam.commonName.default` — team names
+- `periodDescriptor.number` — current period number
+- `periodDescriptor.periodType` — `'REG'`, `'OT'`, `'SO'`
+
+### Aria sports routes (server/index.js) — current inventory
+
+| Route | Query param | Returns |
+|---|---|---|
+| `GET /api/sports/next-game` | `?team=dallas stars` | Next scheduled game (skips live) |
+| `GET /api/sports/score` | `?team=dallas stars` | Live score if game in progress |
+| `GET /api/sports/standings` | none | Full NHL standings |
+| `GET /api/sports/last-games` | `?team=dallas stars` | Last 5 completed games |
+| `GET /api/sports/team-record` | `?team=dallas stars` | W/L/OT/points/division rank |
+
+**Adding a new intent in App.jsx** — two places to touch:
+1. Add to `intents` object in `detectIntent()` (regex for trigger words + team/sport keywords)
+2. Add a context-fetching block in the `buildContext()` function that calls the matching route and calls `blocks.push(formatContextBlock(...))`
 
 ### All API calls go through the backend
 
@@ -293,6 +339,8 @@ When adding or editing team lookups, verify abbreviations against the current le
 | max_tokens reset to 64000 | dax-execute file reverted or overwritten without convention check | Always verify max_tokens is 16000 after any dax-execute edit — 64000 causes immediate 500 |
 | Aria sport route 404 | Edited `api/sports/*.js` (Vercel stubs) instead of `server/index.js` | Aria backend is Railway Express — only `server/index.js` runs in production; `api/` is dead |
 | NHL schedule returns 404 | Using deprecated `statsapi.web.nhl.com/api/v1/schedule` | Use `api-web.nhle.com/v1/club-schedule-season/{abbr}/now` — old API is gone |
+| "Next game" returns live game | Filter only excludes `OFF`/`FINAL`, not `LIVE`/`PRG`/`CRIT` | Exclude all three live states when finding next scheduled game |
+| Score route returns nothing during game | Filtering on wrong game states | Live games use `LIVE`, `PRG`, or `CRIT` — check all three |
 | voiceInput not fetching data | Voice code calls league API directly instead of Aria backend | All sport API calls must go through `server/index.js` routes — never call NHL/NBA/etc. from client |
 | Wrong team abbr / no data | Team relocated or rebranded (e.g. Arizona Coyotes → Utah Mammoth) | Verify team abbrs against `api-web.nhle.com/v1/standings/now` before hardcoding lookup tables |
 | THINK block text leaks into chat | Literal `\n` or `\t` inside JSON string causes `JSON.parse()` to fail silently; block not stripped | Sanitize before parsing: `jsonStr.replace(/[\r\n\t]/g, ' ')` then parse |
