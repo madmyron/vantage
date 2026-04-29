@@ -1533,6 +1533,21 @@ function isMissingDaxHistoryError(err) {
   ));
 }
 
+function sanitizeDaxMessages(messages) {
+  // Anthropic requires strictly alternating user/assistant, starting with user
+  const merged = [];
+  for (const msg of messages) {
+    if (merged.length && merged[merged.length - 1].role === msg.role) {
+      merged[merged.length - 1] = { role: msg.role, content: merged[merged.length - 1].content + '\n' + msg.content };
+    } else {
+      merged.push({ ...msg });
+    }
+  }
+  // Must start with user
+  while (merged.length && merged[0].role !== 'user') merged.shift();
+  return merged;
+}
+
 async function callDaxChat(messages, context, system) {
   try {
     // Only send what dax-chat actually uses — system is already built with all context baked in
@@ -1962,7 +1977,7 @@ async function daxSend() {
     const codeContext = (repo && shouldFetchCodeContext(text, codeProject)) ? await fetchProjectCode(repo) : null;
     const context = buildDaxContext(activeProject, codeContext);
     const system = buildNormalDaxSystem(activeProject, codeContext);
-    const reply = await callDaxChat(daxHistory.slice(-30), context, system);
+    const reply = await callDaxChat(sanitizeDaxMessages(daxHistory.slice(-30)), context, system);
     daxRemoveTyping();
     daxTyping = false;
 
@@ -1987,7 +2002,7 @@ async function daxSend() {
             const injected = `Claude's guidance: ${solution}`;
             daxHistory.push({ role: 'user', content: injected });
             // Re-call Dax with the guidance injected — it will continue from here
-            const followUp = await callDaxChat(daxHistory.slice(-30), context, system);
+            const followUp = await callDaxChat(sanitizeDaxMessages(daxHistory.slice(-30)), context, system);
             daxRemoveTyping();
             if (followUp) {
               const cleanFollowUp = followUp
