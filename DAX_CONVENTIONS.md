@@ -216,23 +216,27 @@ const slim = {
 
 ## Aria Architecture (aria-assistant repo)
 
-Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel serverless functions — **it is not used in production**. Always edit `server/index.js` for backend changes.
+Aria runs on **Railway**, not Vercel. The `api/` folder in the repo is Vercel serverless functions — **it is not used in production**. Always edit `server/index.js` for non-sports backend changes.
 
 | File | Purpose |
 |---|---|
-| `server/index.js` | Express server — all API routes live here |
-| `sportsBackend.js` | NHL team data + NHL API helpers — **not imported by server/index.js**, standalone module |
+| `server/index.js` | Express server — auth, chat, calendar, SMS, weather, memory routes |
+| `server/sports.js` | **All sports routes** — edit this for anything sports-related |
+| `sportsBackend.js` | Old standalone module — **not imported anywhere**, ignore it |
 | `client/src/App.jsx` | Frontend — intent detection, context fetching, Claude chat |
 | `api/` | Vercel serverless stubs — **ignored in production** |
 | `railway.toml` | Deploy config: `cd server && node index.js` |
 
-**Adding a new sport (NBA, NFL, MLB):**
-1. Add a team lookup map in `server/index.js` (same pattern as `NHL_NEXT_GAME_TEAMS`)
-2. Add routes: `/api/sports/next-game`, `/api/sports/standings`, `/api/sports/last-games`, `/api/sports/team-record` — scoped to that sport (e.g. `?sport=nba&team=mavericks`)
-3. Add intent keywords in `client/src/App.jsx` (extend `sports:` regex and add `nextGame`/`standings`/etc. regexes)
-4. Add `detectTeam()` call in the context-building section and `fetchJson` calls to the new routes
-5. **Use the league's official API** — NHL uses `api-web.nhle.com`, NBA uses `stats.nba.com` or ESPN, NFL uses ESPN, MLB uses `statsapi.mlb.com`
-6. Write team lookup tables directly (git clone → edit → push) — do NOT ask Dax to generate 30+ team entries
+**Why sports.js is separate:** `server/index.js` hit 942 lines when NHL + NBA routes were added. dax-execute has to rewrite the full file — at that size it truncates. `server/sports.js` is ~300 lines and safe for dax-execute to edit.
+
+**Adding a new sport (NFL, MLB, etc.):**
+1. Add a team lookup map in `server/sports.js` (same pattern as `NHL_TEAMS` / `NBA_TEAMS`)
+2. Add 5 routes in `server/sports.js`: `/{sport}/next-game`, `/{sport}/score`, `/{sport}/standings`, `/{sport}/last-games`, `/{sport}/team-record`
+3. Add intent keywords in `client/src/App.jsx` `detectIntent()` function
+4. Add context-fetching blocks in `buildContext()` in App.jsx calling `formatContextBlock()` + `blocks.push()`
+5. **NFL/NBA/MLB use ESPN API** — `site.api.espn.com/apis/site/v2/sports/{sport}/{league}/...`
+6. **NHL uses** `api-web.nhle.com/v1` — different response shape, see NHL section below
+7. Write team lookup tables directly (git clone → edit → push) — never ask Dax to generate 30+ entries
 
 ---
 
