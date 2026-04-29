@@ -48,11 +48,14 @@ Deno.serve(async (req: Request) => {
     const tools = isReviewMode ? [proposeReviewPlanTool()] : undefined;
     const toolChoice = isReviewMode ? { type: "tool" as const, name: "propose_review_plan" } : undefined;
 
+    // Sanitize messages to prevent Anthropic API errors (empty text blocks, role alternation)
+    const sanitizedMessages = sanitizeMessages(messages);
+
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
       system: systemPrompt,
-      messages,
+      messages: sanitizedMessages,
       ...(tools ? { tools, tool_choice: toolChoice } : {}),
     });
 
@@ -155,6 +158,41 @@ function buildReviewSystem(ctx?: {
   lines.push('Do not include a summary field. Do not wrap in markdown. Do not add any text outside the JSON.');
 
   return lines.join("\n");
+}
+
+function sanitizeMessages(messages: Array<{ role: string; content: any }>) {
+  if (!messages || messages.length === 0) return [];
+
+  const result: Array<{ role: string; content: any }> = [];
+
+  for (const msg of messages) {
+    // 1. Remove empty content to prevent {"type": "text", "text": ""} errors
+    if (!msg.content || (typeof msg.content === 'string' && msg.content.trim() === '')) {
+      continue;
+    }
+
+    // 2. Ensure strictly alternating roles (user -> assistant -> user)
+    if (result.length > 0 && result[result.length - 1].role === msg.role) {
+      // Merge consecutive messages of the same role
+      const lastMsg = result[result.length - 1];
+      if (typeof lastMsg.content === 'string' && typeof msg.content === 'string') {
+        lastMsg.content += `\n\n${msg.content}`;
+      } else {
+        // If not both strings, we can't easily merge, so we just skip the duplicate role
+        // to maintain the required alternation.
+        continue;
+      }
+    } else {
+      result.push({ ...msg });
+    }
+  }
+
+  // 3. Anthropic requires the conversation to start with a 'user' role
+  if (result.length > 0 && result[0].role !== 'user') {
+    result.shift();
+  }
+
+  return result;
 }
 
 function proposeReviewPlanTool() {
