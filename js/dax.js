@@ -1706,7 +1706,10 @@ function daxAddMsg(role, label, text, opts = {}) {
 
   const div = document.createElement('div');
   div.className = `dax-msg ${role}`;
-  div.innerHTML = `<div class="dax-msg-label">${label}</div><div class="dax-bubble">${esc(text).replace(/\n/g, '<br>')}</div>`;
+  const copyBtn = role === 'dax'
+    ? `<button class="dax-copy-btn" title="Copy" onclick="navigator.clipboard.writeText(this.closest('.dax-msg').querySelector('.dax-bubble').innerText).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='⎘',1200)})">⎘</button>`
+    : '';
+  div.innerHTML = `<div class="dax-msg-label">${label}${copyBtn}</div><div class="dax-bubble">${esc(text).replace(/\n/g, '<br>')}</div>`;
   msgs.appendChild(div);
   if (!opts.silent) scrollDaxToBottomDelayed();
 }
