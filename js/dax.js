@@ -1629,6 +1629,7 @@ async function callDaxChat(messages, context, system) {
 
 async function initDax() {
   ensureDaxConversationHeaderControls();
+  initDaxImagePaste();
   const history = await loadDaxHistory();
   daxHistory = Array.isArray(history) ? history.filter(m => !looksLikeJson(m.content)).map(m => ({ role: m.role, content: m.content })) : [];
 
@@ -2205,6 +2206,59 @@ function daxKeydown(e) {
     daxSend();
   }
   daxResize(e.target);
+}
+
+function initDaxImagePaste() {
+  const inp = document.getElementById('dax-input');
+  if (!inp) return;
+  inp.addEventListener('paste', async (e) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
+      const mediaType = file.type || 'image/png';
+      // Show preview in chat
+      const msgs = document.getElementById('dax-messages');
+      const preview = document.createElement('div');
+      preview.className = 'dax-msg user';
+      preview.innerHTML = `<div class="dax-msg-label">You</div><div class="dax-bubble" style="padding:6px"><img src="${reader.result}" style="max-width:200px;max-height:160px;border-radius:6px;display:block"></div>`;
+      msgs.appendChild(preview);
+      scrollDaxToBottomDelayed();
+      // Send to Dax with image + any typed text
+      const text = inp.value.trim() || 'What do you see in this image?';
+      inp.value = '';
+      daxHistory.push({ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+        { type: 'text', text }
+      ]});
+      await saveDaxMessage('user', `[image] ${text}`);
+      daxTyping = true;
+      daxShowTyping();
+      try {
+        const activeProject = daxProjectId ? projects.find(p => p.id === daxProjectId) : null;
+        const context = buildDaxContext(activeProject, null);
+        const system = buildNormalDaxSystem(activeProject, null);
+        const reply = await callDaxChat(daxHistory.slice(-30), context, system);
+        daxRemoveTyping();
+        daxTyping = false;
+        if (reply) {
+          daxAddMsg('dax', 'Dax', reply);
+          daxHistory.push({ role: 'assistant', content: reply });
+          await saveDaxMessage('assistant', reply);
+        }
+      } catch (err) {
+        daxRemoveTyping();
+        daxTyping = false;
+        daxAddMsg('dax', 'Dax', 'Could not process the image.');
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 const daxOverlay = document.getElementById('dax-overlay');

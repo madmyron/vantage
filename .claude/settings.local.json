@@ -13,6 +13,9 @@
       "Bash(git -C \"c:/Users/micha/Desktop/Vantage\" status)",
       "Bash(git init *)",
       "Bash(git commit -m ' *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\micha\\.claude"
     ]
   }
 }
