@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vantage-shell-v1';
+const CACHE_NAME = 'vantage-shell-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
