@@ -1700,6 +1700,10 @@ function daxShowExecuteApproval(items) {
 }
 
 function daxAddMsg(role, label, text, opts = {}) {
+  // Strip any THINK blocks before displaying
+  text = String(text || '').replace(/\[THINK:\{[\s\S]*?\}\}\]/g, '').trim();
+  if (!text) return;
+
   const msgs = document.getElementById('dax-messages');
   const empty = document.getElementById('dax-empty');
   if (empty) empty.remove();
