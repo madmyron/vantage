@@ -1996,10 +1996,11 @@ async function daxSend() {
       const executeMatches = extractDaxBlocks(reply, 'EXECUTE');
       const pipMatches = extractDaxBlocks(reply, 'PIP');
       const movePipMatches = extractDaxBlocks(reply, 'MOVE_PIP');
+      const deletePipMatches = extractDaxBlocks(reply, 'DELETE_PIP');
       const writePlanMatches = extractDaxBlocks(reply, 'WRITE_PLAN');
       const thinkMatches = extractDaxBlocks(reply, 'THINK');
       let cleanText = reply;
-      [...executeMatches, ...pipMatches, ...movePipMatches, ...writePlanMatches, ...thinkMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
+      [...executeMatches, ...pipMatches, ...movePipMatches, ...deletePipMatches, ...writePlanMatches, ...thinkMatches].forEach(m => { cleanText = cleanText.replace(m.raw, ''); });
       cleanText = cleanText.trim();
 
       // Handle THINK blocks — Dax is asking me for technical guidance, resolve silently then re-send
@@ -2112,6 +2113,28 @@ async function daxSend() {
         }
       }
 
+      // Handle DELETE_PIP blocks
+      for (const match of deletePipMatches) {
+        try {
+          const action = match.parsed;
+          const proj = projects.find(p => String(p.name).toLowerCase().includes(String(action.projectName || '').toLowerCase()));
+          if (!proj) { daxAddMsg('dax', 'Dax', `Couldn't find project "${action.projectName}" to delete PIP.`); continue; }
+          const pipNameLower = String(action.pipName || '').toLowerCase();
+          const pip = (proj.subProjects || []).find(sp => String(sp.name || '').toLowerCase().includes(pipNameLower) || String(sp.id || '').toLowerCase() === pipNameLower);
+          if (!pip) { daxAddMsg('dax', 'Dax', `Couldn't find PIP "${action.pipName}" in ${proj.name}.`); continue; }
+          const updatedProj = { ...proj, subProjects: proj.subProjects.filter(sp => sp.id !== pip.id) };
+          projects = projects.map(p => p.id === proj.id ? updatedProj : p);
+          await saveProject(updatedProj);
+          render();
+          const deleteMsg = `Deleted "${pip.name}" from ${proj.name}.`;
+          daxAddMsg('dax', 'Dax', deleteMsg);
+          daxHistory.push({ role: 'assistant', content: deleteMsg });
+          await saveDaxMessage('assistant', deleteMsg);
+        } catch (e) {
+          console.warn('Dax DELETE_PIP error:', e);
+        }
+      }
+
       // Handle WRITE_PLAN blocks
       for (const match of writePlanMatches) {
         try {
@@ -2127,7 +2150,7 @@ async function daxSend() {
         }
       }
 
-      if (!cleanText && !executeMatches.length && !pipMatches.length && !movePipMatches.length && !writePlanMatches.length) {
+      if (!cleanText && !executeMatches.length && !pipMatches.length && !movePipMatches.length && !deletePipMatches.length && !writePlanMatches.length) {
         daxAddMsg('dax', 'Dax', reply);
         daxHistory.push({ role: 'assistant', content: reply });
         await saveDaxMessage('assistant', reply);
