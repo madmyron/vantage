@@ -12,6 +12,10 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 // ── INIT ──────────────────────────────────────────────────────
 
 async function init() {
+  // Gate the entire app behind Supabase Auth. requireAuth() shows a
+  // login modal and resolves once the user has a valid session.
+  await requireAuth();
+
   await loadProjects();
   await initDax();
   if ('serviceWorker' in navigator) {
