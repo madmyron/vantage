@@ -3,3 +3,7 @@
 .netlify
 
 .vercel
+
+# Claude Code local working directory — never commit, contains
+# per-session worktrees that break GitHub Actions checkout if tracked.
+.claude/
